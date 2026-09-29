@@ -46,6 +46,7 @@ CHECKS = [
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
     ('真实交互与渲染', ['node', 'tools/smoke.js'], '全部通过'),
     ('8 组主题对比度', ['node', 'tools/verify-themes.js'], '全部通过'),
+    ('静态内容适配器 vs 原脚本（差分对照）', ['python3', 'tools/verify-static-adapter.py'], '全部通过'),
 ]
 
 
