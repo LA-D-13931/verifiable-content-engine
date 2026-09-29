@@ -76,7 +76,7 @@ for (const p of plugins) {
     const types = p.d === 'linalg'
         ? ['det', 'rank', 'solve', 'collinear', 'eigen', 'on-span', 'in-basis',
            'in-basis-matrix', 'vector-angle', 'cross-mag', 'cross-dir', 'intercept', 'null-space']
-        : ['calc-limit', 'calc-derivative', 'calc-monotone'];
+        : ['calc-limit', 'calc-derivative', 'calc-monotone', 'calc-riemann'];
 
     /* 为每个类型构造一个「必然判不过」的上下文 */
     const failCtx = {
@@ -99,7 +99,8 @@ for (const p of plugins) {
         'null-space': { matrix: [[1, 0], [0, 1]] },
         'calc-limit': { param: 99 },
         'calc-derivative': { param: 99 },
-        'calc-monotone': {}
+        'calc-monotone': {},
+        'calc-riemann': { param: 2 }        // 分割太粗 → 必然判不过
     };
     const failCheck = {
         det: { type: 'det', op: 'eq', value: 999, tol: 0.1 },
@@ -117,7 +118,8 @@ for (const p of plugins) {
         'null-space': { type: 'null-space', target: 'v' },
         'calc-limit': { type: 'calc-limit', expr: { op: 'var' }, at: 1, value: 1, epsilon: 0.0001 },
         'calc-derivative': { type: 'calc-derivative', expr: { op: 'sin', a: { op: 'var' } }, at: 0, value: 1, tol: 0.0001 },
-        'calc-monotone': { type: 'calc-monotone', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: -1, to: 1, sign: 1 }
+        'calc-monotone': { type: 'calc-monotone', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: -1, to: 1, sign: 1 },
+        'calc-riemann': { type: 'calc-riemann', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: 0, to: 1, value: 1 / 3, tol: 0.01 }
     };
 
     let covered = 0;

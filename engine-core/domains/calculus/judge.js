@@ -153,6 +153,39 @@ root.CalculusJudge = (function () {
         return ok({ from: from, to: to, sign: want, totalChange: changed });
     }
 
+
+    /* ---------------- 黎曼和逼近定积分 ----------------
+       用户拖动分割数 n（或用滑杆）。判定：左端点和与定积分的差是否小于容差。
+       与 ε-δ 同构：δ 是「邻域能多小」，n 是「分割能多细」——两者都是
+       「把连续对象离散化的精度参数」，也都是**连续参数空间上的可达性判定**。
+       若对任何 n 都无法达标（例如函数在该区间无界），该任务不可达。 */
+    function checkRiemann(check, ctx) {
+        const n = ctx.param;
+        if (typeof n !== 'number' || !isFinite(n)) {
+            return bad('分割数 n 还不是一个有效数值', { n: n });
+        }
+        if (n < 1) return bad('分割数 n 至少要 1', { n: n });
+        const N = Math.max(1, Math.round(n));
+        const { expr, from, to, value: target, tol } = check;
+        if (!(from < to)) return bad('区间不合法：from 应小于 to', { from: from, to: to });
+
+        const h = (to - from) / N;
+        let sum = 0;
+        for (let i = 0; i < N; i++) {
+            const fx = evalF(expr, from + i * h);
+            if (!isFinite(fx)) return bad('x = ' + num(from + i * h) + ' 处函数无定义',
+                                          { at: from + i * h });
+            sum += fx * h;
+        }
+        const t = tol == null ? 0.05 : tol;
+        const err = Math.abs(sum - target);
+        return err <= t
+            ? ok({ n: N, sum: sum, error: err })
+            : bad('n = ' + N + ' 时左端点和为 ' + num(sum) + '，与目标 ' + target
+                  + ' 相差 ' + num(err) + '（容差 ' + t + '）',
+                  { n: N, sum: sum, target: target, error: err });
+    }
+
     /* 判定入口。返回三态：
          null                                  —— 不是本领域的类型
          { pass:true,  reason:'', certificate } —— 判过
@@ -182,6 +215,7 @@ root.CalculusJudge = (function () {
             case 'calc-limit':      return checkLimit(check, ctx);
             case 'calc-derivative': return checkDerivative(check, ctx);
             case 'calc-monotone':   return checkMonotone(check, ctx);
+            case 'calc-riemann':    return checkRiemann(check, ctx);
             default:                return null;   // 不是高数的类型
         }
     }
@@ -240,6 +274,40 @@ root.CalculusJudge = (function () {
                         expr: { op: 'add', a: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } },
                                 b: { op: 'const', v: 0 } },
                         from: 0, to: 1, sign: 1
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-4',
+            title: '切线：局部线性近似',
+            param: { name: 'h', from: 0.001, to: 2, step: 0.001, init: 1 },
+            tasks: [
+                {
+                    id: 'tangent',
+                    text: '把 h 调小，让切线斜率逼近 f′(x₀)',
+                    check: {
+                        type: 'calc-derivative',
+                        /* 用 sqrt 而不是多项式：它的中心差商随 h 明显变化，
+                           关卡才对参数敏感（二次函数的中心差商与 h 无关，见 cal-2 的注释）。 */
+                        expr: { op: 'sqrt', a: { op: 'var' } },
+                        at: 4, value: 0.25, tol: 0.01    // d/dx √x 在 x=4 处 = 1/4
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-5',
+            title: '定积分：分割越细越准',
+            param: { name: 'n', from: 1, to: 200, step: 1, init: 1 },
+            tasks: [
+                {
+                    id: 'riemann',
+                    text: '把分割数 n 调大，让左端点和逼近 ∫₀¹ x² dx = 1/3',
+                    check: {
+                        type: 'calc-riemann',
+                        expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } },
+                        from: 0, to: 1, value: 1 / 3, tol: 0.01
                     }
                 }
             ]

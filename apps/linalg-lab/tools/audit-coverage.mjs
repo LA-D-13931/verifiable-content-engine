@@ -99,6 +99,8 @@ const CASES = {
        而不是小容差 —— 小 h 会让差商更准，反而判过。 */
     'calc-derivative':  [{ type: 'calc-derivative', expr: { op: 'sin', a: { op: 'var' } }, at: 0, value: 1, tol: 0.02 },
                          { type: 'calc-derivative', expr: { op: 'sin', a: { op: 'var' } }, at: 0, value: 1, tol: 0.02 }],
+    'calc-riemann':     [{ type: 'calc-riemann', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: 0, to: 1, value: 1 / 3, tol: 0.01 },
+                         { type: 'calc-riemann', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: 0, to: 1, value: 99, tol: 0.01 }],
     'calc-monotone':    [{ type: 'calc-monotone', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: 0, to: 1, sign: 1 },
                          { type: 'calc-monotone', expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } }, from: -1, to: 1, sign: 1 }]
 };
@@ -112,7 +114,8 @@ const CTX_OK = {
     'collinear': { matrix: [[1, 0], [0, 1]] },
     'calc-limit': { param: 0.05 },
     'calc-derivative': { param: 0.01 },
-    'calc-monotone': {}
+    'calc-monotone': {},
+    'calc-riemann': { param: 100 }
 };
 const CTX_BAD = {
     'cross-mag': CTX_OK['cross-mag'],
@@ -125,7 +128,8 @@ const CTX_BAD = {
     'null-space': { matrix: [[1, 0], [0, 1]], vectors: [{ id: 'v', data: [1, 1] }] },
     'calc-limit': { param: 99 },                     // δ 很大 → 邻域内有偏差
     'calc-derivative': { param: 1 },                 // h 很大 → 差商明显偏离
-    'calc-monotone': {}
+    'calc-monotone': {},
+    'calc-riemann': { param: 2 }
 };
 
 console.log('=== 判题信息量审计 ===');

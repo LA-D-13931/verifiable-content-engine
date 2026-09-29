@@ -39,7 +39,7 @@ const SIN = { op: 'sin', a: X };
 const SQR = { op: 'pow', a: X, b: K(2) };
 
 console.log('=== 高数领域插件：离线回归测试 ===');
-console.log(`判题类型：calc-limit / calc-derivative / calc-monotone`);
+console.log(`判题类型：calc-limit / calc-derivative / calc-monotone / calc-riemann`);
 console.log('');
 
 console.log('calc-limit（ε-δ 极限）');
@@ -89,6 +89,36 @@ console.log('\ncalc-monotone（单调区间）');
        '区间不合法时判不过');
 }
 
+console.log('\ncalc-riemann（黎曼和逼近定积分）');
+{
+    const chk = { type: 'calc-riemann', expr: { op: 'pow', a: X, b: K(2) },
+                  from: 0, to: 1, value: 1 / 3, tol: 0.01 };
+    ok(C.judge(chk, ctx(100)).pass === true, 'n = 100 判过（够细）');
+    ok(C.judge(chk, ctx(50)).pass === true, 'n = 50 判过');
+    const coarse = C.judge(chk, ctx(5));
+    ok(coarse.pass === false, 'n = 5 判不过（太粗）');
+    ok(/相差/.test(coarse.reason), '原因里给出了误差', coarse.reason);
+    ok(typeof coarse.certificate.error === 'number', '证书里带误差数值');
+    /* 参数敏感性 —— 这是本关卡的立身之本 */
+    /* 初值必须是 +Infinity，不能用 -1：
+       误差是「越小越好」，从 -1 起比会让第一次迭代就判成「变大」。
+       （第一版写成 -1，于是这条断言必然失败——测试自身的 bug，不是实现的。） */
+    let prev = Infinity, monotone = true, seen = [];
+    for (const n of [1, 2, 5, 10, 20, 50, 100, 200]) {
+        const err = C.judge(chk, ctx(n)).certificate.error;
+        seen.push(err.toFixed(4));
+        if (err > prev + 1e-12) monotone = false;
+        prev = err;
+    }
+    ok(monotone, '误差随 n 单调不增（说明判据真的在衡量逼近程度）', seen.join(' → '));
+    ok(C.judge(chk, ctx(0)).pass === false, 'n = 0 判不过');
+    ok(C.judge(chk, ctx(NaN)).pass === false, 'n 非数值时判不过');
+    /* 不可达：无界函数在含奇点的区间上，任何 n 都做不出来 */
+    const unreach = C.judge({ type: 'calc-riemann', expr: { op: 'div', a: K(1), b: X },
+                              from: 0, to: 1, value: 1, tol: 0.01 }, ctx(100));
+    ok(unreach.pass === false, '无界函数（1/x 在 0 处）给出不可达诊断', unreach.reason);
+}
+
 console.log('\n领域边界');
 {
     ok(C.judge({ type: 'det', op: 'eq', value: 1 }, ctx(null)) === null,
@@ -102,8 +132,8 @@ console.log('\n领域边界');
 
 console.log('\n示例关卡');
 {
-    ok(Array.isArray(C.sampleLabs) && C.sampleLabs.length === 3,
-       `提供 ${C.sampleLabs ? C.sampleLabs.length : 0} 个示例关卡（供界面与测试使用）`);
+    ok(Array.isArray(C.sampleLabs) && C.sampleLabs.length === 5,
+       `提供 ${C.sampleLabs ? C.sampleLabs.length : 0} 个示例关卡（P2 目标：5 个）`);
     const all = C.sampleLabs.every(l => l.tasks.every(t => C.judge(t.check, ctx(null)) !== null));
     ok(all, '示例关卡里的判题类型都能被本插件接住');
 }
