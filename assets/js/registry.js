@@ -127,7 +127,8 @@ root.CheckRegistry = (function () {
         if (picked == null) return bad('还没有选择');
         return picked === check.correct
             ? ok({ picked: picked })
-            : bad('选了第 ' + (picked + 1) + ' 项，不是正确答案', { picked: picked });
+            : bad('选了第 ' + (picked + 1) + ' 项，不是正确答案',
+                  { picked: picked, correct: check.correct });
     });
 
     /* 过程型任务：声明的动作必须都产生过可观测事件。

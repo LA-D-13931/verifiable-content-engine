@@ -374,7 +374,18 @@ root.LinalgJudge = (function () {
         const r = judgeRaw(check, ctx);
         if (r === null) return null;
         const pass = (typeof r === 'boolean') ? r : !!r.pass;
-        if (pass) return { pass: true, reason: '', certificate: null };
+
+        /* 判过时也给证书：立意文档 §5.3 要求每个策略都返回证书（见证或反证），
+           所以「通过」不该是 certificate: null。
+           身份不明的类型（无诊断）退化为 null，由 verify-diagnostics 盯着覆盖率。 */
+        const diagFn = DIAGNOSE[check.type];
+        if (pass) {
+            let cert = null;
+            if (diagFn) {
+                try { cert = (diagFn(check, ctx) || {}).certificate || null; } catch (e) { cert = null; }
+            }
+            return { pass: true, reason: '', certificate: cert };
+        }
 
         /* 判不过：补上原因与证书。诊断与判定分处两地是刻意的取舍
            （不碰那 13 段已验证的代码），覆盖率由 verify-diagnostics.mjs 盯着。 */

@@ -35,6 +35,7 @@ CHECKS = [
     ('引擎独立运行：全部任务可判定', ['node', 'tools/verify-engine.mjs'], '全部通过'),
     ('高等数学领域插件（第二科目）', ['node', 'tools/verify-calculus.mjs'], '全部通过'),
     ('诊断覆盖率：判不过必须给原因与证书', ['node', 'tools/verify-diagnostics.mjs'], '全部通过'),
+    ('判题信息量审计（23 个类型两条路径）', ['node', 'tools/audit-coverage.mjs'], '所有类型'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
