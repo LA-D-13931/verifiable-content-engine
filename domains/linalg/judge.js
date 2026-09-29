@@ -208,6 +208,9 @@ root.LinalgJudge = (function () {
         }
     }
 
-    return { judge: judge };
+    const api = { judge: judge };
+    /* Node 下同时导出，便于离线回归测试直接 require。 */
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
 })();
 }(typeof globalThis !== 'undefined' ? globalThis : this));

@@ -20,6 +20,9 @@ const require = createRequire(import.meta.url);
 
 const R = require(join(SITE, 'assets', 'js', 'registry.js'));
 const Mat = require(join(SITE, 'assets', 'js', 'mat.js'));
+/* 领域插件也加载进来：回归用例要同时覆盖引擎层与领域层。 */
+let Linalg = null;
+try { Linalg = require(join(SITE, 'domains', 'linalg', 'judge.js')); } catch (e) { /* 无 */ }
 
 let pass = 0, fail = 0;
 const failures = [];
@@ -202,6 +205,56 @@ console.log('回归 · 辨析题：不能把多个选项都判为对');
     } else {
         fail++; failures.push(`辨析题回归：第 ${bad.join('、')} 项被误判为正确`);
         console.log(`  ✗ 第 ${bad.join('、')} 项被误判为正确`);
+    }
+}
+
+/* 缺陷 4-4：矩阵 A·B·C 手算错误（写成了 [[-1,0],[2,1]]，正确是 [[2,-1],[2,0]]）。
+   界面上矩阵显示正常、网格变形正常，任务却永远判不过。
+   本用例锁定：match-matrix 必须能分辨出这两个矩阵，不能因为容差过宽而放行。 */
+console.log('回归 · 实验 4-4：手算矩阵数值错误必须被判据分辨出来');
+{
+    const wrong = [[-1, 0], [2, 1]];      // 当时写错的值
+    const right = [[2, -1], [2, 0]];      // 正确值
+    const check = { type: 'match-matrix', matrix: right, tol: 0.05 };
+    const rWrong = R.run(check, ctx({ matrix: wrong }));
+    const rRight = R.run(check, ctx({ matrix: right }));
+    if (rWrong.pass === false && rRight.pass === true) {
+        pass++; console.log('  ✓ 错误矩阵判不过、正确矩阵判过（判据能分辨）');
+        console.log('      诊断：' + rWrong.reason);
+    } else {
+        fail++; failures.push('4-4 回归：match-matrix 无法分辨错误矩阵');
+        console.log(`  ✗ 错误矩阵 pass=${rWrong.pass}，正确矩阵 pass=${rRight.pass}`);
+    }
+}
+
+/* 缺陷：collinear / eigen 曾把「反向共线」当成不共线。
+   原因是直接用 angleBetweenDeg 与角度阈值比较，而反向共线给的是 180°。
+   修法是折回锐角：min(ang, 180 - ang)。
+   本用例锁定：eigen 在反向共线（λ = −1）时必须判过。 */
+console.log('回归 · 反向共线（180°）不能被误判为不共线');
+if (!Linalg) {
+    console.log('  · 领域插件未加载，跳过');
+} else {
+    const check = { type: 'eigen', value: -1, tol: 0.12, tolDeg: 4 };
+    // 反射矩阵 [[0,1],[1,0]]：v=(1,−1) 是特征向量，特征值 −1（反向）
+    const context = ctx({
+        matrix: [[0, 1], [1, 0]],
+        vectors: [{ id: 'v', data: [1, -1] }]
+    });
+    const r = Linalg.judge(check, context);
+    if (r === true) {
+        pass++; console.log('  ✓ 反向共线（λ = −1）判过');
+    } else {
+        fail++; failures.push('反向共线回归：eigen 判不过');
+        console.log(`  ✗ 反向共线判为 ${r}`);
+    }
+    // 反例：同向共线但 λ 不对，必须判不过 —— 证明判定不是恒真
+    const r2 = Linalg.judge({ type: 'eigen', value: 5, tol: 0.12, tolDeg: 4 }, context);
+    if (r2 === false) {
+        pass++; console.log('  ✓ λ 不符时判不过（判定不是恒真）');
+    } else {
+        fail++; failures.push('反向共线回归：λ 不符却判过');
+        console.log('  ✗ λ 不符却判过');
     }
 }
 
