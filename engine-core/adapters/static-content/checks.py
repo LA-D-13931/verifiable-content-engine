@@ -255,11 +255,12 @@ def run(root):
     for name, label, fn in CHECKS:
         r = fn(ctx)
         out.append({'name': name, 'label': label, **r})
-    try:
-        import checks_structure
-        for name, label, fn in checks_structure.CHECKS:
+    for mod_name in ('checks_structure', 'checks_bilingual'):
+        try:
+            mod = __import__(mod_name)
+        except ImportError:
+            continue
+        for name, label, fn in mod.CHECKS:
             r = fn(root)
             out.append({'name': name, 'label': label, 'delegated': True, **r})
-    except ImportError:
-        pass
     return {'root': root, 'docs': len(ctx['docs']), 'results': out}

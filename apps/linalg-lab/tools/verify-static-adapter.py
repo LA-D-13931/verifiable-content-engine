@@ -153,6 +153,39 @@ else:
            '%s 数一致（适配器 %s / 原脚本 %s）' % (label, cnt.get(key), want))
     ok(c.get('delegated') is not False, '明确标注该项为「委托执行」而非重写')
 
+# ---------- 双语对照：原脚本 ----------
+print('')
+print('原脚本（主站 tests/check-bilingual.py）')
+rc3, out3 = run_original('check-bilingual.py')
+if rc3 is None:
+    ok(False, '双语原脚本可运行', out3)
+else:
+    ok(rc3 == 0, '双语原脚本对快照通过（退出码 0）', '退出码 %s' % rc3)
+    o_detail = nums(r'行内符号出现次数不同\s*(\d+)\s*处', out3)
+    o_num = nums(r'数字/节号两侧不完全对应\s*(\d+)\s*处', out3)
+    print('    统计：行内符号差异 %s 处（不阻断）· 节号不对应 %s 处（不阻断）'
+          % (o_detail, o_num))
+
+print('')
+print('双语对照一致性')
+B = by.get('bilingual')
+if B is None:
+    ok(False, '适配器报告里有双语项')
+else:
+    cb = B.get('certificate') or {}
+    ok(B['pass'] == (rc3 == 0), '结论一致（适配器 %s / 原脚本退出码 %s）'
+       % ('通过' if B['pass'] else '不通过', rc3))
+    ok(cb.get('inlineSymbolDiff') == o_detail,
+       '行内符号差异数一致（适配器 %s / 原脚本 %s）'
+       % (cb.get('inlineSymbolDiff'), o_detail))
+    ok(cb.get('numberMismatch') == o_num,
+       '节号不对应数一致（适配器 %s / 原脚本 %s）'
+       % (cb.get('numberMismatch'), o_num))
+    # 关键：不阻断的两档不能被算成硬性问题
+    ok(not cb.get('issues'),
+       '「供人工确认」的两档未被误算为硬性问题（硬性问题 %d 条）'
+       % len(cb.get('issues') or []))
+
 print('')
 if failures:
     print('失败 %d 项 ✗' % len(failures))
