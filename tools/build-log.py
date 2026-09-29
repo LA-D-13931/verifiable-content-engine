@@ -32,6 +32,7 @@ LOG = os.path.join(WORKSPACE, '00_工作区索引', '构建日志.md')
 CHECKS = [
     ('矩阵层：生成物最新 + 两侧同一个数学', ['python3', 'tools/verify-mat.py'], '全部通过'),
     ('判题注册表：离线回归（无需浏览器）', ['node', 'tools/verify-registry.mjs'], '全部通过'),
+    ('引擎独立运行：全部任务可判定', ['node', 'tools/verify-engine.mjs'], '全部通过'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
@@ -58,7 +59,6 @@ def outcome(rc, out):
     稳妥的判据是：退出码为 0，且输出里没有「失败 N 项」。
     （第一版把通过项也标成了 ✗，还把失败项算进「通过」计数，两个 bug。）
     """
-    import re
     m = re.search(r'失败\s*(\d+)\s*项', out)
     if m and int(m.group(1)) > 0:
         return False
@@ -67,15 +67,29 @@ def outcome(rc, out):
     return rc == 0
 
 
+def summarize(out):
+    """从输出里挑一条最能说明结果的行。
+
+    不能直接取末行：像 smoke.js 最后打印的是「无控制台错误 ✓」，
+    看起来像通过，但前面可能已经列了失败项。
+    优先找「失败 N 项」或「全部通过」这类结论行。
+    """
+    lines = [l.strip() for l in out.strip().split('\n') if l.strip()]
+    for pat in (r'失败\s*\d+\s*项', r'全部通过'):
+        for l in reversed(lines):
+            if re.search(pat, l):
+                return l
+    return lines[-1] if lines else '(无输出)'
+
+
 def run_checks():
-    """跑全部自检，返回 [(名称, 是否通过, 末行输出)]。"""
+    """跑全部自检，返回 [(名称, 是否通过, 说明)]。"""
     results = []
     print('=== 逐步自检 ===')
     for name, cmd, marker in CHECKS:
         rc, out = run(cmd)
-        tail = [l for l in out.strip().split('\n') if l.strip()]
-        last = tail[-1] if tail else '(无输出)'
         passed = outcome(rc, out)
+        last = summarize(out)
         results.append((name, passed, last))
         print('  %s %-36s %s' % ('✓' if passed else '✗', name, last[:70]))
     return results

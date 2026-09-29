@@ -35,15 +35,25 @@ INDEX = os.path.join(SITE, 'index.html')
 
 
 def asset_files():
+    """从 index.html 里发现本地资源，而不是写死目录。
+
+    原实现只扫 assets/js 与 assets/css，于是 domains/linalg/judge.js
+    这类放在别处的领域插件**不在指纹覆盖范围内**——改了它缓存不会更新，
+    是「明明修了却还是旧行为」的经典来源。
+    改为解析 index.html 的 script/link 标签：新增任何目录都自动覆盖。
+    """
+    src = read_index()
+    refs = re.findall(r'(?:src|href)="([^"?]+)(?:\?[^"]*)?"', src)
     files = []
-    for sub in ('assets/js', 'assets/css'):
-        d = os.path.join(SITE, sub)
-        if not os.path.isdir(d):
+    for r in refs:
+        if r.startswith(('http://', 'https://', '//', 'data:')):
             continue
-        for fn in sorted(os.listdir(d)):
-            if fn.endswith(('.js', '.css')):
-                files.append(os.path.join(d, fn))
-    return files
+        if not r.endswith(('.js', '.css')):
+            continue
+        p = os.path.join(SITE, r)
+        if os.path.isfile(p):
+            files.append(p)
+    return sorted(set(files))
 
 
 def fingerprint():

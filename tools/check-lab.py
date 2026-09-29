@@ -485,15 +485,20 @@ def check_asset_fingerprint(problems, notes):
     6-2 那条任务就是这么反复「修不好」的。
     """
     import hashlib
+    # 从 index.html 发现本地资源，而不是写死目录 —— 与 tools/加缓存版本.py
+    # 用同一套判据。否则 domains/ 下的领域插件不在覆盖范围内，会出现
+    # 「改了插件但缓存不更新」，或两边算出的指纹不一致。
+    index_src = open(os.path.join(SITE, 'index.html'), encoding='utf-8').read()
+    refs = re.findall(r'(?:src|href)="([^"?]+)(?:\?[^"]*)?"', index_src)
     files = []
-    for sub in ('assets/js', 'assets/css'):
-        d = os.path.join(SITE, sub)
-        if os.path.isdir(d):
-            for fn in sorted(os.listdir(d)):
-                if fn.endswith(('.js', '.css')):
-                    files.append(os.path.join(d, fn))
+    for r in refs:
+        if r.startswith(('http://', 'https://', '//', 'data:')) or not r.endswith(('.js', '.css')):
+            continue
+        fp = os.path.join(SITE, r)
+        if os.path.isfile(fp):
+            files.append(fp)
     h = hashlib.sha256()
-    for f in files:
+    for f in sorted(set(files)):
         h.update(os.path.relpath(f, SITE).encode('utf-8'))
         h.update(open(f, 'rb').read())
     want = h.hexdigest()[:8]
