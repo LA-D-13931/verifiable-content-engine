@@ -15,12 +15,49 @@
     · 平行直线（无交点）、三线共点
     · 目标在列空间内 / 外
 """
+import hashlib
 import json, os, sys, random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.dirname(HERE)
 sys.path.insert(0, SITE)
 from engine import mat  # noqa: E402
+
+
+def _strip_docstrings(tree):
+    """从 AST 里剥掉模块/函数/类的文档字符串。
+
+    docstring 是常量字符串，会被 ast.dump 收进去，导致「只改文档」
+    也被判为数学变更。我们关心的是可执行语义，所以剥掉它们。
+    """
+    import ast
+    for node in ast.walk(tree):
+        if not isinstance(node, (ast.Module, ast.FunctionDef,
+                                 ast.AsyncFunctionDef, ast.ClassDef)):
+            continue
+        body = node.body
+        if (body and isinstance(body[0], ast.Expr)
+                and isinstance(body[0].value, ast.Constant)
+                and isinstance(body[0].value.value, str)):
+            node.body = body[1:] or [ast.Pass()]
+    return tree
+
+
+def source_signature():
+    """engine/mat.py **数学语义**的指纹（sha256）。
+
+    用 AST 而不是文件字节：注释、docstring、空行都不影响数学，
+    不该触发「向量过期」。早先对整文件做哈希的版本，因为加一行注释
+    就误报——典型的假警报，而假警报会让检查被忽视。
+
+    include_attributes=False 保证 AST 里不含行号与列偏移。
+    """
+    import ast, hashlib
+    tree = ast.parse(open(os.path.join(SITE, 'engine', 'mat.py'), encoding='utf-8').read())
+    tree = _strip_docstrings(tree)
+    return 'ast:' + hashlib.sha256(
+        ast.dump(tree, include_attributes=False).encode('utf-8')).hexdigest()
+
 
 random.seed(20260929)          # 固定种子，保证向量可复现
 
@@ -138,9 +175,11 @@ add('intersectLines', [[]], '空列表 → None')
 
 def main():
     out = os.path.join(SITE, 'engine', 'mat-vectors.json')
+    payload = {'signature': source_signature(), 'vectors': VECTORS}
     with open(out, 'w', encoding='utf-8') as f:
-        json.dump(VECTORS, f, ensure_ascii=False, indent=1)
+        json.dump(payload, f, ensure_ascii=False, indent=1)
     print('✓ 已生成 %d 组测试向量 → %s' % (len(VECTORS), out))
+    print('  签名（engine/mat.py 的 sha256 前 12 位）：%s' % payload['signature'][:12])
     # 立刻自检一遍
     return mat._selftest()
 

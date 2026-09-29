@@ -19,8 +19,9 @@ const SITE = dirname(HERE);
 const require = createRequire(import.meta.url);
 
 const Mat = require(join(SITE, 'assets', 'js', 'mat.js'));
-const vectors = JSON.parse(
+const payload = JSON.parse(
     readFileSync(join(SITE, 'engine', 'mat-vectors.json'), 'utf-8'));
+const vectors = Array.isArray(payload) ? payload : payload.vectors;
 
 console.log('=== mat 原语：JS 与 Python 一致性校验 ===');
 console.log(`测试向量：${vectors.length} 组`);

@@ -254,7 +254,10 @@ HEADER = '''/* ============================================================
 
     /* 返回 { total, failed, details }；在浏览器里由 main.js 调用，
        在 Node 里由 tools/verify-mat.mjs 调用。 */
-    function selftest(data) {
+    function selftest(payloadOrList) {
+        // 兼容两种结构：{signature, vectors} 或裸数组
+        const data = Array.isArray(payloadOrList)
+            ? payloadOrList : payloadOrList.vectors;
         const failed = [];
         data.forEach(v => {
             const fn = DISPATCH[v.fn];

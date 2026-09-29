@@ -243,7 +243,9 @@ def _selftest():
         print('找不到测试向量：%s' % path)
         return 1
     with open(path, encoding='utf-8') as f:
-        vectors = json.load(f)
+        payload = json.load(f)
+    # 兼容两种结构：{signature, vectors} 或裸数组
+    vectors = payload['vectors'] if isinstance(payload, dict) else payload
 
     bad = []
     for v in vectors:
