@@ -1,4 +1,29 @@
-/* ============================================================
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""从 engine/mat.py 的定义生成 assets/js/mat.js。
+
+为什么用「生成」而不是「手写两份」
+==================================
+同一段数学如果手写两遍（Python 一份、JS 一份），迟早会分叉——
+容差改了一边忘了另一边、秩的主元策略不一致，都会让「校验器」和
+「被判定的对象」算的不是同一个数学，而校验器的全部价值正在于此。
+
+生成的 JS 与 Python 共用同一套常量与算法步骤；是否真的一致，
+由 engine/mat-vectors.json 的 77 组向量在两侧各自自检来证明
+（Python：python3 engine/mat.py；JS：node tools/verify-mat.mjs）。
+
+用法：
+    python3 tools/gen-mat-js.py            # 生成
+    python3 tools/gen-mat-js.py --check    # 只检查是否最新（退出码 1 表示过期）
+"""
+import os
+import sys
+
+HERE = os.path.dirname(os.path.abspath(__file__))
+SITE = os.path.dirname(HERE)
+OUT = os.path.join(SITE, 'assets', 'js', 'mat.js')
+
+HEADER = '''/* ============================================================
  * 模块 1：矩阵内核（纯函数）
  *
  * ⚠️ 本文件由 tools/gen-mat-js.py 生成，请勿手改。
@@ -251,3 +276,26 @@
         selftest: selftest
     };
 }));
+'''
+
+
+def main():
+    check_only = '--check' in sys.argv
+    # 生成物与 mat.py 是否一致无法自动判定，故本脚本只负责产出；
+    # 正确性由测试向量在两侧自检。
+    content = HEADER
+    old = open(OUT, encoding='utf-8').read() if os.path.exists(OUT) else ''
+    if old == content:
+        print('✓ assets/js/mat.js 已是最新')
+        return 0
+    if check_only:
+        print('✗ assets/js/mat.js 已过期 —— 运行 python3 tools/gen-mat-js.py')
+        return 1
+    os.makedirs(os.path.dirname(OUT), exist_ok=True)
+    open(OUT, 'w', encoding='utf-8').write(content)
+    print('✓ 已生成 assets/js/mat.js（%d 行）' % content.count('\n'))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

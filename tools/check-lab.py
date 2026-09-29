@@ -24,6 +24,19 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 SITE = os.path.dirname(HERE)
 DATA = os.path.join(SITE, 'assets', 'js', 'lab-data.js')
 
+# 矩阵原语统一走 engine/mat.py（唯一权威实现）。
+# 本文件原先自带 det2 / rank_of / _intersect_reachable 三份重复实现，
+# 与浏览器侧的 assets/js/mat.js 各自演化（容差都不同：这里 1e-9、那边 1e-10）。
+# 现已删除重复实现，改为导入；两侧是否算同一个数学由
+# engine/mat-vectors.json 的测试向量分别在两侧自检来保证。
+sys.path.insert(0, SITE)
+from engine.mat import (          # noqa: E402
+    EPS as MAT_EPS,
+    det as mat_det,
+    rank as mat_rank,
+    intersect_lines as mat_intersect_lines,
+)
+
 # 判题器（engine.js checkTask）支持的类型 → 必填参数
 CHECK_SCHEMA = {
     'vector-at': {'required': {'type', 'text', 'check.target', 'check.to'}},
@@ -186,45 +199,6 @@ def parse_data():
 # 这一层的目的是拦住「怎么拖都过不了」与「答案不唯一」这两类硬错误。
 # ============================================================
 
-def det2(m):
-    return m[0][0] * m[1][1] - m[0][1] * m[1][0]
-
-
-def rank_of(m):
-    """数值秩（带容差的高斯消元），行数为 len(m)，列数为 len(m[0])。"""
-    a = [row[:] for row in m]
-    rows, cols = len(a), len(a[0])
-    r = 0
-    for c in range(cols):
-        if r >= rows:
-            break
-        piv = max(range(r, rows), key=lambda i: abs(a[i][c]))
-        if abs(a[piv][c]) < 1e-9:
-            continue
-        a[r], a[piv] = a[piv], a[r]
-        for i in range(r + 1, rows):
-            f = a[i][c] / a[r][c]
-            for j in range(c, cols):
-                a[i][j] -= f * a[r][j]
-        r += 1
-    return r
-
-
-def _intersect_reachable(lines):
-    """返回同时落在所有直线上的交点；没有就返回 None。"""
-    for i in range(len(lines)):
-        for j in range(i + 1, len(lines)):
-            l1, l2 = lines[i], lines[j]
-            d = l1['a'] * l2['b'] - l2['a'] * l1['b']
-            if abs(d) < 1e-9:
-                continue
-            p = ((l1['c'] * l2['b'] - l2['c'] * l1['b']) / d,
-                 (l1['a'] * l2['c'] - l2['a'] * l1['c']) / d)
-            if all(abs(l['a'] * p[0] + l['b'] * p[1] - l['c']) < 0.05 for l in lines):
-                return p
-    return None
-
-
 def check_reachability(lab, problems, notes):
     """对每个任务穷举检查目标是否落在可达参数空间里。"""
     ctx = '实验 %s' % lab.get('id')
@@ -259,7 +233,7 @@ def check_reachability(lab, problems, notes):
                 problems.append('%s 判定 Av，但 v 不可拖动，用户无法改变结果' % tctx)
             else:
                 aug = [row + [ck['to'][i]] for i, row in enumerate(m)]
-                if rank_of(aug) > rank_of(m):
+                if mat_rank(aug) > mat_rank(m):
                     problems.append('%s：目标 %s 不在 A 的列空间里，Av 永远命中不了'
                                     % (tctx, ck.get('to')))
         elif ct == 'det':
@@ -271,7 +245,7 @@ def check_reachability(lab, problems, notes):
             if m is None:
                 problems.append('%s 用 rank 判定，但没有矩阵' % tctx)
             else:
-                r0 = rank_of(m)
+                r0 = mat_rank(m)
                 want = ck.get('value')
                 if want > min(len(m), len(m[0])):
                     problems.append('%s 要求 rank=%s，但上限是 %d，不可能达到'
@@ -286,7 +260,7 @@ def check_reachability(lab, problems, notes):
                 problems.append('%s 需要矩阵和一个可判定向量' % tctx)
             elif not v.get('draggable'):
                 problems.append('%s 判定 on-span，但该向量不可拖动' % tctx)
-            elif ck.get('op') == 'out' and rank_of(m) >= min(len(m), len(m[0])):
+            elif ck.get('op') == 'out' and mat_rank(m) >= min(len(m), len(m[0])):
                 problems.append('%s 要求 v 落在列空间外，但列空间已是整个空间（rank 满），做不到' % tctx)
         elif ct == 'solve':
             v = next((x for x in scene.get('vectors', []) if x.get('id') == 'v'), None)
@@ -294,7 +268,7 @@ def check_reachability(lab, problems, notes):
                 problems.append('%s 需要矩阵与 id 为 v 的向量' % tctx)
             else:
                 aug = [row + [ck['to'][i]] for i, row in enumerate(m)]
-                if rank_of(aug) > rank_of(m):
+                if mat_rank(aug) > mat_rank(m):
                     problems.append('%s：b = %s 不在列空间里，Av 永远命中不了'
                                     % (tctx, ck.get('to')))
         elif ct == 'collinear':
@@ -303,7 +277,7 @@ def check_reachability(lab, problems, notes):
                 problems.append('%s 需要 2×2 矩阵与 id 为 v 的向量' % tctx)
             else:
                 tr = m[0][0] + m[1][1]
-                disc = tr * tr - 4 * det2(m)
+                disc = tr * tr - 4 * mat_det(m)
                 if disc < 0:
                     problems.append('%s：当前矩阵没有实特征方向，共线任务不可能完成' % tctx)
         elif ct == 'vector-at':
@@ -317,7 +291,7 @@ def check_reachability(lab, problems, notes):
             v = next((x for x in scene.get('vectors', []) if x.get('id') == (ck.get('target') or 'v')), None)
             if m is None or v is None:
                 problems.append('%s 需要矩阵与向量' % tctx)
-            elif abs(det2(m)) < 1e-9:
+            elif abs(mat_det(m)) < MAT_EPS:
                 problems.append('%s：当前矩阵奇异，B⁻¹ 不存在，新基坐标无法定义' % tctx)
             elif not v.get('draggable') and not scene.get('interact', {}).get('dragColumns'):
                 problems.append('%s 的 v 与两列都不可动，坐标无法改变' % tctx)
@@ -344,7 +318,7 @@ def check_reachability(lab, problems, notes):
             v = next((x for x in scene.get('vectors', []) if x.get('id') == (ck.get('target') or 'v')), None)
             if m is None or len(m) != 2 or len(m[0]) != 2:
                 problems.append('%s 用 in-basis 判定，需要 2×2 矩阵作为新基' % tctx)
-            elif abs(det2(m)) < 1e-9:
+            elif abs(mat_det(m)) < MAT_EPS:
                 problems.append('%s：当前基不可逆，B⁻¹ 不存在，新基坐标无法定义' % tctx)
             if v is None:
                 problems.append('%s 缺少被拖动的向量' % tctx)
@@ -355,7 +329,7 @@ def check_reachability(lab, problems, notes):
             if len(lines) < 2:
                 problems.append('%s 用 intercept 判定，但实验里没有两条以上直线' % tctx)
             else:
-                p = _intersect_reachable(lines)
+                p = mat_intersect_lines(lines)
                 if p is None:
                     problems.append('%s：这些直线没有公共交点，拖动 v 永远命中不了' % tctx)
                 else:
@@ -370,13 +344,13 @@ def check_reachability(lab, problems, notes):
             if m is None or len(m) != 2:
                 problems.append('%s 用 null-space 判定，需要 2×2 矩阵' % tctx)
             else:
-                r = rank_of(m)
+                r = mat_rank(m)
                 if r == 2:
                     problems.append('%s：当前矩阵可逆，零空间只有零向量，非零 v 永远不满足' % tctx)
                 if r == 1:
                     # 秩 1 时零空间方向是 (-b, a)，检查 target.dir 若给了是否一致
                     a, b = m[0][0], m[0][1]
-                    if abs(a) < 1e-9 and abs(b) < 1e-9:
+                    if abs(a) < MAT_EPS and abs(b) < MAT_EPS:
                         a, b = m[1][0], m[1][1]
                     if 'dir' in ck and abs(a) + abs(b) > 1e-9:
                         want = ck['dir']
@@ -391,7 +365,7 @@ def check_reachability(lab, problems, notes):
                 problems.append('%s 用 eigen 判定，需要 2×2 矩阵' % tctx)
             else:
                 tr = m[0][0] + m[1][1]
-                disc = tr * tr - 4 * det2(m)
+                disc = tr * tr - 4 * mat_det(m)
                 if disc < 0:
                     problems.append('%s：当前矩阵没有实特征值，eigen 任务不可能完成' % tctx)
                 else:
@@ -408,7 +382,7 @@ def check_reachability(lab, problems, notes):
         elif ct == 'in-basis-matrix':
             if m is None or len(m) != 2:
                 problems.append('%s 用 in-basis-matrix 判定，需要 2×2 矩阵' % tctx)
-            elif abs(det2(ck['basis'])) < 1e-9:
+            elif abs(mat_det(ck['basis'])) < MAT_EPS:
                 problems.append('%s：check.basis 不可逆，P⁻¹ 不存在' % tctx)
             elif len(ck.get('matrix', [])) != 2:
                 problems.append('%s 的 check.matrix 形状不对' % tctx)
