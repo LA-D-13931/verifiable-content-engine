@@ -31,6 +31,7 @@ LOG = os.path.join(WORKSPACE, '00_工作区索引', '构建日志.md')
 # 自检项：(显示名, 命令, 通过标志)
 CHECKS = [
     ('矩阵层：生成物最新 + 两侧同一个数学', ['python3', 'tools/verify-mat.py'], '全部通过'),
+    ('判题注册表：离线回归（无需浏览器）', ['node', 'tools/verify-registry.mjs'], '全部通过'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
@@ -49,6 +50,23 @@ def git(*args):
     return out.strip() if rc == 0 else ''
 
 
+def outcome(rc, out):
+    """判定一个检查项是否通过。
+
+    不能只看「输出里有没有『全部通过』」——有些脚本失败时输出的是
+    「失败 N 项 ✗」，也有的脚本即使有失败项仍会打印该关标题。
+    稳妥的判据是：退出码为 0，且输出里没有「失败 N 项」。
+    （第一版把通过项也标成了 ✗，还把失败项算进「通过」计数，两个 bug。）
+    """
+    import re
+    m = re.search(r'失败\s*(\d+)\s*项', out)
+    if m and int(m.group(1)) > 0:
+        return False
+    if re.search(r'全部通过', out):
+        return rc == 0
+    return rc == 0
+
+
 def run_checks():
     """跑全部自检，返回 [(名称, 是否通过, 末行输出)]。"""
     results = []
@@ -57,7 +75,7 @@ def run_checks():
         rc, out = run(cmd)
         tail = [l for l in out.strip().split('\n') if l.strip()]
         last = tail[-1] if tail else '(无输出)'
-        passed = (rc == 0) and (marker in out)
+        passed = outcome(rc, out)
         results.append((name, passed, last))
         print('  %s %-36s %s' % ('✓' if passed else '✗', name, last[:70]))
     return results

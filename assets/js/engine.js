@@ -153,7 +153,30 @@ window.Engine = (function () {
 
     function currentMatrix() { return App.matrix; }
 
+    /* 判题上下文：交给注册表的处理器使用。
+       刻意做成「显式传入」而不是让处理器直接读 App —— 这样注册表里的
+       判定逻辑不依赖全局状态，可以在没有页面的环境（Node 测试）里单独跑。 */
+    function judgeContext(taskId) {
+        return {
+            taskId: taskId,
+            matrix: App.matrix,
+            vectors: App.vectors || [],
+            lines: App.lines || [],
+            choices: App.choices || {},
+            actionLog: App.actionLog || [],   // 原实现用数组，不是对象
+            Mat: Mat,
+            vecEq: vecEq
+        };
+    }
+
     function checkTask(check, taskId) {
+        /* 先问注册表：领域无关的判题类型（数值命中 / 矩阵相等 / 点积 /
+           选择题 / 动作序列）由 assets/js/registry.js 处理。
+           返回 null 表示该类型未注册，落到下面的领域专属分支。 */
+        if (window.CheckRegistry) {
+            const r = window.CheckRegistry.run(check, judgeContext(taskId));
+            if (r !== null) return !!r.pass;
+        }
         switch (check.type) {
             case 'vector-at': {
                 const v = App.vectors.find(x => x.id === check.target);
