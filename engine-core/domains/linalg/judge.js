@@ -209,7 +209,30 @@ root.LinalgJudge = (function () {
          · { pass:false, reason:'…', certificate } —— 判不过（带原因）
        下面 13 个 case 从 engine.js 逐字提取，内部仍写 `return true/false`，
        由 judgeRaw 之后统一包装成三元组，避免改动那 13 段已验证的代码。 */
+    /* 规范化调用者传来的 ctx：缺失的字段给安全默认值。
+       为什么需要：这 13 个 case 是从 engine.js 逐字提取的，内部直接写
+       `ctx.vectors.find(...)`、`App.lines.length`。engine.js 调用时一定带这些字段，
+       但**插件作为公共接口被第三方调用时不一定**——只传 { taskId, Mat } 就会抛
+       TypeError。引擎不该要求调用者记得填全字段。
+       实测：加上本函数前，用最小 ctx 探测会有 5 个类型抛异常。 */
+    function normalizeCtx(ctx) {
+        const c = ctx || {};
+        return {
+            taskId: c.taskId == null ? null : c.taskId,
+            matrix: c.matrix === undefined ? null : c.matrix,
+            matrixSize: c.matrixSize == null ? 2 : c.matrixSize,
+            vectors: c.vectors || [],
+            lines: c.lines || [],
+            actionLog: c.actionLog || [],
+            choices: c.choices || {},
+            param: c.param === undefined ? null : c.param,
+            Mat: c.Mat,
+            vecEq: c.vecEq
+        };
+    }
+
     function judgeRaw(check, ctx) {
+        ctx = normalizeCtx(ctx);
         /* 别名：原代码读的是 App.xxx 与全局 Mat，这里改成从 ctx 取。
            领域插件不依赖任何全局，因此可以在 Node 里独立加载与测试。 */
         const App = ctx;
@@ -371,6 +394,7 @@ root.LinalgJudge = (function () {
        注：certificate 目前多为 null。逐个 case 补证书是后续工作；
        先保证**结构一致**，再逐步填内容。 */
     function judge(check, ctx) {
+        ctx = normalizeCtx(ctx);
         const r = judgeRaw(check, ctx);
         if (r === null) return null;
         const pass = (typeof r === 'boolean') ? r : !!r.pass;

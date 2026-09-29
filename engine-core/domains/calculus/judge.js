@@ -158,7 +158,26 @@ root.CalculusJudge = (function () {
          { pass:true,  reason:'', certificate } —— 判过
          { pass:false, reason:'…', certificate } —— 判不过
        与引擎层注册表、线代插件的返回结构一致。 */
+    /* 规范化 ctx：缺失字段给安全默认值。与 linalg 插件保持一致的行为——
+       插件作为公共接口被调用时，不该要求调用者填全所有字段。 */
+    function normalizeCtx(ctx) {
+        const c = ctx || {};
+        return {
+            taskId: c.taskId == null ? null : c.taskId,
+            matrix: c.matrix === undefined ? null : c.matrix,
+            matrixSize: c.matrixSize == null ? 2 : c.matrixSize,
+            vectors: c.vectors || [],
+            lines: c.lines || [],
+            actionLog: c.actionLog || [],
+            choices: c.choices || {},
+            param: c.param === undefined ? null : c.param,
+            Mat: c.Mat,
+            vecEq: c.vecEq
+        };
+    }
+
     function judge(check, ctx) {
+        ctx = normalizeCtx(ctx);
         switch (check.type) {
             case 'calc-limit':      return checkLimit(check, ctx);
             case 'calc-derivative': return checkDerivative(check, ctx);
