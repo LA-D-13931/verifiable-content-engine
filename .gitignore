@@ -8,8 +8,9 @@ __pycache__/
 shots/
 
 # ── 自动备份 ─────────────────────────────────────────────
-# insert-labs.py / balance-choices.py 写文件前的自动备份
+# 写文件前的自动备份（注意实际路径是 tools/_backup/，不是根目录下的 backups/）
 backups/
+tools/_backup/
 
 # ── 编辑器 / 系统 ─────────────────────────────────────────
 .DS_Store
