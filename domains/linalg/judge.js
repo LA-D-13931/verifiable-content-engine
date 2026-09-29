@@ -50,6 +50,159 @@ root.LinalgJudge = (function () {
             return v.map(x => x / L);
         }
 
+
+    /* ---------------- 诊断补齐 ----------------
+       下面 13 个 case 是从 engine.js 逐字提取的，内部只 `return true/false`，
+       不带原因与证书。这与引擎层（返回 {pass, reason, certificate} 三元组）
+       不一致，导致**领域判题拿不到「为什么判不过」的表达能力**——
+       而可解释诊断正是本项目的核心主张之一。
+
+       做法：不改那 13 段已验证的代码，而是在这里按类型补一层诊断。
+       好处是不碰已验证的逻辑；代价是诊断与判定分处两地，
+       所以有一条自动检查（tools/verify-diagnostics.mjs）盯着覆盖率，
+       并要求「判不过必须给出原因」。 */
+
+    /* 把数值格式化成短字符串 */
+    function n2(v) {
+        return (typeof v === 'number' && isFinite(v)) ? (Math.round(v * 1000) / 1000) : String(v);
+    }
+
+    const DIAGNOSE = {
+        det: function (check, ctx) {
+            const d = ctx.Mat.det(ctx.matrix);
+            return {
+                reason: '当前 det = ' + n2(d) + '，要求 ' + check.op + ' ' + check.value
+                        + (check.tol != null ? '（容差 ' + check.tol + '）' : ''),
+                certificate: { determinant: d, op: check.op, target: check.value }
+            };
+        },
+        rank: function (check, ctx) {
+            const r = ctx.Mat.rank(ctx.matrix);
+            return {
+                reason: '当前秩 = ' + r + '，要求 ' + (check.op || 'eq') + ' ' + check.value,
+                certificate: { rank: r, op: check.op || 'eq', target: check.value }
+            };
+        },
+        solve: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            const av = (v && ctx.matrix) ? ctx.Mat.mulVec(ctx.matrix, v.data) : null;
+            return {
+                reason: av ? '当前 Av = ' + JSON.stringify(av.map(n2)) + '，目标是 '
+                             + JSON.stringify(check.to) : '缺少向量 v 或矩阵',
+                certificate: av ? { av: av, target: check.to } : null
+            };
+        },
+        collinear: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            const av = (v && ctx.matrix) ? ctx.Mat.mulVec(ctx.matrix, v.data) : null;
+            return {
+                reason: av ? 'v 与 Av 不共线（要求共线，容差 ' + (check.tolDeg || 4) + '°）'
+                           : '缺少向量 v 或矩阵',
+                certificate: av ? { v: v.data, av: av } : null
+            };
+        },
+        eigen: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            const vv = ctx.Mat.dot(v.data, v.data);
+            const lam = vv > 1e-12 ? ctx.Mat.dot(av, v.data) / vv : NaN;
+            return {
+                reason: '当前缩放倍数 λ = ' + n2(lam) + '，目标是 ' + check.value
+                        + '（容差 ' + (check.tol || 0.12) + '）',
+                certificate: { lambda: lam, target: check.value, av: av }
+            };
+        },
+        'on-span': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const m = ctx.matrix;
+            const aug = m.map((row, i) => row.concat([v.data[i]]));
+            const rA = ctx.Mat.rank(m), rAug = ctx.Mat.rank(aug);
+            return {
+                reason: 'rank(A) = ' + rA + '，rank([A|v]) = ' + rAug
+                        + (rAug > rA ? '（秩升高说明 v 不在列空间内）' : '（秩不变说明 v 在列空间内）'),
+                certificate: { rankA: rA, rankAug: rAug }
+            };
+        },
+        'in-basis': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const c = ctx.Mat.solve2(ctx.matrix, v.data);
+            return {
+                reason: c ? '在新基下的坐标是 ' + JSON.stringify(c.map(n2)) + '，目标是 '
+                            + JSON.stringify(check.to) : '当前基不可逆，坐标无法定义',
+                certificate: c ? { coords: c, target: check.to } : null
+            };
+        },
+        'in-basis-matrix': function (check, ctx) {
+            if (!ctx.matrix || !check.basis) return { reason: '缺少矩阵或 basis', certificate: null };
+            const Pi = ctx.Mat.inv2(check.basis);
+            if (!Pi) return { reason: 'basis 不可逆，P⁻¹ 不存在', certificate: null };
+            const got = ctx.Mat.mul(ctx.Mat.mul(Pi, ctx.matrix), check.basis);
+            return {
+                reason: '当前 P⁻¹AP = ' + JSON.stringify(got.map(r => r.map(n2)))
+                        + '，目标是 ' + JSON.stringify(check.matrix),
+                certificate: { got: got, target: check.matrix }
+            };
+        },
+        'vector-angle': function (check, ctx) {
+            const a = ctx.vectors.find(x => x.id === check.a);
+            const b = ctx.vectors.find(x => x.id === check.b);
+            if (!a || !b) return { reason: '找不到向量 ' + check.a + ' 或 ' + check.b, certificate: null };
+            const ang = ctx.Mat.angleBetweenDeg(a.data, b.data);
+            return {
+                reason: '当前夹角 ' + n2(ang) + '°，目标是 ' + check.value + '°（容差 '
+                        + (check.tol || 5) + '°）',
+                certificate: { angle: ang, target: check.value }
+            };
+        },
+        'cross-mag': function (check, ctx) {
+            if (!ctx.matrix) return { reason: '缺少矩阵', certificate: null };
+            const a = ctx.matrix.map(r => r[check.colA]);
+            const b = ctx.matrix.map(r => r[check.colB]);
+            const mag = Math.hypot.apply(null, ctx.Mat.cross(a, b));
+            return {
+                reason: '当前 |a×b| = ' + n2(mag) + '，要求 ' + check.op + ' ' + check.value,
+                certificate: { magnitude: mag, op: check.op, target: check.value }
+            };
+        },
+        'cross-dir': function (check, ctx) {
+            if (!ctx.matrix) return { reason: '缺少矩阵', certificate: null };
+            const a = ctx.matrix.map(r => r[check.colA]);
+            const b = ctx.matrix.map(r => r[check.colB]);
+            const c = ctx.Mat.cross(a, b);
+            const L = Math.hypot(c[0], c[1], c[2]);
+            const u = L > 1e-12 ? [c[0] / L, c[1] / L, c[2] / L] : null;
+            const tl = Math.hypot.apply(null, check.dir) || 1;
+            const t = check.dir.map(x => x / tl);
+            const d = u ? (u[0] * t[0] + u[1] * t[1] + u[2] * t[2]) : null;
+            return {
+                reason: u ? 'a×b 方向与目标方向余弦 ' + n2(d) + '，要求 ≥ '
+                            + (check.minCos == null ? 0.999 : check.minCos) : 'a×b 为零向量，方向未定义',
+                certificate: u ? { direction: u, target: t, cos: d } : null
+            };
+        },
+        intercept: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            return {
+                reason: '当前 v = ' + (v ? JSON.stringify(v.data.map(n2)) : '(无)')
+                        + '，需要落在若干直线的公共交点上',
+                certificate: v ? { v: v.data, lineCount: (ctx.lines || []).length } : null
+            };
+        },
+        'null-space': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            return {
+                reason: '当前 |Av| = ' + n2(Math.hypot.apply(null, av))
+                        + '，要求接近 0（容差 ' + (check.tol || 0.08) + '）',
+                certificate: { av: av, norm: Math.hypot.apply(null, av) }
+            };
+        }
+    };
+
     /* 判定入口。返回三态：
          · null                                  —— 不是本领域的类型
          · { pass:true,  reason:'', certificate } —— 判过
@@ -220,11 +373,21 @@ root.LinalgJudge = (function () {
     function judge(check, ctx) {
         const r = judgeRaw(check, ctx);
         if (r === null) return null;
-        if (typeof r === 'boolean') {
-            return r ? { pass: true, reason: '', certificate: null }
-                     : { pass: false, reason: '', certificate: null };
+        const pass = (typeof r === 'boolean') ? r : !!r.pass;
+        if (pass) return { pass: true, reason: '', certificate: null };
+
+        /* 判不过：补上原因与证书。诊断与判定分处两地是刻意的取舍
+           （不碰那 13 段已验证的代码），覆盖率由 verify-diagnostics.mjs 盯着。 */
+        const diag = DIAGNOSE[check.type];
+        if (diag && ctx.matrix !== undefined) {
+            try {
+                const d = diag(check, ctx) || {};
+                return { pass: false, reason: d.reason || '', certificate: d.certificate || null };
+            } catch (e) {
+                return { pass: false, reason: '（诊断生成失败：' + e.message + '）', certificate: null };
+            }
         }
-        return r;
+        return { pass: false, reason: '', certificate: null };
     }
 
     const api = { judge: judge, judgeRaw: judgeRaw };
