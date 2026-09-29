@@ -1,0 +1,710 @@
+/* ============================================================
+ * 主题 token —— 由 tools/gen-themes.py 生成，请勿手改
+ *
+ * 界面层（--bg / --ink / --brand / --line …）与线代讲义站同名同值，
+ * 所以两站是同一套配色体系；画布层（--m-*）是实验台特有的
+ * 数学对象语义色，按同样的低饱和思路取色并逐个组合验证过对比度。
+ *
+ * 4 套主题 × 亮/暗 = 8 个组合，与讲义站一一对应，
+ * 并且共用 localStorage 偏好（advmath.theme.v1 / advmath.mode.v1）。
+ * ============================================================ */
+
+/* 霜蓝 · 亮色 */
+[data-theme="default"][data-mode="light"],
+:root:not([data-mode="dark"]) {
+    --bg: #f5f5f6;
+    --bg-elev: #fcfcfd;
+    --bg-sunken: #ecedee;
+    --bg-code: #efeff1;
+    --ink: #323640;
+    --ink-soft: #4c5361;
+    --ink-faint: #4c5361;
+    --brand: #3e5184;
+    --brand-deep: #3e4d74;
+    --brand-light: #334678;
+    --on-brand: #fefefe;
+    --line: #dadbdf;
+    --ok: #2f5b4b;
+    --no: #823d4b;
+    --warn: #7e423b;
+    --def-soft: #b1d7cf;
+    --brand-soft: #d5dbeb;
+    --thm-soft: #e3dcec;
+    --method-soft: #bed3df;
+    --warn-soft: #e9d2cf;
+    --shadow-color-005: rgb(24 28 38 / .05);
+    --shadow-color-006: rgb(24 28 38 / .06);
+    --shadow-color-012: rgb(24 28 38 / .12);
+    --hero-1: #1d2741;
+    --hero-2: #2b3a61;
+    --hero-3: #3a4d80;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f0f1f2;
+    --header-bg: hsl(220 8% 99% / .86);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #7a5f14;
+    --m-av: #2f6b4a;
+    --m-ai: #a8445a;
+    --m-aj: #5b4a9c;
+    --m-ak: #2c5d86;
+    --m-target: #7a5f14;
+    --m-grid: #d0d1d5;
+    --m-tgrid: color-mix(in srgb, #2f6b4a 40%, #f5f5f6);
+    --m-axis: color-mix(in srgb, #4c5361 70%, #f5f5f6);
+
+    --m-canvas: #f5f5f6;
+    --m-chip: #fcfcfd;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #e4e5e8;
+    --lab-faint: #717782;
+    --lab-tint-brand-t: #ecedf0;
+    --lab-tint-brand: #e3e5eb;
+    --lab-tint-brand-2: #d8dbe4;
+    --lab-tint-danger: #eae3e5;
+    --lab-tint-danger-2: #ded0d4;
+    --lab-tint-gold: #e9e6df;
+    --lab-tint-ok: #e1e6e5;
+    --lab-scrim: #d3d3d4;
+    --lab-scrim-soft: #b5b5b6;
+}
+
+/* 霜蓝 · 暗色 */
+[data-theme="default"][data-mode="dark"],
+:root:not([data-mode="light"]) {
+    --bg: #25272c;
+    --bg-elev: #31343a;
+    --bg-sunken: #1b1d20;
+    --bg-code: #1d1e22;
+    --ink: #e7e9ed;
+    --ink-soft: #adb3c1;
+    --ink-faint: #adb3c1;
+    --brand: #a5b2d7;
+    --brand-deep: #abb4cb;
+    --brand-light: #2c3e6d;
+    --on-brand: #212329;
+    --line: #3f424b;
+    --ok: #83bfa8;
+    --no: #d7a6ae;
+    --warn: #d5a9a1;
+    --def-soft: #050a09;
+    --brand-soft: #13192a;
+    --thm-soft: #1f162a;
+    --method-soft: #0b1216;
+    --warn-soft: #261411;
+    --shadow-color-005: rgb(0 0 0 / .28);
+    --shadow-color-006: rgb(0 0 0 / .34);
+    --shadow-color-012: rgb(0 0 0 / .52);
+    --hero-1: #182037;
+    --hero-2: #243154;
+    --hero-3: #304270;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f0f1f2;
+    --header-bg: hsl(222 9% 21% / .88);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #e8c46a;
+    --m-av: #6fbf8f;
+    --m-ai: #e08a96;
+    --m-aj: #a99cd8;
+    --m-ak: #7ea6d8;
+    --m-target: #e8c46a;
+    --m-grid: #33363d;
+    --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #25272c);
+    --m-axis: color-mix(in srgb, #adb3c1 62%, #25272c);
+
+    --m-canvas: #25272c;
+    --m-chip: #31343a;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #35383f;
+    --lab-faint: #8f94a0;
+    --lab-tint-brand-t: #2d2f36;
+    --lab-tint-brand: #343841;
+    --lab-tint-brand-2: #3f434e;
+    --lab-tint-danger: #373439;
+    --lab-tint-danger-2: #494046;
+    --lab-tint-gold: #393732;
+    --lab-tint-ok: #2e3638;
+    --lab-scrim: #1b1c20;
+    --lab-scrim-soft: #141518;
+}
+@media (prefers-color-scheme: dark) {
+    :root:not([data-mode="light"]) {
+        --bg: #25272c;
+        --bg-elev: #31343a;
+        --bg-sunken: #1b1d20;
+        --bg-code: #1d1e22;
+        --ink: #e7e9ed;
+        --ink-soft: #adb3c1;
+        --ink-faint: #adb3c1;
+        --brand: #a5b2d7;
+        --brand-deep: #abb4cb;
+        --brand-light: #2c3e6d;
+        --on-brand: #212329;
+        --line: #3f424b;
+        --ok: #83bfa8;
+        --no: #d7a6ae;
+        --warn: #d5a9a1;
+        --def-soft: #050a09;
+        --brand-soft: #13192a;
+        --thm-soft: #1f162a;
+        --method-soft: #0b1216;
+        --warn-soft: #261411;
+        --shadow-color-005: rgb(0 0 0 / .28);
+        --shadow-color-006: rgb(0 0 0 / .34);
+        --shadow-color-012: rgb(0 0 0 / .52);
+
+        /* 画布层：数学对象语义色 */
+        --m-v: #e8c46a;
+        --m-av: #6fbf8f;
+        --m-ai: #e08a96;
+        --m-aj: #a99cd8;
+        --m-ak: #7ea6d8;
+        --m-target: #e8c46a;
+        --m-grid: #33363d;
+        --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #25272c);
+        --m-axis: color-mix(in srgb, #adb3c1 62%, #25272c);
+        --m-canvas: #25272c;
+        --m-chip: #31343a;
+
+        /* 实验台派生 token（预计算实色，不用 color-mix） */
+        --lab-line-soft: #35383f;
+        --lab-faint: #8f94a0;
+        --lab-tint-brand-t: #2d2f36;
+        --lab-tint-brand: #343841;
+        --lab-tint-brand-2: #3f434e;
+        --lab-tint-danger: #373439;
+        --lab-tint-danger-2: #494046;
+        --lab-tint-gold: #393732;
+        --lab-tint-ok: #2e3638;
+        --lab-scrim: #1b1c20;
+        --lab-scrim-soft: #141518;
+    }
+}
+
+/* 暖沙 · 亮色 */
+[data-theme="eyecare-warm"][data-mode="light"],
+[data-theme="eyecare-warm"]:not([data-mode="dark"]) {
+    --bg: #f7f6f4;
+    --bg-elev: #fdfdfc;
+    --bg-sunken: #efeeeb;
+    --bg-code: #f2f0ee;
+    --ink: #413a31;
+    --ink-soft: #5b5245;
+    --ink-faint: #5b5245;
+    --brand: #4947a6;
+    --brand-deep: #4e4d8f;
+    --brand-light: #353378;
+    --on-brand: #fefefe;
+    --line: #e1ddd8;
+    --ok: #2c5d3d;
+    --no: #833f38;
+    --warn: #724a31;
+    --def-soft: #aed9c3;
+    --brand-soft: #f3f2fa;
+    --thm-soft: #e5d6eb;
+    --method-soft: #acd8da;
+    --warn-soft: #e3cdbe;
+    --shadow-color-005: rgb(24 28 38 / .05);
+    --shadow-color-006: rgb(24 28 38 / .06);
+    --shadow-color-012: rgb(24 28 38 / .12);
+    --hero-1: #1e1d41;
+    --hero-2: #2d2b61;
+    --hero-3: #3b3a80;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f2f1f0;
+    --header-bg: hsl(36 12% 99% / .86);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #7a5f14;
+    --m-av: #2f6b4a;
+    --m-ai: #a8445a;
+    --m-aj: #5b4a9c;
+    --m-ak: #2c5d86;
+    --m-target: #7a5f14;
+    --m-grid: #d5d2ce;
+    --m-tgrid: color-mix(in srgb, #2f6b4a 40%, #f7f6f4);
+    --m-axis: color-mix(in srgb, #5b5245 70%, #f7f6f4);
+
+    --m-canvas: #f7f6f4;
+    --m-chip: #fdfdfc;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #e9e6e3;
+    --lab-faint: #7d766c;
+    --lab-tint-brand-t: #eeedf0;
+    --lab-tint-brand: #e6e4ec;
+    --lab-tint-brand-2: #dbdae8;
+    --lab-tint-danger: #ebe4e1;
+    --lab-tint-danger-2: #e0d1ce;
+    --lab-tint-gold: #eae7de;
+    --lab-tint-ok: #e3e7e2;
+    --lab-scrim: #d4d4d2;
+    --lab-scrim-soft: #b7b6b5;
+}
+
+/* 暖沙 · 暗色 */
+[data-theme="eyecare-warm"][data-mode="dark"],
+[data-theme="eyecare-warm"]:not([data-mode="light"]) {
+    --bg: #2d2924;
+    --bg-elev: #3c362f;
+    --bg-sunken: #211e1a;
+    --bg-code: #23201c;
+    --ink: #edeae7;
+    --ink-soft: #beb4a9;
+    --ink-faint: #beb4a9;
+    --brand: #b1b3dd;
+    --brand-deep: #b3b5d1;
+    --brand-light: #2c2f6d;
+    --on-brand: #292521;
+    --line: #4d453d;
+    --ok: #82c49b;
+    --no: #d9aba7;
+    --warn: #d3af98;
+    --def-soft: #050a08;
+    --brand-soft: #181938;
+    --thm-soft: #27162e;
+    --method-soft: #050a0b;
+    --warn-soft: #1f140d;
+    --shadow-color-005: rgb(0 0 0 / .28);
+    --shadow-color-006: rgb(0 0 0 / .34);
+    --shadow-color-012: rgb(0 0 0 / .52);
+    --hero-1: #181937;
+    --hero-2: #242654;
+    --hero-3: #303370;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f2f1f0;
+    --header-bg: hsl(32 12% 21% / .88);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #e8c46a;
+    --m-av: #6fbf8f;
+    --m-ai: #e08a96;
+    --m-aj: #a99cd8;
+    --m-ak: #7ea6d8;
+    --m-target: #e8c46a;
+    --m-grid: #3f3832;
+    --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #2d2924);
+    --m-axis: color-mix(in srgb, #beb4a9 62%, #2d2924);
+
+    --m-canvas: #2d2924;
+    --m-chip: #3c362f;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #413a34;
+    --lab-faint: #9e958c;
+    --lab-tint-brand-t: #35312f;
+    --lab-tint-brand: #3d3a3a;
+    --lab-tint-brand-2: #474549;
+    --lab-tint-danger: #3e3631;
+    --lab-tint-danger-2: #4f433e;
+    --lab-tint-gold: #40382b;
+    --lab-tint-ok: #363830;
+    --lab-scrim: #201e1a;
+    --lab-scrim-soft: #191714;
+}
+@media (prefers-color-scheme: dark) {
+    [data-theme="eyecare-warm"]:not([data-mode="light"]) {
+        --bg: #2d2924;
+        --bg-elev: #3c362f;
+        --bg-sunken: #211e1a;
+        --bg-code: #23201c;
+        --ink: #edeae7;
+        --ink-soft: #beb4a9;
+        --ink-faint: #beb4a9;
+        --brand: #b1b3dd;
+        --brand-deep: #b3b5d1;
+        --brand-light: #2c2f6d;
+        --on-brand: #292521;
+        --line: #4d453d;
+        --ok: #82c49b;
+        --no: #d9aba7;
+        --warn: #d3af98;
+        --def-soft: #050a08;
+        --brand-soft: #181938;
+        --thm-soft: #27162e;
+        --method-soft: #050a0b;
+        --warn-soft: #1f140d;
+        --shadow-color-005: rgb(0 0 0 / .28);
+        --shadow-color-006: rgb(0 0 0 / .34);
+        --shadow-color-012: rgb(0 0 0 / .52);
+
+        /* 画布层：数学对象语义色 */
+        --m-v: #e8c46a;
+        --m-av: #6fbf8f;
+        --m-ai: #e08a96;
+        --m-aj: #a99cd8;
+        --m-ak: #7ea6d8;
+        --m-target: #e8c46a;
+        --m-grid: #3f3832;
+        --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #2d2924);
+        --m-axis: color-mix(in srgb, #beb4a9 62%, #2d2924);
+        --m-canvas: #2d2924;
+        --m-chip: #3c362f;
+
+        /* 实验台派生 token（预计算实色，不用 color-mix） */
+        --lab-line-soft: #413a34;
+        --lab-faint: #9e958c;
+        --lab-tint-brand-t: #35312f;
+        --lab-tint-brand: #3d3a3a;
+        --lab-tint-brand-2: #474549;
+        --lab-tint-danger: #3e3631;
+        --lab-tint-danger-2: #4f433e;
+        --lab-tint-gold: #40382b;
+        --lab-tint-ok: #363830;
+        --lab-scrim: #201e1a;
+        --lab-scrim-soft: #191714;
+    }
+}
+
+/* 竹青 · 亮色 */
+[data-theme="eyecare-cool"][data-mode="light"],
+[data-theme="eyecare-cool"]:not([data-mode="dark"]) {
+    --bg: #f4f6f6;
+    --bg-elev: #fcfdfd;
+    --bg-sunken: #ebefee;
+    --bg-code: #eef1f0;
+    --ink: #31413a;
+    --ink-soft: #42584f;
+    --ink-faint: #42584f;
+    --brand: #385380;
+    --brand-deep: #3b4e6d;
+    --brand-light: #334d78;
+    --on-brand: #fefefe;
+    --line: #d9e0dd;
+    --ok: #2c5c46;
+    --no: #764734;
+    --warn: #674f2d;
+    --def-soft: #aed8cb;
+    --brand-soft: #ced8e9;
+    --thm-soft: #e6e1f0;
+    --method-soft: #b6d4de;
+    --warn-soft: #decdb4;
+    --shadow-color-005: rgb(24 28 38 / .05);
+    --shadow-color-006: rgb(24 28 38 / .06);
+    --shadow-color-012: rgb(24 28 38 / .12);
+    --hero-1: #1d2b41;
+    --hero-2: #2b4061;
+    --hero-3: #3a5580;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f0f2f1;
+    --header-bg: hsl(156 10% 99% / .86);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #7a5f14;
+    --m-av: #2f6b4a;
+    --m-ai: #a8445a;
+    --m-aj: #5b4a9c;
+    --m-ak: #2c5d86;
+    --m-target: #7a5f14;
+    --m-grid: #cdd3d1;
+    --m-tgrid: color-mix(in srgb, #2f6b4a 40%, #f4f6f6);
+    --m-axis: color-mix(in srgb, #42584f 70%, #f4f6f6);
+
+    --m-canvas: #f4f6f6;
+    --m-chip: #fcfdfd;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #e3e8e6;
+    --lab-faint: #697b74;
+    --lab-tint-brand-t: #ebeef0;
+    --lab-tint-brand: #e1e6ea;
+    --lab-tint-brand-2: #d6dce3;
+    --lab-tint-danger: #e7e4e3;
+    --lab-tint-danger-2: #dbd3cf;
+    --lab-tint-gold: #e8e7df;
+    --lab-tint-ok: #e0e7e4;
+    --lab-scrim: #d2d4d4;
+    --lab-scrim-soft: #b5b6b6;
+}
+
+/* 竹青 · 暗色 */
+[data-theme="eyecare-cool"][data-mode="dark"],
+[data-theme="eyecare-cool"]:not([data-mode="light"]) {
+    --bg: #242c29;
+    --bg-elev: #303b37;
+    --bg-sunken: #1b211e;
+    --bg-code: #1c2320;
+    --ink: #e7edeb;
+    --ink-soft: #a6bcb3;
+    --ink-faint: #a6bcb3;
+    --brand: #a5b7d9;
+    --brand-deep: #aeb9cd;
+    --brand-light: #2c436d;
+    --on-brand: #212926;
+    --line: #3e4c47;
+    --ok: #84c4a7;
+    --no: #d7aea1;
+    --warn: #cfb28f;
+    --def-soft: #050a09;
+    --brand-soft: #131c2c;
+    --thm-soft: #221832;
+    --method-soft: #0a1316;
+    --warn-soft: #161009;
+    --shadow-color-005: rgb(0 0 0 / .28);
+    --shadow-color-006: rgb(0 0 0 / .34);
+    --shadow-color-012: rgb(0 0 0 / .52);
+    --hero-1: #182337;
+    --hero-2: #243554;
+    --hero-3: #304770;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f0f2f1;
+    --header-bg: hsl(158 10% 21% / .88);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #e8c46a;
+    --m-av: #6fbf8f;
+    --m-ai: #e08a96;
+    --m-aj: #a99cd8;
+    --m-ak: #7ea6d8;
+    --m-target: #e8c46a;
+    --m-grid: #323e3a;
+    --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #242c29);
+    --m-axis: color-mix(in srgb, #a6bcb3 62%, #242c29);
+
+    --m-canvas: #242c29;
+    --m-chip: #303b37;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #34403c;
+    --lab-faint: #899c95;
+    --lab-tint-brand-t: #2c3434;
+    --lab-tint-brand: #333d3e;
+    --lab-tint-brand-2: #3e484c;
+    --lab-tint-danger: #363935;
+    --lab-tint-danger-2: #484641;
+    --lab-tint-gold: #383b30;
+    --lab-tint-ok: #2e3b36;
+    --lab-scrim: #1a201e;
+    --lab-scrim-soft: #141817;
+}
+@media (prefers-color-scheme: dark) {
+    [data-theme="eyecare-cool"]:not([data-mode="light"]) {
+        --bg: #242c29;
+        --bg-elev: #303b37;
+        --bg-sunken: #1b211e;
+        --bg-code: #1c2320;
+        --ink: #e7edeb;
+        --ink-soft: #a6bcb3;
+        --ink-faint: #a6bcb3;
+        --brand: #a5b7d9;
+        --brand-deep: #aeb9cd;
+        --brand-light: #2c436d;
+        --on-brand: #212926;
+        --line: #3e4c47;
+        --ok: #84c4a7;
+        --no: #d7aea1;
+        --warn: #cfb28f;
+        --def-soft: #050a09;
+        --brand-soft: #131c2c;
+        --thm-soft: #221832;
+        --method-soft: #0a1316;
+        --warn-soft: #161009;
+        --shadow-color-005: rgb(0 0 0 / .28);
+        --shadow-color-006: rgb(0 0 0 / .34);
+        --shadow-color-012: rgb(0 0 0 / .52);
+
+        /* 画布层：数学对象语义色 */
+        --m-v: #e8c46a;
+        --m-av: #6fbf8f;
+        --m-ai: #e08a96;
+        --m-aj: #a99cd8;
+        --m-ak: #7ea6d8;
+        --m-target: #e8c46a;
+        --m-grid: #323e3a;
+        --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #242c29);
+        --m-axis: color-mix(in srgb, #a6bcb3 62%, #242c29);
+        --m-canvas: #242c29;
+        --m-chip: #303b37;
+
+        /* 实验台派生 token（预计算实色，不用 color-mix） */
+        --lab-line-soft: #34403c;
+        --lab-faint: #899c95;
+        --lab-tint-brand-t: #2c3434;
+        --lab-tint-brand: #333d3e;
+        --lab-tint-brand-2: #3e484c;
+        --lab-tint-danger: #363935;
+        --lab-tint-danger-2: #484641;
+        --lab-tint-gold: #383b30;
+        --lab-tint-ok: #2e3b36;
+        --lab-scrim: #1a201e;
+        --lab-scrim-soft: #141817;
+    }
+}
+
+/* 墨檀 · 亮色 */
+[data-theme="ink"][data-mode="light"],
+[data-theme="ink"]:not([data-mode="dark"]) {
+    --bg: #f6f5f4;
+    --bg-elev: #fdfcfc;
+    --bg-sunken: #efedeb;
+    --bg-code: #f1efee;
+    --ink: #413831;
+    --ink-soft: #5d5046;
+    --ink-faint: #5d5046;
+    --brand: #4848a0;
+    --brand-deep: #4d4c8e;
+    --brand-light: #333378;
+    --on-brand: #fefefe;
+    --line: #e0dcd8;
+    --ok: #2d5c3d;
+    --no: #813f3a;
+    --warn: #714a33;
+    --def-soft: #b0d8c3;
+    --brand-soft: #efeff8;
+    --thm-soft: #e4d5e9;
+    --method-soft: #add7d8;
+    --warn-soft: #e3cdc0;
+    --shadow-color-005: rgb(24 28 38 / .05);
+    --shadow-color-006: rgb(24 28 38 / .06);
+    --shadow-color-012: rgb(24 28 38 / .12);
+    --hero-1: #1d1d41;
+    --hero-2: #2c2b61;
+    --hero-3: #3a3a80;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f2f1f0;
+    --header-bg: hsl(26 12% 99% / .86);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #7a5f14;
+    --m-av: #2f6b4a;
+    --m-ai: #a8445a;
+    --m-aj: #5b4a9c;
+    --m-ak: #2c5d86;
+    --m-target: #7a5f14;
+    --m-grid: #d4d1ce;
+    --m-tgrid: color-mix(in srgb, #2f6b4a 40%, #f6f5f4);
+    --m-axis: color-mix(in srgb, #5d5046 70%, #f6f5f4);
+
+    --m-canvas: #f6f5f4;
+    --m-chip: #fdfcfc;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #e8e6e3;
+    --lab-faint: #7f746c;
+    --lab-tint-brand-t: #edecf0;
+    --lab-tint-brand: #e5e4ec;
+    --lab-tint-brand-2: #dad9e7;
+    --lab-tint-danger: #eae3e1;
+    --lab-tint-danger-2: #dfd1cf;
+    --lab-tint-gold: #eae6de;
+    --lab-tint-ok: #e2e6e2;
+    --lab-scrim: #d4d3d2;
+    --lab-scrim-soft: #b6b5b5;
+}
+
+/* 墨檀 · 暗色 */
+[data-theme="ink"][data-mode="dark"],
+[data-theme="ink"]:not([data-mode="light"]) {
+    --bg: #2d2724;
+    --bg-elev: #3b3430;
+    --bg-sunken: #211d1a;
+    --bg-code: #231f1c;
+    --ink: #edeae7;
+    --ink-soft: #beb2a9;
+    --ink-faint: #beb2a9;
+    --brand: #aeb1dc;
+    --brand-deep: #b1b3cf;
+    --brand-light: #2c306d;
+    --on-brand: #292421;
+    --line: #4c433e;
+    --ok: #83c29a;
+    --no: #d9a9a5;
+    --warn: #d2ad96;
+    --def-soft: #050a08;
+    --brand-soft: #171835;
+    --thm-soft: #24152b;
+    --method-soft: #050a0a;
+    --warn-soft: #1d130d;
+    --shadow-color-005: rgb(0 0 0 / .28);
+    --shadow-color-006: rgb(0 0 0 / .34);
+    --shadow-color-012: rgb(0 0 0 / .52);
+    --hero-1: #181937;
+    --hero-2: #242754;
+    --hero-3: #303470;
+    --on-hero: #fbfbfb;
+    --on-hero-soft: #f2f1f0;
+    --header-bg: hsl(24 10% 21% / .88);
+
+    /* 画布层：数学对象语义色 */
+    --m-v: #e8c46a;
+    --m-av: #6fbf8f;
+    --m-ai: #e08a96;
+    --m-aj: #a99cd8;
+    --m-ak: #7ea6d8;
+    --m-target: #e8c46a;
+    --m-grid: #3e3632;
+    --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #2d2724);
+    --m-axis: color-mix(in srgb, #beb2a9 62%, #2d2724);
+
+    --m-canvas: #2d2724;
+    --m-chip: #3b3430;
+
+    /* 实验台派生 token（预计算实色，不用 color-mix） */
+    --lab-line-soft: #403834;
+    --lab-faint: #9e938c;
+    --lab-tint-brand-t: #352f2f;
+    --lab-tint-brand: #3c383a;
+    --lab-tint-brand-2: #474349;
+    --lab-tint-danger: #3e3431;
+    --lab-tint-danger-2: #4f413e;
+    --lab-tint-gold: #40372b;
+    --lab-tint-ok: #363630;
+    --lab-scrim: #201c1a;
+    --lab-scrim-soft: #191514;
+}
+@media (prefers-color-scheme: dark) {
+    [data-theme="ink"]:not([data-mode="light"]) {
+        --bg: #2d2724;
+        --bg-elev: #3b3430;
+        --bg-sunken: #211d1a;
+        --bg-code: #231f1c;
+        --ink: #edeae7;
+        --ink-soft: #beb2a9;
+        --ink-faint: #beb2a9;
+        --brand: #aeb1dc;
+        --brand-deep: #b1b3cf;
+        --brand-light: #2c306d;
+        --on-brand: #292421;
+        --line: #4c433e;
+        --ok: #83c29a;
+        --no: #d9a9a5;
+        --warn: #d2ad96;
+        --def-soft: #050a08;
+        --brand-soft: #171835;
+        --thm-soft: #24152b;
+        --method-soft: #050a0a;
+        --warn-soft: #1d130d;
+        --shadow-color-005: rgb(0 0 0 / .28);
+        --shadow-color-006: rgb(0 0 0 / .34);
+        --shadow-color-012: rgb(0 0 0 / .52);
+
+        /* 画布层：数学对象语义色 */
+        --m-v: #e8c46a;
+        --m-av: #6fbf8f;
+        --m-ai: #e08a96;
+        --m-aj: #a99cd8;
+        --m-ak: #7ea6d8;
+        --m-target: #e8c46a;
+        --m-grid: #3e3632;
+        --m-tgrid: color-mix(in srgb, #6fbf8f 42%, #2d2724);
+        --m-axis: color-mix(in srgb, #beb2a9 62%, #2d2724);
+        --m-canvas: #2d2724;
+        --m-chip: #3b3430;
+
+        /* 实验台派生 token（预计算实色，不用 color-mix） */
+        --lab-line-soft: #403834;
+        --lab-faint: #9e938c;
+        --lab-tint-brand-t: #352f2f;
+        --lab-tint-brand: #3c383a;
+        --lab-tint-brand-2: #474349;
+        --lab-tint-danger: #3e3431;
+        --lab-tint-danger-2: #4f413e;
+        --lab-tint-gold: #40372b;
+        --lab-tint-ok: #363630;
+        --lab-scrim: #201c1a;
+        --lab-scrim-soft: #191514;
+    }
+}

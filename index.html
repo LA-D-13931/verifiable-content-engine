@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>线性代数交互实验台 · 拖一拖就懂</title>
+<meta name="description" content="58 个可拖动的线性代数实验：向量、矩阵的列、线性变换、行列式、逆矩阵、特征向量、三维空间。在画布上亲手拖动向量与矩阵，用几何直觉理解线性代数。">
+<meta name="keywords" content="线性代数,矩阵,交互实验,可视化,行列式,特征向量,线性变换,linear algebra,interactive">
+<link rel="icon" type="image/svg+xml" href="assets/favicon.svg">
+<link rel="stylesheet" href="assets/css/theme-tokens.css?v=f7956820">
+<link rel="stylesheet" href="assets/css/main.css?v=f7956820">
+</head>
+<body>
+
+<!-- ==================== 顶栏 ==================== -->
+<header class="topbar">
+    <button class="icon-btn" id="nav-toggle" title="收起 / 展开学习路径" aria-label="收起或展开学习路径">☰</button>
+    <div class="brand">
+        <div class="brand-mark" aria-hidden="true">
+            <svg width="26" height="26" viewBox="0 0 40 40" fill="none">
+                <path d="M12 8.5 H7.5 V31.5 H12" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <path d="M28 8.5 H32.5 V31.5 H28" stroke="currentColor" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round"/>
+                <rect x="15" y="13.5" width="4.6" height="4.6" rx="1" fill="currentColor"/>
+                <rect x="21.4" y="13.5" width="4.6" height="4.6" rx="1" fill="currentColor" opacity="0.55"/>
+                <rect x="15" y="19.9" width="4.6" height="4.6" rx="1" fill="currentColor" opacity="0.55"/>
+                <rect x="21.4" y="19.9" width="4.6" height="4.6" rx="1" fill="currentColor"/>
+            </svg>
+        </div>
+        <div class="brand-text">
+            <h1>线性代数交互实验台</h1>
+            <p>拖一拖就懂 · 在空间里理解矩阵</p>
+        </div>
+    </div>
+
+    <div class="progress-pill" aria-live="polite">
+        <span id="progress-text">实验进度 0/58</span>
+        <div class="progress-dots" id="progress-dots" aria-hidden="true"></div>
+    </div>
+
+    <div class="topbar-right">
+        <div id="theme-controls" class="theme-controls" aria-label="显示偏好"></div>
+        <span class="kbd-hint">← → 切换实验 · R 重置视角</span>
+    </div>
+</header>
+
+<div class="layout">
+
+    <!-- ==================== 学习路径 ==================== -->
+    <aside class="panel course-nav" id="course-nav" aria-label="学习路径">
+        <h2>学习路径</h2>
+        <div id="chapter-list"></div>
+    </aside>
+
+    <!-- ==================== 画布区 ==================== -->
+    <main class="stage">
+        <div class="canvas-wrap">
+            <canvas id="stage-canvas" tabindex="0" role="img"
+                    aria-label="线性代数可视化画布：拖动箭头端点直接操作，拖拽空白处平移视角，滚轮缩放。"></canvas>
+            <div class="canvas-zoom" aria-label="视图控制">
+                <button class="zoom-btn" id="zoom-out-btn" aria-label="缩小">−</button>
+                <button class="zoom-level" id="zoom-level" title="点击重置视图" aria-label="当前缩放，点击重置">100%</button>
+                <button class="zoom-btn" id="zoom-in-btn" aria-label="放大">+</button>
+                <button class="zoom-btn" id="fit-btn" title="适应内容" aria-label="适应内容">⤢</button>
+            </div>
+            <div class="canvas-hint" id="canvas-hint">拖动箭头端点 · 拖拽空白平移 · 滚轮缩放</div>
+
+            <div class="celebrate" id="celebrate">
+                <div class="celebrate-card">
+                    <div class="celebrate-emoji">🎉</div>
+                    <div class="celebrate-body">
+                        <h3>实验完成！</h3>
+                        <p id="celebrate-text"></p>
+                    </div>
+                    <button class="btn primary" id="next-level-btn">下一个实验 →</button>
+                    <button class="btn ghost" id="celebrate-dismiss" title="留在本关继续观察" aria-label="关闭">✕</button>
+                </div>
+            </div>
+        </div>
+        <div class="scene-toolbar" id="scene-toolbar"></div>
+    </main>
+
+    <!-- ==================== 右侧栏 ==================== -->
+    <aside class="side">
+        <section class="panel task-card" aria-live="polite">
+            <div class="level-kicker" id="level-kicker">第 1 章 · 第 1 个实验</div>
+            <h3 id="level-title">加载中…</h3>
+            <p class="brief" id="level-brief"></p>
+            <ul class="task-list" id="task-list"></ul>
+            <section class="crosslink" id="crosslink" style="display:none;" aria-label="配套讲义"></section>
+            <details class="hint-box" id="hint-box">
+                <summary>需要提示吗？</summary>
+                <div class="hint-body" id="hint-body"></div>
+            </details>
+            <div class="task-actions" id="task-actions"></div>
+        </section>
+
+        <section class="panel" id="matrix-panel">
+            <h2 id="matrix-panel-title">当前矩阵 A</h2>
+            <div class="matrix-frame">
+                <div class="matrix-grid" id="matrix-grid"></div>
+            </div>
+            <div class="matrix-legend" id="matrix-legend"></div>
+            <div class="diag-list" id="diag-list"></div>
+            <p class="panel-note" id="matrix-note"></p>
+        </section>
+    </aside>
+</div>
+
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<footer class="site-footer">
+    <p><strong>线性代数交互实验台</strong>是一个独立原型：58 个可拖动实验，覆盖向量与坐标、矩阵的列、线性变换、
+     行列式与面积、逆矩阵与方程组、特征向量、三维空间与体积。全部为 Canvas 手绘，无第三方依赖。</p>
+</footer>
+
+<!-- 脚本按依赖顺序同步加载：双击 index.html 也能直接跑（无需服务器） -->
+<script src="assets/js/theme-config.js?v=f7956820"></script>
+<script src="assets/js/theme.js?v=f7956820"></script>
+<script src="assets/js/links-config.js?v=f7956820"></script>
+<script src="assets/js/crosslinks.js?v=f7956820"></script>
+<script src="assets/js/mat.js?v=f7956820"></script>
+<script src="assets/js/state.js?v=f7956820"></script>
+<script src="assets/js/lab-data.js?v=f7956820"></script>
+<script src="assets/js/render2d.js?v=f7956820"></script>
+<script src="assets/js/render3d.js?v=f7956820"></script>
+<script src="assets/js/interact.js?v=f7956820"></script>
+<script src="assets/js/engine.js?v=f7956820"></script>
+<script src="assets/js/ui.js?v=f7956820"></script>
+<script src="assets/js/main.js?v=f7956820"></script>
+</body>
+</html>

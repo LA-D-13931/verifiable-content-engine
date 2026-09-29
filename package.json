@@ -1,0 +1,9 @@
+{
+  "name": "linalg-labs",
+  "private": true,
+  "version": "0.1.0",
+  "description": "线性代数交互实验台（原型）",
+  "devDependencies": {
+    "puppeteer-core": "^25.11.0"
+  }
+}
