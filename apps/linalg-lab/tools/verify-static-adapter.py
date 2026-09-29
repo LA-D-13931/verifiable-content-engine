@@ -113,6 +113,46 @@ if rc is not None:
            '卫生问题数一致（适配器 %d / 原脚本 %s）'
            % (len(H['certificate']['hits']), orig_hyg))
 
+# ---------- 结构校验：原脚本 ----------
+print('')
+print('原脚本（主站 tests/check-structure.py）')
+rc2, out2 = run_original('check-structure.py')
+if rc2 is None:
+    ok(False, '结构原脚本可运行', out2)
+else:
+    ok(rc2 == 0, '结构原脚本对快照通过（退出码 0）', '退出码 %s' % rc2)
+    def g(pat, cast=int):
+        m = re.search(pat, out2)
+        return cast(m.group(1)) if m else None
+    o_sections = g(r'小节\s*(\d+)')
+    o_examples = g(r'例题\s*(\d+)')
+    o_qpapers = g(r'测验卷\s*(\d+)')
+    o_qquestions = g(r'测验题\s*(\d+)')
+    o_reviews = g(r'讲评\s*(\d+)')
+    print('    统计：小节 %s · 例题 %s · 测验卷 %s · 测验题 %s · 讲评 %s'
+          % (o_sections, o_examples, o_qpapers, o_qquestions, o_reviews))
+
+print('')
+print('结构校验一致性')
+S = by.get('structure')
+if S is None:
+    ok(False, '适配器报告里有结构项')
+else:
+    c = S.get('certificate') or {}
+    cnt = c.get('counts') or {}
+    ok(S['pass'] == (rc2 == 0), '结论一致（适配器 %s / 原脚本退出码 %s）'
+       % ('通过' if S['pass'] else '不通过', rc2))
+    for key, want, label in [('sections', o_sections, '小节'),
+                             ('examples', o_examples, '例题'),
+                             ('quizPapers', o_qpapers, '测验卷'),
+                             ('quizQuestions', o_qquestions, '测验题'),
+                             ('reviews', o_reviews, '讲评')]:
+        if want is None:
+            continue
+        ok(cnt.get(key) == want,
+           '%s 数一致（适配器 %s / 原脚本 %s）' % (label, cnt.get(key), want))
+    ok(c.get('delegated') is not False, '明确标注该项为「委托执行」而非重写')
+
 print('')
 if failures:
     print('失败 %d 项 ✗' % len(failures))

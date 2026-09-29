@@ -243,10 +243,23 @@ def collect(root):
 
 
 def run(root):
-    """跑全部声明式检查，返回逐项结果。"""
+    """跑全部检查，返回逐项结果。
+
+    检查分两组：
+      · 本文件里的声明式检查（CHECKS）—— 一条规则一个函数，已真正接进规则层
+      · checks_structure.py 里的委托检查 —— 逻辑仍在原脚本，只接进报告层
+    两组的差别是有意的，详见 checks_structure.py 的文件头。
+    """
     ctx = collect(root)
     out = []
     for name, label, fn in CHECKS:
         r = fn(ctx)
         out.append({'name': name, 'label': label, **r})
+    try:
+        import checks_structure
+        for name, label, fn in checks_structure.CHECKS:
+            r = fn(root)
+            out.append({'name': name, 'label': label, 'delegated': True, **r})
+    except ImportError:
+        pass
     return {'root': root, 'docs': len(ctx['docs']), 'results': out}

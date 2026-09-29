@@ -67,6 +67,13 @@ def _summary(name, cert):
         return '（%d 条页内锚点全部存在）' % cert.get('checked', 0)
     if name == 'content-hygiene':
         return '（%d 页无 Markdown 星号、无 SVG 内数学）' % cert.get('files', 0)
+    if name == 'structure':
+        c = cert.get('counts') or {}
+        if not c:
+            return '（委托原脚本执行）'
+        return ('（小节 %d · 例题 %d · 测验卷 %d · 测验题 %d · 讲评 %d）'
+                % (c['sections'], c['examples'], c['quizPapers'],
+                   c['quizQuestions'], c['reviews']))
     return ''
 
 
