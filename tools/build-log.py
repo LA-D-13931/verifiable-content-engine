@@ -33,6 +33,7 @@ CHECKS = [
     ('矩阵层：生成物最新 + 两侧同一个数学', ['python3', 'tools/verify-mat.py'], '全部通过'),
     ('判题注册表：离线回归（无需浏览器）', ['node', 'tools/verify-registry.mjs'], '全部通过'),
     ('引擎独立运行：全部任务可判定', ['node', 'tools/verify-engine.mjs'], '全部通过'),
+    ('高等数学领域插件（第二科目）', ['node', 'tools/verify-calculus.mjs'], '全部通过'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),

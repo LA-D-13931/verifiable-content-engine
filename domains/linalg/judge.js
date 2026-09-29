@@ -50,10 +50,13 @@ root.LinalgJudge = (function () {
             return v.map(x => x / L);
         }
 
-    /* 判定入口：返回 true / false；类型不属本领域时返回 null。
-       返回 null 而不是 false，是为了让调用方能区分
-       「判定为假」与「这不是我的类型」。 */
-    function judge(check, ctx) {
+    /* 判定入口。返回三态：
+         · null                                  —— 不是本领域的类型
+         · { pass:true,  reason:'', certificate } —— 判过
+         · { pass:false, reason:'…', certificate } —— 判不过（带原因）
+       下面 13 个 case 从 engine.js 逐字提取，内部仍写 `return true/false`，
+       由 judgeRaw 之后统一包装成三元组，避免改动那 13 段已验证的代码。 */
+    function judgeRaw(check, ctx) {
         /* 别名：原代码读的是 App.xxx 与全局 Mat，这里改成从 ctx 取。
            领域插件不依赖任何全局，因此可以在 Node 里独立加载与测试。 */
         const App = ctx;
@@ -208,7 +211,23 @@ root.LinalgJudge = (function () {
         }
     }
 
-    const api = { judge: judge };
+    /* 包装：把布尔值规范化成 { pass, reason, certificate } 三元组，
+       与引擎层注册表的返回结构一致 —— 否则领域判题拿不到
+       「为什么判不过」的表达能力，而可解释诊断正是本项目的核心主张之一。
+
+       注：certificate 目前多为 null。逐个 case 补证书是后续工作；
+       先保证**结构一致**，再逐步填内容。 */
+    function judge(check, ctx) {
+        const r = judgeRaw(check, ctx);
+        if (r === null) return null;
+        if (typeof r === 'boolean') {
+            return r ? { pass: true, reason: '', certificate: null }
+                     : { pass: false, reason: '', certificate: null };
+        }
+        return r;
+    }
+
+    const api = { judge: judge, judgeRaw: judgeRaw };
     /* Node 下同时导出，便于离线回归测试直接 require。 */
     if (typeof module === 'object' && module.exports) module.exports = api;
     return api;

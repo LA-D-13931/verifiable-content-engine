@@ -242,15 +242,15 @@ if (!Linalg) {
         vectors: [{ id: 'v', data: [1, -1] }]
     });
     const r = Linalg.judge(check, context);
-    if (r === true) {
+    if (r && r.pass === true) {
         pass++; console.log('  ✓ 反向共线（λ = −1）判过');
     } else {
         fail++; failures.push('反向共线回归：eigen 判不过');
-        console.log(`  ✗ 反向共线判为 ${r}`);
+        console.log(`  ✗ 反向共线判为 ${JSON.stringify(r)}`);
     }
     // 反例：同向共线但 λ 不对，必须判不过 —— 证明判定不是恒真
     const r2 = Linalg.judge({ type: 'eigen', value: 5, tol: 0.12, tolDeg: 4 }, context);
-    if (r2 === false) {
+    if (r2 && r2.pass === false) {
         pass++; console.log('  ✓ λ 不符时判不过（判定不是恒真）');
     } else {
         fail++; failures.push('反向共线回归：λ 不符却判过');

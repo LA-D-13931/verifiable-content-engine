@@ -140,6 +140,7 @@ window.Engine = (function () {
             lines: App.lines || [],
             choices: App.choices || {},
             actionLog: App.actionLog || [],   // 原实现用数组，不是对象
+            param: App.param,                 // 可拖动标量参数（高数用：δ / h / 系数）
             Mat: Mat,
             vecEq: vecEq
         };
@@ -159,7 +160,11 @@ window.Engine = (function () {
         }
         if (window.LinalgJudge) {
             const r = window.LinalgJudge.judge(check, ctx);
-            if (r !== null) return !!r;
+            if (r !== null) return !!r.pass;      // 两层返回结构一致（三元组）
+        }
+        if (window.CalculusJudge) {               // 高等数学（第二个科目）
+            const r = window.CalculusJudge.judge(check, ctx);
+            if (r !== null) return !!r.pass;
         }
         return false;
     }

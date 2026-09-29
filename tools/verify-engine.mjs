@@ -24,12 +24,35 @@ const require = createRequire(import.meta.url);
 
 const Mat = require(join(SITE, 'assets', 'js', 'mat.js'));
 const Registry = require(join(SITE, 'assets', 'js', 'registry.js'));
-require(join(SITE, 'domains', 'linalg', 'judge.js'));       // 挂到 globalThis
-const LinalgJudge = globalThis.LinalgJudge;
+
+/* 按科目目录**自动发现**领域插件，而不是写死线代一个。
+   这样新增科目时本脚本无需改动 —— 它检验的是「引擎能不能带多个科目」。 */
+import { readdirSync, existsSync } from 'node:fs';
+const domainsDir = join(SITE, 'domains');
+const domains = existsSync(domainsDir)
+    ? readdirSync(domainsDir).filter(d => !d.startsWith('.')).sort()
+    : [];
+const plugins = [];
+for (const d of domains) {
+    const file = join(domainsDir, d, 'judge.js');
+    if (!existsSync(file)) continue;
+    const api = require(file);
+    const name = d.charAt(0).toUpperCase() + d.slice(1) + 'Judge';
+    plugins.push({ domain: d, api: api, global: globalThis[name] });
+}
 
 const labs = JSON.parse(readFileSync(join(SITE, 'assets', 'js', 'labs.json'), 'utf-8')).labs;
 
-if (!LinalgJudge) { console.error('✗ 领域插件未加载'); process.exit(2); }
+/* 各科目还可以提供自己的示例关卡（插件里的 sampleLabs），一并纳入统计。
+   linalg 的关卡在 labs.json 里；calculus 目前只有 3 个示例关卡。 */
+const extraLabs = [];
+for (const p of plugins) {
+    if (Array.isArray(p.api.sampleLabs)) {
+        p.api.sampleLabs.forEach(l => extraLabs.push(Object.assign({ __domain: p.domain }, l)));
+    }
+}
+
+if (!plugins.length) { console.error('✗ 未发现任何领域插件'); process.exit(2); }
 
 /* 与 engine.js 的 checkTask 同构：先问注册表，再问领域插件。
    刻意在这里复刻而不是加载 engine.js —— engine.js 依赖 DOM，
@@ -52,8 +75,10 @@ function judge(check, taskId, ctxOver) {
 
     const r1 = Registry.run(check, ctx);
     if (r1 !== null) return { layer: 'engine', result: r1 };
-    const r2 = LinalgJudge.judge(check, ctx);
-    if (r2 !== null) return { layer: 'domain', result: r2 };
+    for (const p of plugins) {
+        const r = p.api.judge(check, ctx);
+        if (r !== null) return { layer: 'domain:' + p.domain, result: r };
+    }
     return { layer: 'none', result: null };
 }
 
@@ -82,28 +107,33 @@ function ctxFor(check, lab) {
 
 console.log('=== 引擎独立运行校验（无浏览器）===');
 console.log(`引擎层已注册类型：${Registry.types().length} 种`);
-console.log(`领域插件：LinalgJudge（线代）`);
-console.log(`关卡数据：${labs.length} 个实验`);
+console.log(`领域插件（自动发现）：${plugins.map(p => p.domain).join('、')}`);
+console.log(`关卡数据：${labs.length} 个实验（另有各科目示例关卡 ${extraLabs.length} 个）`);
 console.log('');
 
 const stats = { total: 0, engineLayer: 0, domainLayer: 0, none: [], threw: [], badType: [] };
+const byDomain = {};
 const byType = {};
 
-for (const lab of labs) {
+const allLabs = labs.concat(extraLabs);
+console.log('');
+for (const lab of allLabs) {
     for (const task of lab.tasks) {
         const check = Object.assign({ __taskId: task.id }, task.check);
         stats.total++;
         const key = check.type;
         byType[key] = byType[key] || { n: 0, layer: null };
         byType[key].n++;
+        byType[key].domain = lab.__domain || 'linalg';
         try {
             const out = judge(check, task.id, ctxFor(check, lab));
             if (out.layer === 'none') {
                 stats.none.push(`${lab.id}/${task.id} → ${check.type}`);
             } else {
-                if (out.layer === 'engine') stats.engineLayer++; else stats.domainLayer++;
+                if (out.layer === 'engine') stats.engineLayer++;
+                else { stats.domainLayer++; byDomain[out.layer.slice(7)] = (byDomain[out.layer.slice(7)] || 0) + 1; }
                 byType[key].layer = out.layer;
-                const pass = out.layer === 'engine' ? out.result.pass : out.result;
+                const pass = out.result.pass;      // 两层现在都是 { pass, … }
                 if (typeof pass !== 'boolean') {
                     stats.badType.push(`${lab.id}/${task.id} → ${check.type} 返回 ${typeof pass}`);
                 }
@@ -116,13 +146,15 @@ for (const lab of labs) {
 
 console.log('判题类型分布：');
 Object.keys(byType).sort().forEach(t => {
-    console.log(`  ${t.padEnd(18)} ${String(byType[t].n).padStart(3)} 个   ${byType[t].layer === 'engine' ? '引擎层' : byType[t].layer === 'domain' ? '领域插件' : '**无人接管**'}`);
+    const where = byType[t].layer === 'engine' ? '引擎层'
+                : byType[t].layer ? '领域插件·' + (byType[t].domain || '') : '**无人接管**';
+    console.log(`  ${t.padEnd(18)} ${String(byType[t].n).padStart(3)} 个   ${where}`);
 });
 
 console.log('');
 console.log(`任务总数：${stats.total}`);
 console.log(`  引擎层处理：${stats.engineLayer}`);
-console.log(`  领域插件处理：${stats.domainLayer}`);
+console.log(`  领域插件处理：${stats.domainLayer}` + (Object.keys(byDomain).length ? '（' + Object.entries(byDomain).map(([k,v])=>k+' '+v).join('、') + '）' : ''));
 console.log(`  无人接管：${stats.none.length}`);
 console.log(`  抛异常：${stats.threw.length}`);
 console.log(`  返回非布尔：${stats.badType.length}`);
