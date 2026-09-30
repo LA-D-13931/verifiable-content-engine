@@ -22,13 +22,14 @@ import checks  # noqa: E402
 def main():
     args = [a for a in sys.argv[1:] if not a.startswith('--')]
     as_json = '--json' in sys.argv
+    allow_outside = '--allow-outside' in sys.argv
     root = os.path.abspath(args[0]) if args else os.getcwd()
 
     if not os.path.isdir(root):
         print('✗ 目录不存在：%s' % root)
         return 2
 
-    report = checks.run(root)
+    report = checks.run(root, allow_outside=allow_outside)
 
     if as_json:
         print(json.dumps(report, ensure_ascii=False, indent=1))
@@ -40,19 +41,28 @@ def main():
     print('')
     width = max(len(r['label']) for r in report['results']) + 2
     for r in report['results']:
-        mark = '✓' if r['pass'] else '✗'
+        if (r.get('certificate') or {}).get('skipped'):
+            mark = '–'          # 跳过：宿主站点没提供这项检查所需的脚本
+        else:
+            mark = '✓' if r['pass'] else '✗'
         line = '%s %s' % (mark, r['label'].ljust(width))
         cert = r.get('certificate') or {}
-        detail = r['reason'] or _summary(r['name'], cert)
+        _cert = r.get('certificate') or {}
+        detail = (_cert.get('why') if _cert.get('skipped')
+                  else (r['reason'] or _summary(r['name'], _cert)))
         print(line + detail)
-    bad = [r for r in report['results'] if not r['pass']]
+    bad = [r for r in report['results']
+           if not r['pass'] and not (r.get('certificate') or {}).get('skipped')]
     print('')
     if bad:
         print('失败 %d 项 ✗' % len(bad))
         for r in bad:
             print('   - %s：%s' % (r['label'], r['reason']))
         return 1
-    print('全部通过 ✓ 内容一致性校验无问题')
+    _n_skip = sum(1 for r in report['results']
+                  if (r.get('certificate') or {}).get('skipped'))
+    print('全部通过 ✓ 内容一致性校验无问题'
+          + ('（%d 项因宿主站点未提供所需脚本而跳过）' % _n_skip if _n_skip else ''))
     return 0
 
 

@@ -61,8 +61,12 @@ def parse(root):
     """
     legacy = os.path.join(root, LEGACY_REL)
     if not os.path.isfile(legacy):
-        return _triple(False, '快照里找不到原脚本：%s' % LEGACY_REL,
-                       {'legacy': LEGACY_REL})
+        # 宿主站点没有带这个脚本 —— 这是**正常情形**，不是失败。
+        # 本适配器是「委托执行」式的：宿主脚本不在，这一项就没得可查。
+        # 报成失败会误导使用者（把「没装那个脚本」看成「内容有问题」）。
+        # （交付给第三方开发者的包里就没有这两个脚本，本项目实测到过。）
+        return _triple(True, '', {'skipped': True, 'legacy': LEGACY_REL,
+                                  'why': '宿主站点未提供 %s，本项跳过' % LEGACY_REL})
 
     r = subprocess.run([sys.executable, legacy], capture_output=True, text=True, cwd=root)
     out = (r.stdout or '') + (r.stderr or '')

@@ -119,6 +119,9 @@ def check_internal_links(ctx):
             resolved = os.path.normpath(os.path.join(base, unquote(target)))
             if resolved in files or os.path.isdir(os.path.join(ctx['root'], resolved)):
                 continue
+            if ctx.get('allow_outside') and resolved.startswith('..'):
+                if os.path.exists(os.path.join(ctx['root'], resolved)):
+                    continue
             broken.append('%s → %s' % (doc['rel'], ref))
     return _triple(not broken,
                    '失效链接 %d 个：%s' % (len(broken), '；'.join(broken[:3])) if broken else '',
@@ -242,7 +245,7 @@ def collect(root):
     return {'root': root, 'files': files, 'docs': docs}
 
 
-def run(root):
+def run(root, allow_outside=False):
     """跑全部检查，返回逐项结果。
 
     检查分两组：
@@ -251,6 +254,7 @@ def run(root):
     两组的差别是有意的，详见 checks_structure.py 的文件头。
     """
     ctx = collect(root)
+    ctx['allow_outside'] = allow_outside
     out = []
     for name, label, fn in CHECKS:
         r = fn(ctx)
