@@ -150,6 +150,20 @@ root.LinalgJudge = (function () {
             const a = ctx.vectors.find(x => x.id === check.a);
             const b = ctx.vectors.find(x => x.id === check.b);
             if (!a || !b) return { reason: '找不到向量 ' + check.a + ' 或 ' + check.b, certificate: null };
+            const la = Math.hypot.apply(null, a.data);
+            const lb = Math.hypot.apply(null, b.data);
+            if (la < 1e-6 || lb < 1e-6) {
+                return { reason: '有一个向量长度为零，夹角没有定义',
+                         certificate: { la: la, lb: lb } };
+            }
+            if (check.unit) {
+                const ut = check.unitTol || 0.06;
+                if (Math.abs(la - 1) > ut || Math.abs(lb - 1) > ut) {
+                    return { reason: '要求两个都是单位向量，当前长度是 ' + n2(la) + ' 与 ' + n2(lb)
+                                     + '（容差 ' + ut + '）',
+                             certificate: { la: la, lb: lb, unitTol: ut } };
+                }
+            }
             const ang = ctx.Mat.angleBetweenDeg(a.data, b.data);
             return {
                 reason: '当前夹角 ' + n2(ang) + '°，目标是 ' + check.value + '°（容差 '
@@ -194,12 +208,80 @@ root.LinalgJudge = (function () {
         'null-space': function (check, ctx) {
             const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
             if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const minLen = check.minLen || 0.25;
+            const tol = check.tol || 0.08;
+            const len = Math.hypot.apply(null, v.data);
+            if (len < minLen) {
+                return { reason: '向量长度 ' + n2(len) + ' 太短（要求 ≥ ' + minLen
+                                 + '），零向量不构成零空间里的方向',
+                         certificate: { len: len, minLen: minLen } };
+            }
             const av = ctx.Mat.mulVec(ctx.matrix, v.data);
-            return {
-                reason: '当前 |Av| = ' + n2(Math.hypot.apply(null, av))
-                        + '，要求接近 0（容差 ' + (check.tol || 0.08) + '）',
-                certificate: { av: av, norm: Math.hypot.apply(null, av) }
-            };
+            const normAv = Math.hypot.apply(null, av);
+            /* 诊断必须**镜像判定的条件顺序**：判定在 ‖Av‖ 超标时就返回 false，
+               不会再看方向。所以这里也先报 ‖Av‖ —— 否则会出现
+               「诊断说方向不对、实际判定卡在 ‖Av‖」的不一致。 */
+            if (normAv > tol) {
+                const note = check.dir
+                    ? '（此时方向还未参与判定）' : '';
+                return { reason: '当前 |Av| = ' + n2(normAv) + '，要求接近 0（容差 '
+                                 + tol + '）' + note,
+                         certificate: { av: av, norm: normAv, tol: tol } };
+            }
+            if (check.dir) {
+                const cos = Math.abs(ctx.Mat.dot(normVec(v.data), normVec(check.dir)));
+                const minCos = check.minCos || 0.98;
+                if (cos < minCos) {
+                    return { reason: '方向不符：v 与目标方向的 |cos| = ' + n2(cos)
+                                     + '，要求 ≥ ' + minCos
+                                     + '（零空间条件 |Av| = ' + n2(normAv)
+                                     + ' 已满足，所以问题确实出在方向上）',
+                             certificate: { cos: cos, minCos: minCos, av: av } };
+                }
+            }
+            return { reason: '', certificate: { ok: true } };
+        },
+
+        /* 判定分支有 4 条失败条件，逐条对应（原表缺此条目，诊断退化为空原因）。 */
+        'eigen': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const vv = ctx.Mat.dot(v.data, v.data);
+            if (vv < 1e-6) return { reason: '向量 v 是零向量，缩放倍数没有定义',
+                                    certificate: { vv: vv } };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            const lam = ctx.Mat.dot(av, v.data) / vv;
+            if (Math.abs(lam - check.value) > (check.tol || 0.12)) {
+                return { reason: '当前缩放倍数 λ = ' + n2(lam) + '，目标是 ' + check.value
+                                 + '（容差 ' + (check.tol || 0.12) + '）',
+                         certificate: { lambda: lam, av: av, target: check.value } };
+            }
+            const ang = ctx.Mat.angleBetweenDeg(v.data, av);
+            const off = Math.min(ang, 180 - ang);
+            return { reason: '缩放倍数 λ = ' + n2(lam) + ' 已符合，但 v 与 Av 不共线：'
+                             + '夹角偏离 ' + n2(off) + '°（容差 ' + (check.tolDeg || 4) + '°）',
+                     certificate: { lambda: lam, angleOff: off, av: av } };
+        },
+
+        /* 判定分支有 3 条失败条件，逐条对应（原表缺此条目，诊断退化为空原因）。 */
+        'collinear': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const lv = Math.hypot(v.data[0], v.data[1]);
+            if (lv < 0.25) return { reason: '向量 v 太短（长度 ' + n2(lv) + '，要求 ≥ 0.25）',
+                                    certificate: { len: lv } };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            if (Math.hypot(av[0], av[1]) < 1e-6) {
+                return { reason: 'Av 是零向量（矩阵把 v 压扁了），共线无法判定 —— '
+                                 + '零向量与任何向量都谈不上「方向相同或相反」',
+                         certificate: { av: av } };
+            }
+            const ang = ctx.Mat.angleBetweenDeg(v.data, av);
+            const off = Math.min(ang, 180 - ang);
+            return { reason: 'v 与 Av 不共线：夹角偏离 ' + n2(off) + '°（容差 '
+                             + (check.tolDeg || 4) + '°）。共线含同向与反向（180°）两种情况，'
+                             + '两者都算共线',
+                     certificate: { angleOff: off, av: av } };
         }
     };
 

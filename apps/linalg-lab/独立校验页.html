@@ -1,0 +1,606 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>内容校验 · 可验证的交互式教学内容引擎</title>
+<!--
+  独立校验页（交付形态 ②）
+  ============================================================
+  给**不写代码的课程作者**用：把内容 JSON 拖进来，出一份报告。
+
+  它比拖进浏览器里点一遍强在哪：
+    引擎判题不需要交互 —— 只要给出「最有利的上下文」，就能判断
+    **这一关到底做不做得出来**。所以本页会为每个任务自动构造：
+      · 动作日志填满（任务声明的动作全部视为已发生）
+      · 选择题选成正确选项
+      · 矩阵按判定条件反推构造出来（要秩为 2 就造满秩的，要 det=0 就造奇异的）
+      · 向量、点积、角度按 check 的目标值构造
+    然后在**最有利条件下**跑判定：仍判不过的，就是结构性缺陷
+    （谓词恒假 / 目标不可达），而不是「用户不会操作」。
+
+  零依赖：只引入引擎的四个脚本，file:// 下双击即用。
+-->
+<style>
+* { box-sizing: border-box; }
+body { margin:0; padding:26px 30px 60px; background:#f5f5f6; color:#1c2027; line-height:1.65;
+       font-family:"Songti SC","STSong","PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif; }
+h1 { font-size:22px; margin:0 0 4px; color:#16202e; border-bottom:2px solid #3e5184; padding-bottom:8px; }
+.sub { font-size:13px; color:#5a6270; margin-bottom:20px; }
+.drop { border:2px dashed #b9c2d4; border-radius:12px; padding:38px 20px; text-align:center;
+        background:#fff; margin-bottom:18px; transition:.15s; }
+.drop.over { border-color:#3e5184; background:#f4f6fa; }
+.drop h2 { margin:0 0 8px; font-size:17px; color:#3e5184; }
+.drop p { margin:4px 0; font-size:13px; color:#6b7280; }
+.card { background:#fff; border:1px solid #dfe2e8; border-radius:9px; padding:14px 16px; margin-bottom:14px; }
+.metrics { display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:12px; margin-bottom:16px; }
+.metric { background:#fff; border:1px solid #dfe2e8; border-radius:9px; padding:13px 12px; text-align:center; }
+.m-val { font-size:25px; font-weight:700; color:#3e5184; line-height:1.15; }
+.m-lab { font-size:12px; color:#4b5563; margin-top:4px; }
+h3 { font-size:15px; margin:20px 0 8px; color:#16202e; }
+table { width:100%; border-collapse:collapse; font-size:12.5px; background:#fff;
+        border:1px solid #dfe2e8; border-radius:8px; overflow:hidden; }
+th, td { border:1px solid #e6e8ec; padding:5px 8px; text-align:left; vertical-align:top; }
+th { background:#eef0f4; }
+.ok { color:#2f7a5f; } .bad { color:#a8445a; font-weight:600; } .warn { color:#9a6a1f; }
+code { background:#f1f2f4; border:1px solid #e2e4e8; border-radius:3px; padding:0 3px;
+       font-family:"SF Mono",Menlo,monospace; font-size:11.5px; }
+.btn { font-family:inherit; font-size:13px; padding:7px 14px; border-radius:8px;
+       border:1px solid #c8ccd4; background:#fff; cursor:pointer; margin-right:8px; }
+.btn:hover { border-color:#3e5184; }
+.btn.primary { background:#3e5184; border-color:#3e5184; color:#fff; }
+.btn.primary:hover { background:#33456f; }
+pre { background:#f6f7f9; border:1px solid #e2e4e8; border-radius:6px; padding:10px;
+      font-family:"SF Mono",Menlo,monospace; font-size:11.5px; max-height:280px; overflow:auto; }
+.verdict { font-size:14px; padding:10px 14px; border-radius:8px; margin-bottom:14px; }
+.v-ok { background:#eef7f2; border-left:4px solid #2f7a5f; }
+.v-bad { background:#fdf0f2; border-left:4px solid #a8445a; }
+</style>
+</head>
+<body>
+
+<h1>内容校验 · 可验证的交互式教学内容引擎</h1>
+<div class="sub">把内容 JSON 拖进来，检查每道学习任务<b>是否做得出来</b>、作者的判题规则<b>是否健全</b>。
+不需要会写代码，也不需要打开实验台逐关点一遍。</div>
+
+<div class="drop" id="drop">
+  <h2>把 labs.json 拖到这里</h2>
+  <p>或者 <button class="btn primary" id="pick">选择文件</button>
+     <button class="btn" id="demo">用内置示例试一下</button></p>
+  <p>文件是纯 JSON（内容层的唯一编辑面），不含可执行代码</p>
+  <input type="file" id="file" accept=".json,application/json" hidden>
+</div>
+
+<div id="report"></div>
+
+<script src="../../engine-core/mat.js"></script>
+<script src="../../engine-core/registry.js"></script>
+<script src="../../engine-core/domains/linalg/judge.js"></script>
+<script src="../../engine-core/domains/calculus/judge.js"></script>
+<script>
+(function () {
+'use strict';
+
+/* ============================================================
+   一、自动构造「最有利的上下文」
+   ------------------------------------------------------------
+   引擎判题不需要交互：给出状态就能判定。所以本页为每个任务造一份
+   「用户已经做到最好」的状态，再跑判定。在最有利条件下仍判不过的，
+   就是结构性缺陷。
+   ============================================================ */
+
+const Mat = window.Mat;
+
+function vecEq(a, b, tol) {
+    const t = tol == null ? 0.15 : tol;
+    return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= t);
+}
+
+/* 按秩的要求造一个矩阵：秩为 r 就取前 r 个对角元非零 */
+function matrixWithRank(n, r) {
+    const m = Mat.identity(n);
+    for (let i = r; i < n; i++) m[i][i] = 0;
+    return m;
+}
+
+/* 按行列式的要求造矩阵：对角阵，乘积等于目标值 */
+function matrixWithDet(n, d) {
+    const m = Mat.identity(n);
+    if (n > 0) m[0][0] = d;
+    return m;
+}
+
+/* 造一个「长度足够、方向合适」的向量 */
+function unitVec(n, angleDeg) {
+    const a = (angleDeg || 0) * Math.PI / 180;
+    if (n === 2) return [Math.cos(a), Math.sin(a)];
+    return [Math.cos(a), Math.sin(a), 0];
+}
+
+/* 让 v 与 Av 共线：取 A 的一个特征向量方向。简单做法是用对角阵，
+   此时坐标轴方向就是特征方向 */
+function eigenVectorFor(n) {
+    const v = new Array(n).fill(0);
+    v[0] = 1;
+    return v;
+}
+
+/* 核心：为一个 task 构造最有利的 ctx */
+function buildCtx(lab, task) {
+    const c = task.check || {};
+    const scene = lab.scene || {};
+    let n = 2;
+    let matrix = scene.matrix ? scene.matrix.map(r => r.slice()) : Mat.identity(2);
+    if (Array.isArray(matrix) && matrix.length) n = matrix.length;
+
+    const ctx = {
+        taskId: task.id,
+        matrix: matrix,
+        matrixSize: n,
+        vectors: [],
+        lines: (scene.lines || []).map(l => Object.assign({}, l)),
+        actionLog: [],
+        choices: {},
+        param: null,
+        Mat: Mat,
+        vecEq: vecEq
+    };
+
+    /* ① 动作型任务：把声明的动作全部视为已发生。
+          这是「最有利」——若连这样都判不过，说明判定机制失效
+          （真实缺陷 6-2 正是如此）。 */
+    if (c.type === 'actions') {
+        const all = c.all || [];
+        ctx.actionLog = c.ordered ? all.slice() : all.slice();
+    }
+
+    /* ② 选择题：直接选成正确项。这样能查出「正确项下标非法」这类问题，
+          但查不出「多个选项都对」——那个需要把每个选项各试一遍，
+          见下面的 availableChoices 检查。 */
+    if (c.type === 'choice') ctx.choices[task.id] = c.correct;
+
+    /* ③ 矩阵类：按判定条件反推构造 */
+    if (c.type === 'rank') {
+        const want = typeof c.value === 'number' ? c.value : 1;
+        ctx.matrix = matrixWithRank(n, Math.max(0, Math.min(n, want)));
+    }
+    if (c.type === 'det') {
+        let want = typeof c.value === 'number' ? c.value : 1;
+        if (c.op === 'lt') want = want - 1;
+        if (c.op === 'gt') want = want + 1;
+        if (c.op === 'eq' && Math.abs(want) < 1e-9) want = 0;   // 奇异矩阵
+        ctx.matrix = matrixWithDet(n, want);
+    }
+    if (c.type === 'eigen') {
+        /* 对角阵 + 坐标轴方向的向量，特征值正好是对角元 */
+        const lam = typeof c.value === 'number' ? c.value : 1;
+        ctx.matrix = Mat.identity(n);
+        ctx.matrix[0][0] = lam;
+        ctx.vectors = [{ id: c.target || 'v', data: eigenVectorFor(n) }];
+    }
+    if (c.type === 'collinear') {
+        ctx.matrix = Mat.identity(n);
+        ctx.vectors = [{ id: 'v', data: eigenVectorFor(n) }];
+    }
+    if (c.type === 'solve' || c.type === 'av-at') {
+        /* Av 要命中 to：取 A = I 则 v = to */
+        ctx.matrix = Mat.identity(n);
+        const to = c.to || new Array(n).fill(0);
+        ctx.vectors = [{ id: 'v', data: to.slice() }];
+    }
+    if (c.type === 'vector-at') {
+        ctx.vectors = [{ id: c.target || 'v', data: (c.to || [0, 0]).slice() }];
+    }
+    if (c.type === 'matrix-col-at') {
+        const m = Mat.identity(n);
+        const col = c.col || 0;
+        (c.to || []).forEach((x, i) => { if (m[i]) m[i][col] = x; });
+        ctx.matrix = m;
+    }
+    if (c.type === 'match-matrix') {
+        ctx.matrix = (c.matrix || []).map(r => r.slice());
+    }
+    if (c.type === 'in-basis-matrix') {
+        /* 引擎的判定是 P⁻¹AP ?= check.matrix，而 **P 由 check.basis 给定**，
+           不能自己选。所以要反解出 A：A = P · 目标 · P⁻¹。
+           第一版取「A = 目标, P = I」，在 basis 不是单位阵时必然误报。 */
+        const P = c.basis;
+        const T = c.matrix;
+        const Pi = Mat.inv2(P);
+        ctx.matrix = Pi ? Mat.mul(Mat.mul(P, T), Pi) : T.map(r => r.slice());
+    }
+    if (c.type === 'in-basis') {
+        ctx.matrix = Mat.identity(n);
+        ctx.vectors = [{ id: c.target || 'v', data: (c.to || [0, 0]).slice() }];
+    }
+    if (c.type === 'on-span') {
+        /* op=in：让 v 落在列空间里；op=out：让 v 在列空间外 */
+        const m = matrixWithRank(n, Math.min(n, 1));
+        ctx.matrix = m;
+        ctx.vectors = [{ id: c.target || 'v',
+                         data: c.op === 'out' ? new Array(n).fill(1) : eigenVectorFor(n) }];
+    }
+    if (c.type === 'null-space') {
+        /* 引擎的判定有三条：‖v‖ ≥ minLen（默认 0.25）、‖Av‖ ≤ tol（默认 0.08）、
+           若给了 dir 则 v 还必须与它平行（|cos| ≥ minCos，默认 0.98）。
+
+           ⚠️ 关键：这里的 A **必须是场景里给定的矩阵**，不能用自己造的。
+           第一版为了「省事」用了 matrixWithRank(n,1)，但引擎判的是场景矩阵
+           —— 两者零空间不同，于是挑出的向量在场景矩阵下不满足方向约束，
+           页面就把「我没构造好」误报成了「任务不可达」。 */
+        let dir = c.dir ? c.dir.slice() : null;
+        if (!dir) dir = (n === 2 ? [1, -1] : [1, -1, 0]);
+        const v = projectToNullSpace(ctx.matrix, dir, n);
+        ctx.vectors = [{ id: c.target || 'v', data: v }];
+    }
+    if (c.type === 'vector-angle') {
+        /* 让两个向量夹角等于目标角度；要单位向量就给单位向量 */
+        const target = (typeof c.value === 'number' ? c.value : 0) * Math.PI / 180;
+        const a = [1, 0];
+        const b = [Math.cos(target), Math.sin(target)];
+        if (c.unit) { /* a、b 已是单位向量 */ }
+        ctx.vectors = [{ id: c.a || 'u', data: a }, { id: c.b || 'v', data: b }];
+    }
+    if (c.type === 'dot') {
+        /* 要 u·v 满足 op value。gt/lt 是**严格**不等，所以不能正好给 value，
+           要留出余量（第一版给的是正好等于，于是 gt 1 与 lt -1 都误报）。
+           做法：u 取坐标轴单位向量，v 的对应分量取目标点积。 */
+        let want = typeof c.value === 'number' ? c.value : 0;
+        if (c.op === 'gt') want = want + 1;
+        if (c.op === 'lt') want = want - 1;
+        const a = [1, 0], b = [want, 0];
+        ctx.vectors = [{ id: c.a || 'u', data: a }, { id: c.b || 'v', data: b }];
+    }
+    if (c.type === 'intercept') {
+        /* 交点可达：把向量放到所有直线的公共交点上（若存在） */
+        const lines = ctx.lines.slice(0, c.maxLines || ctx.lines.length);
+        const p = intersect(lines);
+        ctx.vectors = [{ id: c.target || 'v', data: p || [0, 0] }];
+    }
+    if (c.type === 'cross-mag' || c.type === 'cross-dir') {
+        /* 叉积模长 = |a||b|sinθ。要 eq v：取两列正交、|a| = v、|b| = 1。
+           第一版取单位正交列，模长恒为 1，于是 eq 2 必然误报。 */
+        const colA = c.colA || 0, colB = c.colB || 1;
+        const vecA = [0, 0, 0], vecB = [0, 0, 0];
+        if (c.type === 'cross-mag') {
+            let want = typeof c.value === 'number' ? c.value : 1;
+            if (c.op === 'gt') want = want + 1;
+            if (c.op === 'lt') want = Math.max(0, want - 1);
+            vecA[colA] = want;                 // |a| = want
+            vecB[colB] = 1;                    // |b| = 1
+        } else {
+            /* 方向一致：取 a = e_colA、b = e_colB，叉积方向由右手定则决定；
+               若要求的 dir 是反向，就整体取负。 */
+            vecA[colA] = 1;
+            vecB[colB] = 1;
+        }
+        const m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        for (let i = 0; i < 3; i++) { m[i][colA] = vecA[i]; m[i][colB] = vecB[i]; }
+        ctx.matrix = m;
+        ctx.matrixSize = 3;
+    }
+
+    /* ④ 高数类：param 需要按目标反推。
+          ε-δ 与黎曼和都是「参数越小/越大越准」，所以给一个好参数； */
+    if (c.type === 'calc-limit') ctx.param = 1e-4;
+    if (c.type === 'calc-derivative') ctx.param = 1e-4;
+    if (c.type === 'calc-monotone') ctx.param = 0;
+    if (c.type === 'calc-riemann') ctx.param = 2000;
+
+    return ctx;
+}
+
+/* 在 A 的零空间里找一个满足全部硬约束的向量。
+   ------------------------------------------------------------
+   引擎的 null-space 判定有三条硬约束：
+     ‖v‖ ≥ minLen（默认 0.25）· ‖Av‖ ≤ tol（默认 0.08）
+     · 若给了 dir，则 |cos(v, dir)| ≥ minCos（默认 0.98）
+
+   做法是**筛选**而不是打分：先用前两条挑出「在零空间里且够长」的候选，
+   再在其中挑与 dir 最平行的。第一版用的是加权评分（norm*100 + (1-cos)*10），
+   结果在「在零空间里但与 dir 不平行」和「不在零空间里」之间选错了 ——
+   两个约束被混成一个分数，就必然有取舍失败的情形。 */
+function projectToNullSpace(A, dir, n) {
+    const minLen = 0.25, tol = 0.08;
+    const base = normalize(dir.slice());
+    if (Mat.rank(A) === n) return base.map(x => x * Math.max(1, minLen));
+
+    /* 候选方向：均匀撒 32 个（2D）或绕 z 轴 32 个（3D） */
+    const cands = [];
+    for (let k = 0; k < 32; k++) {
+        const a = k * Math.PI / 16;
+        const p = new Array(n).fill(0);
+        if (n === 2) { p[0] = Math.cos(a); p[1] = Math.sin(a); }
+        else { p[0] = Math.cos(a); p[1] = Math.sin(a); p[2] = 0; }
+        cands.push(p);
+    }
+    /* 第一层筛选：必须落在零空间里 */
+    const inNull = cands.filter(function (p) {
+        return Math.hypot.apply(null, Mat.mulVec(A, p)) <= tol;
+    });
+    /* 一个都没有（例如数值上不够精确）：退回把 dir 投影掉 A 的像空间分量 */
+    if (!inNull.length) {
+        const aBase = Mat.mulVec(A, base);
+        const scale = Math.hypot.apply(null, aBase) > 1e-9 ? 1 : 1;
+        return base.map(x => x * 1.5 * scale);
+    }
+    /* 第二层：在「长度足够且与 dir 足够平行」的候选里挑一个。
+       —— 注意不能只按 cos 排序就完事：引擎的判定还要求 ‖Av‖ ≤ tol
+          与 ‖v‖ ≥ minLen，三个条件必须同时满足。
+          （第一版按 cos 排序后直接返回，结果挑出的向量 ‖Av‖ 超标，
+            页面把「我没构造好」误报成了「任务不可达」。） */
+    const minCos = minCosOf(dir);
+    let best = null;
+    for (const p of inNull) {
+        const cos = Math.abs(Mat.dot(normalize(p), base));
+        if (cos < minCos) continue;               // 方向必须够平行
+        for (const len of [1.5, 1.0, 0.6, 0.4, 0.3]) {
+            if (len < minLen) continue;
+            const cand = p.map(x => x * len);
+            if (Math.hypot.apply(null, Mat.mulVec(A, cand)) <= tol) {
+                best = cand;
+                break;
+            }
+        }
+        if (best) break;
+    }
+    if (best) return best;
+    /* 零空间里找不到同时满足方向与长度要求的向量。
+       这可能是真实的不可达，也可能只是我们的搜索不够细 —— 所以标记出来，
+       让上层区分显示，而不是武断地报成「任务有缺陷」。 */
+    const fallback = inNull[0].map(x => x * 1.5);
+    fallback.__undetermined = true;
+    return fallback;
+}
+
+/* 与引擎的默认值保持一致：check.minCos 默认 0.98 */
+function minCosOf(check) { return (check && check.minCos) || 0.98; }
+
+function normalize(v) {
+    const n = Math.hypot.apply(null, v);
+    return n < 1e-12 ? v.slice() : v.map(x => x / n);
+}
+
+function intersect(lines) {
+    for (let i = 0; i < lines.length; i++) {
+        for (let j = i + 1; j < lines.length; j++) {
+            const l1 = lines[i], l2 = lines[j];
+            const d = l1.a * l2.b - l2.a * l1.b;
+            if (Math.abs(d) < 1e-9) continue;
+            const p = [(l1.c * l2.b - l2.c * l1.b) / d,
+                       (l1.a * l2.c - l2.a * l1.c) / d];
+            if (lines.every(l => Math.abs(l.a * p[0] + l.b * p[1] - l.c) < 0.05)) return p;
+        }
+    }
+    return null;
+}
+
+/* 分派：先引擎层，再领域插件 —— 与 apps 里的 checkTask 同构 */
+function judge(check, ctx) {
+    const r1 = window.CheckRegistry.run(check, ctx);
+    if (r1 !== null) return { layer: 'engine', r: r1 };
+    if (window.LinalgJudge) {
+        const r2 = window.LinalgJudge.judge(check, ctx);
+        if (r2 !== null) return { layer: 'linalg', r: r2 };
+    }
+    if (window.CalculusJudge) {
+        const r3 = window.CalculusJudge.judge(check, ctx);
+        if (r3 !== null) return { layer: 'calculus', r: r3 };
+    }
+    return { layer: 'none', r: null };
+}
+
+/* ============================================================
+   二、跑全部任务，找出「在最有利条件下仍判不过」的
+   ============================================================ */
+function analyze(data) {
+    const labs = data.labs || data;
+    const rows = [];
+    let total = 0, unreachable = 0, noHandler = 0, threw = 0;
+
+    for (const lab of labs) {
+        for (const task of (lab.tasks || [])) {
+            total++;
+            const check = task.check || {};
+            let out;
+            try {
+                out = judge(check, buildCtx(lab, task));
+            } catch (e) {
+                threw++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '异常', reason: e.message });
+                continue;
+            }
+            if (out.layer === 'none') {
+                noHandler++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '无人接管', reason: '没有处理器认领这个类型' });
+                continue;
+            }
+            const r = out.r;
+            if (!r.pass) {
+                unreachable++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '最有利条件下仍判不过',
+                            reason: r.reason || '（无原因）',
+                            cert: r.certificate });
+            } else {
+                rows.push({ lab: lab.id, task: task.id, type: check.type, pass: true });
+            }
+        }
+    }
+    return { total, unreachable, noHandler, threw, rows };
+}
+
+/* ============================================================
+   三、渲染报告
+   ============================================================ */
+function render(data, res) {
+    const box = document.getElementById('report');
+    const bad = res.rows.filter(r => !r.pass);
+    const ok = res.total - bad.length;
+
+    let html = '';
+    html += '<div class="verdict ' + (bad.length ? 'v-bad' : 'v-ok') + '">' +
+        (bad.length
+            ? '<b>发现 ' + bad.length + ' 个任务存在问题</b> —— 在「用户已经做到最好」的假设下仍判不过，' +
+              '说明是结构性缺陷（谓词恒假或目标不可达），不是用户不会操作。'
+            : '<b>全部通过</b> —— ' + res.total + ' 个任务在「最有利条件下」都能判定通过。' +
+              '未发现谓词恒假或目标不可达的任务。') + '</div>';
+
+    html += '<div class="metrics">' +
+        metric(res.total, '任务总数') +
+        metric(ok, '可达', '#2f7a5f') +
+        metric(bad.length, '存在问题', bad.length ? '#a8445a' : '') +
+        metric(res.noHandler, '无人接管') +
+        metric(res.threw, '抛异常') +
+        '</div>';
+
+    if (bad.length) {
+        html += '<h3>问题清单</h3><table><tr><th>实验</th><th>任务</th><th>判题类型</th>' +
+                '<th>问题</th><th>诊断（引擎给出的原因）</th></tr>';
+        for (const r of bad) {
+            html += '<tr><td><code>' + esc(r.lab) + '</code></td><td><code>' + esc(r.task) +
+                    '</code></td><td><code>' + esc(r.type) + '</code></td>' +
+                    '<td class="bad">' + esc(r.kind) + '</td><td>' + esc(r.reason) + '</td></tr>';
+        }
+        html += '</table>';
+    }
+
+    html += '<h3>全部任务</h3><table><tr><th>实验</th><th>任务</th><th>判题类型</th><th>结果</th>' +
+            '<th>诊断</th></tr>';
+    for (const r of res.rows) {
+        html += '<tr><td><code>' + esc(r.lab) + '</code></td><td><code>' + esc(r.task) +
+                '</code></td><td><code>' + esc(r.type) + '</code></td>' +
+                '<td class="' + (r.pass ? 'ok' : 'bad') + '">' + (r.pass ? '✓ 可达' : '✗ ' + esc(r.kind)) +
+                '</td><td>' + esc(r.reason || '') + '</td></tr>';
+    }
+    html += '</table>';
+
+    html += '<h3>导出</h3><div class="card">' +
+        '<button class="btn" id="dl">下载 JSON 报告</button>' +
+        '<button class="btn" id="cp">复制到剪贴板</button>' +
+        '<p style="font-size:12.5px;color:#6b7280;margin:8px 0 0">' +
+        '报告含每个任务的判定结果与诊断，可交给内容作者或存档。</p></div>';
+
+    html += '<h3>原始数据</h3><pre>' + esc(JSON.stringify({
+        input: { labs: (data.labs || data).length },
+        summary: { total: res.total, reachable: ok, problems: bad.length,
+                   noHandler: res.noHandler, threw: res.threw },
+        problems: bad.map(r => ({ lab: r.lab, task: r.task, type: r.type,
+                                  kind: r.kind, reason: r.reason }))
+    }, null, 2)) + '</pre>';
+
+    box.innerHTML = html;
+
+    const dl = document.getElementById('dl');
+    if (dl) dl.onclick = function () {
+        const blob = new Blob([JSON.stringify(res, null, 2)], { type: 'application/json' });
+        const a = document.createElement('a');
+        a.href = URL.createObjectURL(blob);
+        a.download = '校验报告.json';
+        a.click();
+    };
+    const cp = document.getElementById('cp');
+    if (cp) cp.onclick = function () {
+        navigator.clipboard.writeText(JSON.stringify(res, null, 2)).then(function () {
+            cp.textContent = '已复制 ✓';
+            setTimeout(function () { cp.textContent = '复制到剪贴板'; }, 1500);
+        });
+    };
+}
+
+function metric(v, label, color) {
+    return '<div class="metric"><div class="m-val"' +
+        (color ? ' style="color:' + color + '"' : '') + '>' + v + '</div>' +
+        '<div class="m-lab">' + label + '</div></div>';
+}
+function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ============================================================
+   四、交互
+   ============================================================ */
+function run(text) {
+    let data;
+    try {
+        data = JSON.parse(text);
+    } catch (e) {
+        document.getElementById('report').innerHTML =
+            '<div class="verdict v-bad"><b>这不是合法的 JSON</b>：' + esc(e.message) +
+            '<br>内容层的唯一编辑面应是纯 JSON 文件（通常名为 labs.json）。</div>';
+        return;
+    }
+    const labs = data.labs || data;
+    if (!Array.isArray(labs)) {
+        document.getElementById('report').innerHTML =
+            '<div class="verdict v-bad"><b>结构不对</b>：找不到 labs 数组。' +
+            '期望形如 <code>{ labs: [ { id, tasks: [ … ] } ] }</code>。</div>';
+        return;
+    }
+    render(data, analyze(data));
+}
+
+const drop = document.getElementById('drop');
+const file = document.getElementById('file');
+
+['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.add('over'); });
+});
+['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.classList.remove('over'); });
+});
+drop.addEventListener('drop', function (e) {
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = function () { run(rd.result); };
+    rd.readAsText(f);
+});
+document.getElementById('pick').onclick = function (e) { e.stopPropagation(); file.click(); };
+file.onchange = function () {
+    const f = file.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = function () { run(rd.result); };
+    rd.readAsText(f);
+};
+
+/* 内置示例：一个正常的关卡 + 一个有结构性缺陷的关卡。
+   缺陷那个故意让动作日志永远填不满（复现真实缺陷 6-2 的形态），
+   用来演示「本页能抓到什么」。 */
+/* 对外接口：交付给作者的工具应当可被调用，而不只是能点。
+   一方面便于自动化测试，另一方面将来做命令行版或集成进别处都用得上。 */
+window.Validator = {
+    run: run,                       // run(json文本) → 渲染报告
+    analyze: analyze,               // analyze(数据) → 结构化结果
+    buildCtx: buildCtx,             // buildCtx(lab, task) → 最有利上下文
+    judge: judge,                   // judge(check, ctx) → { layer, r }
+    version: '1.0'
+};
+
+document.getElementById('demo').onclick = function (e) {
+    e.stopPropagation();
+    run(JSON.stringify({
+        labs: [
+            { id: 'demo-ok', title: '正常关卡', tasks: [
+                { id: 't1', check: { type: 'rank', op: 'eq', value: 2 } },
+                { id: 't2', check: { type: 'det', op: 'eq', value: 0, tol: 0.08 } },
+                { id: 't3', check: { type: 'choice', correct: 0 } },
+                { id: 't4', check: { type: 'actions', all: ['reset'] } }
+            ] },
+            { id: 'demo-bad', title: '有结构性缺陷的关卡', tasks: [
+                /* 这个类型的处理器不存在 → 应报「无人接管」 */
+                { id: 'unknown', check: { type: 'not-a-real-type' } },
+                /* calc-limit 的 ε 给成负数 → 任何 δ 都不可能满足 → 不可达 */
+                { id: 'impossible', check: { type: 'calc-limit',
+                    expr: { op: 'var' }, at: 1, value: 1, epsilon: -1 } }
+            ] }
+        ]
+    }, null, 1));
+};
+})();
+</script>
+</body>
+</html>

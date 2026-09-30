@@ -41,6 +41,7 @@ CHECKS = [
     ('诊断覆盖率：判不过必须给原因与证书', ['node', 'tools/verify-diagnostics.mjs'], '全部通过'),
     ('判题信息量审计（22 个类型两条路径）', ['node', 'tools/audit-coverage.mjs'], '所有类型'),
     ('领域插件与引擎 API 一致性', ['node', 'tools/verify-plugin-api.mjs'], '全部通过'),
+    ('诊断准确性（诊断必须指向真正的失败条件）', ['node', 'tools/verify-diagnosis-accuracy.mjs'], '全部通过'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
     ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
