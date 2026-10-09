@@ -92,27 +92,6 @@ root.LinalgJudge = (function () {
                 certificate: av ? { av: av, target: check.to } : null
             };
         },
-        collinear: function (check, ctx) {
-            const v = ctx.vectors.find(x => x.id === 'v');
-            const av = (v && ctx.matrix) ? ctx.Mat.mulVec(ctx.matrix, v.data) : null;
-            return {
-                reason: av ? 'v 与 Av 不共线（要求共线，容差 ' + (check.tolDeg || 4) + '°）'
-                           : '缺少向量 v 或矩阵',
-                certificate: av ? { v: v.data, av: av } : null
-            };
-        },
-        eigen: function (check, ctx) {
-            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
-            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
-            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
-            const vv = ctx.Mat.dot(v.data, v.data);
-            const lam = vv > 1e-12 ? ctx.Mat.dot(av, v.data) / vv : NaN;
-            return {
-                reason: '当前缩放倍数 λ = ' + n2(lam) + '，目标是 ' + check.value
-                        + '（容差 ' + (check.tol || 0.12) + '）',
-                certificate: { lambda: lam, target: check.value, av: av }
-            };
-        },
         'on-span': function (check, ctx) {
             const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
             if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };

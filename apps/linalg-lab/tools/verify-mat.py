@@ -8,7 +8,7 @@
 检查项：
   1. engine-core/mat.js 是否与 tools/gen-mat-js.py 的模板一致（--check）
   2. mat.py / gen-mat-js.py 是否比生成物更新（改了源头忘了重新生成的兜底）
-  3. 两侧各自跑 77 组测试向量
+  3. 两侧各自跑 mat-vectors.json 里的全部测试向量（组数见输出）
 
 用法：python3 tools/verify-mat.py
 """

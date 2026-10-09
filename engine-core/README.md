@@ -20,14 +20,14 @@
 | 文件 | 行数 | 作用 |
 |---|---|---|
 | `registry.js` | 169 | 引擎层判题注册表（7 个领域无关类型） |
-| `mat.js` | 256 | 矩阵原语（**生成物**，由 `mat.py` 生成） |
-| `mat.py` | 304 | 矩阵原语**权威实现**（Python 侧，两侧共用同一套定义） |
-| `mat-vectors.json` | 1664 | 77 组共享测试向量，两侧各自自检 |
-| `domains/linalg/judge.js` | 409 | 线代领域插件（13 个类型） |
-| `domains/calculus/judge.js` | 233 | 高数领域插件（3 个类型） |
+| `mat.js` | 293 | 矩阵原语（**浏览器侧实现**，由 `gen-mat-js.py` 里的模板写出） |
+| `mat.py` | 357 | 矩阵原语**权威实现**（Python 侧，两侧共用同一套定义与零政策） |
+| `mat-vectors.json` | 1823 | 86 组共享测试向量，两侧各自自检 |
+| `domains/linalg/judge.js` | 494 | 线代领域插件（13 个类型） |
+| `domains/calculus/judge.js` | 320 | 高数领域插件（4 个类型） |
 | `API_如何新增科目.md` | 176 | **加一个新科目的完整步骤** |
 
-**引擎本体合计 1367 行。全部是纯逻辑**：不碰 DOM、不读全局变量，
+**引擎本体合计 1633 行**（含静态内容适配器共 2278 行；以上行数为 2026-10 实测）。**全部是纯逻辑**：不碰 DOM、不读全局变量，
 所有依赖从传入的 `ctx` 取——因此可以在 Node 里独立加载与测试。
 
 ---
@@ -129,14 +129,49 @@ actions  → 还缺少这些动作：try-inverse               { missing: ['try-
 
 | 规则 | 原因 |
 |---|---|
-| **不要手改 `mat.js`** | 它由 `mat.py` 生成。改数学要改 `mat.py`，然后重跑生成器 |
-| **改完 `mat.py` 必须重跑 `gen-mat-vectors.py`** | 测试向量带 AST 指纹；改了数学不重跑会被检查拦下 |
+| **改数学要同时改 `mat.py` 与 `gen-mat-js.py` 里的模板** | `gen-mat-js.py` **不解析 `mat.py`**，它只是把内部模板写成 `mat.js`（2026-10 核实）。只改一处会被向量自检抓住，但不会被生成器抓住 |
+| **改完数学必须重跑 `gen-mat-vectors.py`，再重跑 `gen-mat-js.py`** | 向量带 AST 指纹；期望值由 `mat.py` 算出，是两侧一致性的**唯一**守卫 |
+| **容差必须走 `zero_threshold(m, order)`，不要写绝对 EPS** | 主元是一阶量、行列式是 n 阶量；同一阈值会让判定随尺度漂移（实测过秩从 1 变 2） |
 | **新增判题类型必须给出 `reason`** | 有专门的覆盖率检查盯着这件事 |
+| **`DIAGNOSE` 表里不得有重复键** | 后写的会静默覆盖先写的、先写的变成死代码（真实发生过）。`verify-diagnostics.mjs` 已加结构检查 |
 | **不要引 `App.*` 或任何全局** | 引擎要能在 Node 里独立加载（这是它可测的前提） |
 
-对应的校验命令在参考实现那边（`apps/linalg-lab/tools/`）：
-`verify-engine.mjs`（引擎独立运行）、`verify-diagnostics.mjs`（诊断覆盖率）、
-`audit-coverage.mjs`（逐类型信息量审计）、`verify-registry.mjs`、`verify-calculus.mjs`。
+对应的校验命令在参考实现那边（`apps/linalg-lab/tools/`），**一条命令跑全部**：
+
+```bash
+python3 apps/linalg-lab/tools/verify-all.py --all
+```
+
+单项命令：`verify-engine.mjs`（引擎独立运行）、`verify-diagnostics.mjs`（诊断覆盖率 +
+诊断表结构）、`audit-coverage.mjs`（逐类型信息量审计）、`verify-registry.mjs`、
+`verify-calculus.mjs`、`verify-mat.py`（两侧同源 + 生成物最新）。
+
+---
+
+## 五之二、零政策（数值零怎么判）
+
+原语层只有一个「奇异」定义，写成一处、被三处共用：
+
+```
+threshold(m, order) = EPS × scale(m) ** order
+    scale(m) = max|a_ij|（全零矩阵取 1）
+    order = 1  消元后的主元        （一阶量，A→kA 时按 k 增长）
+    order = n  n 阶行列式          （按 k^n 增长）
+```
+
+| 量 | 用哪个阈值 | 结论 |
+|---|---|---|
+| `rank` 的主元 | `threshold(m, 1)` | 低于阈值即视为该列无主元 |
+| `det` | `threshold(m, n)` | 低于阈值返回 `0.0`（夹取） |
+| `inv2` / `solve2` | 复用 `det` 的结果 | `det == 0` 时返回 `None` |
+
+**为什么必须带幂次**：同一个 `EPS` 用在不同阶的量上会自相矛盾——历史上
+`det = 1e-10` 说可逆、`rank = 1` 说亏秩、`inv2` 又给出 `4e10` 量级的逆，
+三个结论在同一个矩阵上同时成立。**为什么要乘尺度**：不乘的话秩会随
+`A → kA` 漂移，而秩在数学上是尺度无关的量。
+
+这两条都有回归向量（`near_singular` 及其 ×1e-6 / ×1e6 两个尺度），
+在 Python 与 JS 两侧各自自检。
 
 ---
 

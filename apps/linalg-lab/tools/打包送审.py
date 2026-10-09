@@ -37,6 +37,7 @@ EXCLUDE_EXT = {'.pyc', '.log'}
 #: 审查者最该看到的文件 —— 少一个就说明打包漏了
 REQUIRED = [
     '给审查者的说明.md',
+    '能力清单.md',
     'engine-core/README.md',
     'engine-core/registry.js',
     'engine-core/mat.py',
@@ -44,6 +45,7 @@ REQUIRED = [
     'engine-core/domains/linalg/judge.js',
     'engine-core/domains/calculus/judge.js',
     'engine-core/adapters/static-content/verify.py',
+    'apps/linalg-lab/tools/verify-all.py',
     'apps/linalg-lab/tools/verify-engine.mjs',
     'apps/linalg-lab/tools/verify-diagnosis-accuracy.mjs',
     'apps/linalg-lab/tools/verify-plugin-api.mjs',
@@ -158,6 +160,7 @@ def main():
         import subprocess
         ok_all = True
         for label, cmd in [
+            ('矩阵原语两侧一致', ['node', 'apps/linalg-lab/tools/verify-mat.mjs']),
             ('引擎独立运行', ['node', 'apps/linalg-lab/tools/verify-engine.mjs']),
             ('判题注册表', ['node', 'apps/linalg-lab/tools/verify-registry.mjs']),
             ('第二科目', ['node', 'apps/linalg-lab/tools/verify-calculus.mjs']),

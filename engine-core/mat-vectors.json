@@ -1,5 +1,5 @@
 {
- "signature": "ast:c52188a6a27953a24b98b4d5d513b4dfc544260e26f8a6a3f0c872e3b9f07b67",
+ "signature": "ast:0038ba113feb2523fecae650231f9c2f8d81633e22fbac908265e119f7937c2d",
  "vectors": [
   {
    "fn": "det",
@@ -56,7 +56,7 @@
      ]
     ]
    ],
-   "expect": 0,
+   "expect": 0.0,
    "note": "det(singular)"
   },
   {
@@ -73,8 +73,66 @@
      ]
     ]
    ],
-   "expect": 1.000000082740371e-10,
+   "expect": 0.0,
    "note": "det(near_singular)"
+  },
+  {
+   "fn": "det",
+   "args": [
+    [
+     [
+      1e-06,
+      2e-06
+     ],
+     [
+      2e-06,
+      4.0000000001e-06
+     ]
+    ]
+   ],
+   "expect": 0.0,
+   "note": "det(near_singular_small)"
+  },
+  {
+   "fn": "det",
+   "args": [
+    [
+     [
+      1000000.0,
+      2000000.0
+     ],
+     [
+      2000000.0,
+      4000000.0001
+     ]
+    ]
+   ],
+   "expect": 0.0,
+   "note": "det(near_singular_big)"
+  },
+  {
+   "fn": "det",
+   "args": [
+    [
+     [
+      1,
+      2,
+      3
+     ],
+     [
+      4,
+      5,
+      6
+     ],
+     [
+      7,
+      8,
+      9.0000000001
+     ]
+    ]
+   ],
+   "expect": 0.0,
+   "note": "det(near_singular3)"
   },
   {
    "fn": "det",
@@ -158,7 +216,7 @@
      ]
     ]
    ],
-   "expect": 0,
+   "expect": 0.0,
    "note": "det(zero)"
   },
   {
@@ -259,6 +317,64 @@
    ],
    "expect": 1,
    "note": "rank(near_singular)"
+  },
+  {
+   "fn": "rank",
+   "args": [
+    [
+     [
+      1e-06,
+      2e-06
+     ],
+     [
+      2e-06,
+      4.0000000001e-06
+     ]
+    ]
+   ],
+   "expect": 1,
+   "note": "rank(near_singular_small)"
+  },
+  {
+   "fn": "rank",
+   "args": [
+    [
+     [
+      1000000.0,
+      2000000.0
+     ],
+     [
+      2000000.0,
+      4000000.0001
+     ]
+    ]
+   ],
+   "expect": 1,
+   "note": "rank(near_singular_big)"
+  },
+  {
+   "fn": "rank",
+   "args": [
+    [
+     [
+      1,
+      2,
+      3
+     ],
+     [
+      4,
+      5,
+      6
+     ],
+     [
+      7,
+      8,
+      9.0000000001
+     ]
+    ]
+   ],
+   "expect": 2,
+   "note": "rank(near_singular3)"
   },
   {
    "fn": "rank",
@@ -447,17 +563,42 @@
      ]
     ]
    ],
-   "expect": [
+   "expect": null,
+   "note": "inv2(near_singular)"
+  },
+  {
+   "fn": "inv2",
+   "args": [
     [
-     39999996691.38544,
-     -19999998345.19272
-    ],
-    [
-     -19999998345.19272,
-     9999999172.59636
+     [
+      1e-06,
+      2e-06
+     ],
+     [
+      2e-06,
+      4.0000000001e-06
+     ]
     ]
    ],
-   "note": "inv2(near_singular)"
+   "expect": null,
+   "note": "inv2(near_singular_small)"
+  },
+  {
+   "fn": "inv2",
+   "args": [
+    [
+     [
+      1000000.0,
+      2000000.0
+     ],
+     [
+      2000000.0,
+      4000000.0001
+     ]
+    ]
+   ],
+   "expect": null,
+   "note": "inv2(near_singular_big)"
   },
   {
    "fn": "inv2",
@@ -667,11 +808,29 @@
      4
     ]
    ],
-   "expect": [
-    2.0,
-    0.0
-   ],
+   "expect": null,
    "note": "solve2(near_singular, [2, 4])"
+  },
+  {
+   "fn": "solve2",
+   "args": [
+    [
+     [
+      1000000.0,
+      2000000.0
+     ],
+     [
+      2000000.0,
+      4000000.0001
+     ]
+    ],
+    [
+     2000000.0,
+     4000000.0
+    ]
+   ],
+   "expect": null,
+   "note": "solve2(near_singular_big, [2000000.0, 4000000.0])"
   },
   {
    "fn": "solve2",

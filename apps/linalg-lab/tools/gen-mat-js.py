@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""从 engine-core/mat.py 的定义生成 engine-core/mat.js。
+"""把 engine-core/mat.py 的**等价实现**写成 engine-core/mat.js。
 
-为什么用「生成」而不是「手写两份」
-==================================
-同一段数学如果手写两遍（Python 一份、JS 一份），迟早会分叉——
-容差改了一边忘了另一边、秩的主元策略不一致，都会让「校验器」和
-「被判定的对象」算的不是同一个数学，而校验器的全部价值正在于此。
+⚠️ 核实记录（2026-10）：本脚本**不解析 mat.py**。整份 JS 是下面 HEADER 里的
+一个模板字符串，main() 只是把它写出去。所以：
 
-生成的 JS 与 Python 共用同一套常量与算法步骤；是否真的一致，
-由 engine-core/mat-vectors.json 的 77 组向量在两侧各自自检来证明
-（Python：python3 engine-core/mat.py；JS：node tools/verify-mat.mjs）。
+    「两侧同源」不是由本脚本保证的，而是由 engine-core/mat-vectors.json
+    的测试向量在两侧各自自检保证的——向量的期望值来自 mat.py，所以
+    只改 mat.py 不改模板（或反之）会被自检抓住。
+
+历史上本脚本的注释写成「从 mat.py 生成」「改数学改 mat.py 然后重跑生成器」，
+这是**不成立的**：照那句话做会把浏览器侧悄悄留在旧数学上。真正的纪律是
+**两处都改**：engine-core/mat.py 与下面的 HEADER 模板，然后按序重跑
+gen-mat-vectors.py（期望值取自 mat.py）与 gen-mat-js.py（写出模板）。
 
 用法：
     python3 tools/gen-mat-js.py            # 生成
@@ -30,11 +32,14 @@ OUT = os.path.join(ENGINE, 'mat.js')
 HEADER = '''/* ============================================================
  * 模块 1：矩阵内核（纯函数）
  *
- * ⚠️ 本文件由 tools/gen-mat-js.py 生成，请勿手改。
- *    要改数学，改 engine-core/mat.py，然后重跑：
- *        python3 tools/gen-mat-js.py
- *    Python 侧读 engine-core/mat.py，浏览器侧读本文件，两侧是同一套定义。
- *    一致性由 engine-core/mat-vectors.json 的测试向量在两侧各自自检来证明。
+ * ⚠️ 本文件的内容由 tools/gen-mat-js.py 里的模板写出——那个脚本**不解析 mat.py**。
+ *    改数学必须两处都改：
+ *        engine-core/mat.py                （Python 侧权威实现）
+ *        gen-mat-js.py 里的 HEADER 模板     （浏览器侧）
+ *    然后按序重跑：
+ *        python3 tools/gen-mat-vectors.py   # 期望值由 mat.py 算出
+ *        python3 tools/gen-mat-js.py        # 把模板写成本文件
+ *    只改一处会被向量自检抓住（期望值来自 mat.py），但不会被生成器抓住。
  *
  * 约定：矩阵是行数组的数组（[[a,b],[c,d]] 即
  *   ┌ a b ┐
@@ -64,6 +69,28 @@ HEADER = '''/* ============================================================
 
     function clone(m) { return m.map(row => row.slice()); }
 
+    /* 矩阵的数值尺度：绝对值最大的元素。全零矩阵取 1（避免零尺度）。
+       容差必须随尺度缩放，否则「秩」会随 A→kA 变化，而秩是尺度无关的量
+       （实测过：同一个近奇异矩阵乘 1e6，旧实现给出的秩从 1 变成 2）。 */
+    function scale(m) {
+        let s = 0;
+        for (let i = 0; i < m.length; i++) {
+            for (let j = 0; j < m[i].length; j++) {
+                const v = Math.abs(m[i][j]);
+                if (v > s) s = v;
+            }
+        }
+        return s > 0 ? s : 1;
+    }
+
+    /* 零政策阈值：EPS × 尺度^order。
+       order = 1：消元后的主元（一阶量，A→kA 时按 k 增长）
+       order = n：n 阶行列式（按 k^n 增长）
+       同一个 EPS 用在不同阶的量上会自相矛盾，见 mat-vectors.json 的 near_singular。 */
+    function zeroThreshold(m, order) {
+        return EPS * Math.pow(scale(m), order);
+    }
+
     function mul(a, b) {
         const n = a.length, k = b.length, m = b[0].length;
         return Array.from({ length: n }, (_, i) =>
@@ -92,24 +119,31 @@ HEADER = '''/* ============================================================
 
     /* ---------------- 行列式与逆 ---------------- */
 
-    function det(m) {
+    function detRaw(m) {
         const n = m.length;
         if (n === 1) return m[0][0];
         if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
         let d = 0;
         for (let j = 0; j < n; j++) {
             const minor = m.slice(1).map(row => row.filter((_, c) => c !== j));
-            d += (j % 2 === 0 ? 1 : -1) * m[0][j] * det(minor);
+            d += (j % 2 === 0 ? 1 : -1) * m[0][j] * detRaw(minor);
         }
         return d;
     }
 
-    /* 2×2 逆矩阵；奇异（|det| < EPS）时返回 null。
-       用 < EPS 而不是 === 0：拖动产生的浮点误差会让本该为 0 的
-       行列式变成 1e-17 之类的值。 */
+    /* 行列式；绝对值低于零政策阈值（EPS × 尺度^n）时返回 0。
+       夹取是为了让「奇异」在整个原语层只有一个定义处：否则同一个矩阵上
+       会出现「det ≠ 0（可逆）而 rank < n（亏秩）」的自相矛盾判定。 */
+    function det(m) {
+        const d = detRaw(m);
+        return Math.abs(d) < zeroThreshold(m, m.length) ? 0 : d;
+    }
+
+    /* 2×2 逆矩阵；按同一零政策判定为奇异时返回 null。
+       这里不再单独写阈值：det() 已按零政策夹取，只需判断是否为 0。 */
     function inv2(m) {
         const d = det(m);
-        if (Math.abs(d) < EPS) return null;
+        if (d === 0) return null;
         return [
             [m[1][1] / d, -m[0][1] / d],
             [-m[1][0] / d, m[0][0] / d]
@@ -118,10 +152,14 @@ HEADER = '''/* ============================================================
 
     /* ---------------- 秩 ----------------
        数值秩：带部分主元选取的高斯消元。
-       算法步骤与 engine-core/mat.py 的 rank() 逐步对应，不要单独改动此处。 */
+       主元是一阶量，故阈值取 EPS × 尺度（zeroThreshold(m, 1)），而不是绝对 EPS——
+       绝对 EPS 会让秩随尺度漂移（实测：同一个近奇异矩阵乘 1e6 后秩从 1 变 2）。
+       阈值只按原矩阵算一次，消元过程中不变。
+       算法步骤与 engine-core/mat.py 的 rank() 逐步对应，两处必须同步改。 */
     function rank(m) {
         const a = clone(m);
         const rows = a.length, cols = a[0].length;
+        const thr = zeroThreshold(m, 1);
         let r = 0;
         for (let c = 0; c < cols; c++) {
             if (r >= rows) break;
@@ -129,7 +167,7 @@ HEADER = '''/* ============================================================
             for (let i = r + 1; i < rows; i++) {
                 if (Math.abs(a[i][c]) > Math.abs(a[piv][c])) piv = i;
             }
-            if (Math.abs(a[piv][c]) < EPS) continue;
+            if (Math.abs(a[piv][c]) < thr) continue;
             const tmp = a[r]; a[r] = a[piv]; a[piv] = tmp;
             for (let i = r + 1; i < rows; i++) {
                 const f = a[i][c] / a[r][c];
@@ -276,7 +314,8 @@ HEADER = '''/* ============================================================
 
     return {
         EPS: EPS, LINE_EPS: LINE_EPS, INTERSECT_TOL: INTERSECT_TOL,
-        identity: identity, clone: clone, mul: mul, mulVec: mulVec,
+        identity: identity, clone: clone, scale: scale,
+        zeroThreshold: zeroThreshold, mul: mul, mulVec: mulVec,
         dot: dot, cross: cross, det: det, inv2: inv2, rank: rank,
         eigen2: eigen2, solve2: solve2, angleBetweenDeg: angleBetweenDeg,
         augment: augment, onSpan: onSpan, intersectLines: intersectLines,

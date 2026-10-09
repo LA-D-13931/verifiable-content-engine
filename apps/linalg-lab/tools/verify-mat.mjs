@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /* 验证 engine-core/mat.js 与 engine-core/mat.py 算的是同一个数学。
    ============================================================
-   做法：读 engine/mat-vectors.json（77 组测试向量，由 Python 侧生成），
+   做法：读 engine/mat-vectors.json（测试向量由 Python 侧的 gen-mat-vectors.py 生成），
    在 JS 侧逐条重算并比对。Python 侧的自检由 `python3 engine/mat.py` 负责。
 
    两侧都通过，才说明「浏览器判题」与「Python 内容校验」用的是同一套数学——
@@ -116,4 +116,4 @@ if (py.status !== 0) {
 }
 
 console.log('');
-console.log('全部通过 ✓  JS 与 Python 算的是同一个数学（两侧各 77 组向量）');
+console.log(`全部通过 ✓  JS 与 Python 算的是同一个数学（两侧各 ${vectors.length} 组向量）`);

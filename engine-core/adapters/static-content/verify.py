@@ -31,6 +31,23 @@ def main():
 
     report = checks.run(root, allow_outside=allow_outside)
 
+    # 空目录必须拒绝通过。这是刻意的：门禁最危险的失效模式不是漏报一项检查，
+    # 而是「什么都没检查」却给出绿灯——一次指错的路径、一次失败的快照复制，
+    # 都会得到「全部通过」。实测过：对空目录旧版输出「页面：0 / 全部通过 ✓」。
+    if report['docs'] == 0:
+        if as_json:
+            print(json.dumps({'root': report['root'], 'docs': 0,
+                              'refused': 'no-documents'}, ensure_ascii=False, indent=1))
+        else:
+            print('=== 静态内容校验 ===')
+            print('目录：%s' % report['root'])
+            print('页面：0')
+            print('')
+            print('✗ 拒绝判定为「通过」：没有找到任何可校验页面')
+            print('  这一条是刻意的——门禁在「什么都没检查」时必须失败，')
+            print('  否则空目录或指错的路径会拿到绿灯。')
+        return 2
+
     if as_json:
         print(json.dumps(report, ensure_ascii=False, indent=1))
         return 0 if all(r['pass'] for r in report['results']) else 1

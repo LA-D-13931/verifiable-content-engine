@@ -83,11 +83,28 @@ def add(fn, args, note):
 
 
 # ---------- 矩阵素材 ----------
+
+# 近奇异原型：|det| 恰好卡在零政策阈值上。历史上 det / rank / inv2 在这上面
+# 互相矛盾（det = 1e-10 说可逆、rank = 1 说亏秩、inv2 又给出 4e10 量级的逆），
+# 所以它同时是三个原语的回归用例。它的三个尺度（×1e-6 / ×1 / ×1e6）
+# 必须给出**同一个**判定——奇异性与秩都是尺度无关的量。
+_NEAR2 = [[1, 2], [2, 4.0000000001]]
+_NEAR3 = [[1, 2, 3], [4, 5, 6], [7, 8, 9.0000000001]]   # 三阶量：阈值按 尺度^3 缩放
+
+
+def _scaled(m, k):
+    """把矩阵整体乘 k，用于检验判定是否尺度无关。"""
+    return [[x * k for x in row] for row in m]
+
+
 M = {
     'identity2': [[1, 0], [0, 1]],
     'identity3': mat.identity(3),
     'singular': [[1, 2], [2, 4]],                 # det = 0
-    'near_singular': [[1, 2], [2, 4.0000000001]],  # |det| ≈ 1e-10，卡在 EPS 上
+    'near_singular': _NEAR2,                       # |det| ≈ 1e-10，卡在阈值上
+    'near_singular_small': _scaled(_NEAR2, 1e-6),
+    'near_singular_big': _scaled(_NEAR2, 1e6),
+    'near_singular3': _NEAR3,
     'tiny_neg': [[1, 2], [2, 3.9999999999]],       # |det| ≈ 1e-10，负侧
     'neg_det': [[0, 1], [1, 0]],                   # det = -1（翻转）
     'shear': [[1, 1], [0, 1]],
@@ -102,21 +119,29 @@ M = {
 }
 
 # ---------- det ----------
-for k in ['identity2', 'identity3', 'singular', 'near_singular', 'neg_det',
-          'shear', 'rotation90', 'diag21', 'zero', 'upper3']:
+for k in ['identity2', 'identity3', 'singular', 'near_singular',
+          'near_singular_small', 'near_singular_big', 'near_singular3',
+          'neg_det', 'shear', 'rotation90', 'diag21', 'zero', 'upper3']:
     add('det', [M[k]], 'det(%s)' % k)
 
 # ---------- rank ----------
-for k in ['identity2', 'identity3', 'singular', 'near_singular', 'tiny_neg',
-          'zero', 'rect23', 'rank1_rect', 'upper3', 'dup_rows', 'zero_row']:
+# near_singular 的三个尺度必须给出同一个秩——这是「零政策尺度无关」的回归用例。
+# 旧实现在 big 上给出 2（而同族在 small / 原尺度上给出 1）。
+for k in ['identity2', 'identity3', 'singular', 'near_singular',
+          'near_singular_small', 'near_singular_big', 'near_singular3',
+          'tiny_neg', 'zero', 'rect23', 'rank1_rect', 'upper3',
+          'dup_rows', 'zero_row']:
     add('rank', [M[k]], 'rank(%s)' % k)
 
 # ---------- inv2 / solve2 ----------
-for k in ['identity2', 'singular', 'near_singular', 'shear', 'neg_det',
-          'diag21', 'zero', 'rotation90']:
+# inv2 必须在近奇异上返回 None，才与 det(near_singular) = 0、rank = 1 自洽
+# （旧实现在这里返回一个 4e10 量级的「逆」）。
+for k in ['identity2', 'singular', 'near_singular', 'near_singular_small',
+          'near_singular_big', 'shear', 'neg_det', 'diag21', 'zero', 'rotation90']:
     add('inv2', [M[k]], 'inv2(%s)' % k)
 for k, b in [('identity2', [3, 4]), ('shear', [1, 1]), ('singular', [1, 1]),
-             ('near_singular', [2, 4]), ('diag21', [-5, 7]), ('rotation90', [1, 0])]:
+             ('near_singular', [2, 4]), ('near_singular_big', [2e6, 4e6]),
+             ('diag21', [-5, 7]), ('rotation90', [1, 0])]:
     add('solve2', [M[k], b], 'solve2(%s, %s)' % (k, b))
 
 # ---------- eigen2 ----------

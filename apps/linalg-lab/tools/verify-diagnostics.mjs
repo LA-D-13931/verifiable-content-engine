@@ -5,10 +5,11 @@
    但诊断是**最容易静默缺失**的东西——判题依然工作、任务依然判得对错，
    只是失败时不给任何信息。所以需要一条自动检查盯着它。
 
-   检查三件事：
+   检查四件事：
      ① 覆盖率 —— 每个判题类型在"判不过"时都必须给出原因
      ② 诊断有信息量 —— 原因不能是空串或占位符
      ③ 证书可用 —— 证书里的数值必须与独立复算一致（不是随便填的）
+     ④ 诊断表结构 —— DIAGNOSE 里不得有重复条目（重复会让先写的变成死代码）
 
    用法：node tools/verify-diagnostics.mjs
    ============================================================ */
@@ -174,6 +175,34 @@ console.log('证书数值与独立复算是否一致');
     const r = Linalg.api.judge({ type: 'rank', op: 'eq', value: 2 }, mk({ matrix: m }));
     ok(r && r.certificate && r.certificate.rank === Mat.rank(m),
        'rank 的证书秩与 Mat.rank 一致', r && r.certificate ? String(r.certificate.rank) : '');
+}
+
+/* ---------------- ④ 诊断表结构：不得有重复条目 ---------------- */
+console.log('');
+console.log('诊断表结构（重复条目会让后写的静默覆盖先写的）');
+{
+    /* 为什么查这个：eigen 与 collinear 曾在 DIAGNOSE 里各定义两次，JS 取后者，
+       前者是死代码——而**先定义的那份恰好缺零向量分支**。这类错误不会让任何
+       行为检查失败（判题照常工作、诊断照常有内容），只能靠结构检查抓。 */
+    for (const p of plugins) {
+        const src = readFileSync(join(ENGINE, 'domains', p.d, 'judge.js'), 'utf-8');
+        const start = src.indexOf('const DIAGNOSE = {');
+        if (start < 0) {
+            /* 没有 DIAGNOSE 表（如 calculus 用内联 bad(reason, cert)）→ 不存在重复键风险，跳过 */
+            console.log(`  · ${p.d}：未使用 DIAGNOSE 表（内联诊断），跳过结构检查`);
+            continue;
+        }
+        const rest = src.slice(start);
+        const end = rest.indexOf('\n    };');
+        const block = end >= 0 ? rest.slice(0, end) : rest;
+        const keys = [];
+        const re = /^ {8}('[^']+'|[A-Za-z_$][\w$]*)\s*:\s*function/gm;
+        let m;
+        while ((m = re.exec(block)) !== null) keys.push(m[1].replace(/'/g, ''));
+        const dup = [...new Set(keys.filter((k, i) => keys.indexOf(k) !== i))];
+        ok(dup.length === 0, `${p.d}：DIAGNOSE 无重复条目（${keys.length} 个）`,
+           dup.length ? '重复：' + dup.join('、') : '');
+    }
 }
 
 console.log('');

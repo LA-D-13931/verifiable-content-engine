@@ -14,9 +14,12 @@
 对象算的是同一个数学」。所以这里收敛为一份权威实现：
 
   · Python 侧读本文件
-  · 浏览器侧读 `engine-core/mat.js`，而后者**由 apps/linalg-lab/tools/gen-mat-js.py 从本文件生成**
+  · 浏览器侧读 `engine-core/mat.js`，由 apps/linalg-lab/tools/gen-mat-js.py 写出
 
-生成保证了「改一处、两边同步」，而不是靠人记得。
+⚠️ 核实记录（2026-10）：gen-mat-js.py **并不解析本文件**——整份 JS 是它内部的一个
+模板字符串。所以「两侧同源」不是由生成保证的，而是由
+`engine-core/mat-vectors.json`（期望值由本文件算出）在两侧各自自检来抓分叉。
+**改数学必须同时改本文件与 gen-mat-js.py 里的模板，然后重跑 gen-mat-vectors.py。**
 
 约定
 ====
@@ -28,9 +31,14 @@
 
 import math
 
-#: 数值零的判定阈值。
+#: 数值零的**基准**阈值。
 #: 取 1e-10：既小于常见输入的最小有效位（0.5 步长的拖动），
 #: 又大于 2×2 行列式在双精度下的典型舍入误差。
+#:
+#: ⚠️ 不要拿它直接和任意的量比较。阈值必须随「量的阶数」与「矩阵尺度」缩放，
+#: 见 zero_threshold()。历史上 det / inv2 / rank 三处各自用绝对 EPS 比较，
+#: 结果在同一个矩阵上「det 说可逆、rank 说亏秩、inv2 给出 4e10 的逆」
+#: 三个结论同时成立（见 mat-vectors.json 的 near_singular 一组）。
 EPS = 1e-10
 
 #: 直线求交时的零判定阈值。比 EPS 宽，因为直线的 a/b/c 是由点算出来的，
@@ -52,6 +60,31 @@ def identity(n):
 def clone(m):
     """深拷贝一个矩阵（逐行复制，避免共享行引用）。"""
     return [row[:] for row in m]
+
+
+def scale(m):
+    """矩阵的数值尺度：绝对值最大的元素。全零矩阵取 1（避免零尺度）。
+
+    为什么需要它：容差必须随尺度缩放，否则「秩」会随 A→kA 变化——
+    而秩在数学上是尺度无关的量。实测过：同一个近奇异矩阵乘 1e6，
+    旧实现给出的秩从 1 变成 2。
+    """
+    vals = [abs(x) for row in m for x in row]
+    s = max(vals) if vals else 0.0
+    return s if s > 0 else 1.0
+
+
+def zero_threshold(m, order):
+    """零政策阈值：EPS × 尺度^order。
+
+    order = 1：消元后的主元（A→kA 时按 k 增长）
+    order = n：n 阶行列式（A→kA 时按 k^n 增长）
+
+    同一个 EPS 用在不同阶的量上会自相矛盾，这是本项目实测到的缺陷：
+    [[1, 2], [2, 4.0000000001]] 的 det = 1e-10、消元后第二个主元 ≈ −5e-11，
+    两者都被拿去和 EPS 比，于是「可逆」与「亏秩」同时成立。
+    """
+    return EPS * scale(m) ** order
 
 
 def mul(a, b):
@@ -80,8 +113,12 @@ def cross(a, b):
 
 # ---------------- 行列式与逆 ----------------
 
-def det(m):
-    """行列式（拉普拉斯展开，1/2/3 阶有直通路径）。"""
+def _det_raw(m):
+    """行列式的原始数值（拉普拉斯展开，1/2/3 阶有直通路径）。
+
+    单独一层是为了让递归用不夹取的原始值：若在递归里夹取，
+    子式的微小值会被提前抹平，n 阶展开会累积错误。
+    """
     n = len(m)
     if n == 1:
         return m[0][0]
@@ -90,18 +127,29 @@ def det(m):
     total = 0
     for j in range(n):
         minor = [[x for c, x in enumerate(row) if c != j] for row in m[1:]]
-        total += (1 if j % 2 == 0 else -1) * m[0][j] * det(minor)
+        total += (1 if j % 2 == 0 else -1) * m[0][j] * _det_raw(minor)
     return total
 
 
-def inv2(m):
-    """2×2 逆矩阵；奇异（|det| < EPS）时返回 None。
+def det(m):
+    """行列式；绝对值低于零政策阈值（EPS × 尺度^n）时返回 0.0。
 
-    注意：这里用 < EPS 而不是 == 0，因为拖动产生的浮点误差会让
-    本该为 0 的行列式变成 1e-17 之类的值。
+    为什么要夹取：本项目的零政策是「低于阈值即数值零」，rank 与 inv2 都按它判。
+    若 det 单独返回那个低于阈值的原值，同一个矩阵上就会出现
+    「det ≠ 0（可逆）而 rank < n（亏秩）」这种自相矛盾的判定。
+    """
+    d = _det_raw(m)
+    return 0.0 if abs(d) < zero_threshold(m, len(m)) else d
+
+
+def inv2(m):
+    """2×2 逆矩阵；按同一零政策判定为奇异时返回 None。
+
+    这里不再单独写阈值：det() 已按零政策夹取，所以只需判断是否为 0。
+    这样「奇异」在整个原语层只有一个定义处，避免三处各写一套。
     """
     d = det(m)
-    if abs(d) < EPS:
+    if d == 0.0:
         return None
     return [[m[1][1] / d, -m[0][1] / d],
             [-m[1][0] / d, m[0][0] / d]]
@@ -112,18 +160,23 @@ def inv2(m):
 def rank(m):
     """数值秩：带部分主元选取的高斯消元。
 
-    全程用同一个 EPS 判定主元是否为零，因此「秩」这个判定是稳定的：
-    对同一个输入，Python 侧与浏览器侧必须给出相同结果（由 gen-mat-js.py
-    从本文件生成 JS 来保证）。
+    主元是一阶量，故阈值取一阶形式 EPS × 尺度（zero_threshold(m, 1)），
+    而不是绝对 EPS。绝对 EPS 会让秩随尺度漂移——数学上秩是尺度无关的量，
+    实测过同一个近奇异矩阵乘 1e6 后秩从 1 变成 2。
+
+    阈值只按**原矩阵**算一次，消元过程中不再变，保证判定稳定。
+    两侧一致性由 mat-vectors.json 的向量自检保证（不是由生成保证，
+    见本文件顶部与 gen-mat-js.py 的核实记录）。
     """
     a = clone(m)
     rows, cols = len(a), len(a[0])
+    thr = zero_threshold(m, 1)
     r = 0
     for c in range(cols):
         if r >= rows:
             break
         piv = max(range(r, rows), key=lambda i: abs(a[i][c]))
-        if abs(a[piv][c]) < EPS:
+        if abs(a[piv][c]) < thr:
             continue
         a[r], a[piv] = a[piv], a[r]
         for i in range(r + 1, rows):
