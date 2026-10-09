@@ -65,9 +65,9 @@ python3 tools/check-lab.py        # 确认通过
 **浏览器类工具**（需要 `node_modules`，即 puppeteer）：
 
 ```bash
-node tools/verify-actions.js      # 真实鼠标拖动与判题抽查
-node tools/smoke.js               # 冒烟：控制台无错误
-node tools/verify-themes.js       # 8 组主题对比度
+node tools/verify-actions.mjs      # 真实鼠标拖动与判题抽查
+node tools/smoke.mjs               # 冒烟：控制台无错误
+node tools/verify-themes.mjs       # 8 组主题对比度
 ```
 
 ---

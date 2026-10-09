@@ -44,9 +44,9 @@ CHECKS = [
     ('诊断准确性（诊断必须指向真正的失败条件）', ['node', 'tools/verify-diagnosis-accuracy.mjs'], '全部通过'),
     ('关卡数据：生成链无损', ['node', 'tools/verify-labs.mjs'], '全部通过'),
     ('数据结构与教学层', ['python3', 'tools/check-lab.py'], '全部通过'),
-    ('动作序列矩阵复算', ['node', 'tools/verify-actions.js'], '全部通过'),
-    ('真实交互与渲染', ['node', 'tools/smoke.js'], '全部通过'),
-    ('8 组主题对比度', ['node', 'tools/verify-themes.js'], '全部通过'),
+    ('动作序列矩阵复算', ['node', 'tools/verify-actions.mjs'], '全部通过'),
+    ('真实交互与渲染', ['node', 'tools/smoke.mjs'], '全部通过'),
+    ('8 组主题对比度', ['node', 'tools/verify-themes.mjs'], '全部通过'),
     ('静态内容适配器 vs 原脚本（差分对照）', ['python3', 'tools/verify-static-adapter.py'], '全部通过'),
     ('可视化页（样例须触发缺陷、真实内容须全绿）', ['node', 'tools/verify-visual.mjs'], '全部通过'),
 ]
@@ -81,7 +81,7 @@ def outcome(rc, out):
 def summarize(out):
     """从输出里挑一条最能说明结果的行。
 
-    不能直接取末行：像 smoke.js 最后打印的是「无控制台错误 ✓」，
+    不能直接取末行：像 smoke.mjs 最后打印的是「无控制台错误 ✓」，
     看起来像通过，但前面可能已经列了失败项。
     优先找「失败 N 项」或「全部通过」这类结论行。
     """

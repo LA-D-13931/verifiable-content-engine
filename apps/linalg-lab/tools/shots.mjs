@@ -1,9 +1,31 @@
 /* 逐关截图：便于人工检查每个实验的画布与取景。
-   用法：node tools/shots.js [baseUrl] */
-const puppeteer = require('puppeteer-core');
-const fs = require('fs');
+   用法：node tools/shots.mjs [baseUrl] */
+import puppeteer from 'puppeteer-core';
+import fs from 'fs';
 const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
-const BASE = process.argv[2] || 'http://127.0.0.1:8791/apps/linalg-lab';
+const BASE_PATH = '/apps/linalg-lab';
+const PROBE_PATH = '/apps/linalg-lab';
+/* 本地服务由 serve.mjs 保证：它探活、必要时自己从仓库根起一个。
+   为什么不再假设「8791 上有个对的服务器」—— 那个假设错过两次，
+   失败现象（404）看着像内容坏了，实际跟内容无关。
+
+   本文件是 ESM（.mjs），所以可以顶层 await 与顶层 import。 */
+import { ensureServer } from './serve.mjs';
+let _srv;
+try {
+    _srv = await ensureServer({ basePath: BASE_PATH });
+} catch (e) {
+    console.log('无法准备本地服务：' + e.message);
+    process.exit(2);
+}
+/* BASE 必须是**带路径的完整地址**：
+   原来这里是 http://127.0.0.1:8791/apps/linalg-lab/index.html，
+   我第一版只取了服务主机（http://127.0.0.1:8791），路径丢了 ——
+   于是浏览器去连「根路径」，报 ERR_CONNECTION_REFUSED。
+   探针用 PROBE_PATH 是相对仓库根的路径，而浏览器要访问的是带
+   apps/linalg-lab 前缀的完整地址。 */
+const BASE = process.argv[2] ? _srv.base + (process.argv[2].startsWith('http') ? '' : BASE_PATH)
+                             : _srv.base;
 
 (async () => {
     fs.mkdirSync('shots', { recursive: true });
@@ -52,3 +74,6 @@ const BASE = process.argv[2] || 'http://127.0.0.1:8791/apps/linalg-lab';
     await browser.close();
     process.exit(errors.length ? 1 : 0);
 })();
+
+/* 收尾：只停自己起的那个服务（复用别人的不动） */
+if (_srv) _srv.stop();

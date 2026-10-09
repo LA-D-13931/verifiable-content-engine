@@ -105,9 +105,9 @@ python3 -m http.server 8791 --bind 127.0.0.1
 │   ├─ check-lab.py           只读校验：结构层 + 教学层（可达性 / 辨析题唯一性）
 │   ├─ insert-labs.py         安全插入实验块（先备份 + 块边界自检 + 写回复验）
 │   ├─ balance-choices.py     平衡辨析题正解位置（防止位置规律被猜）
-│   ├─ smoke.js               Puppeteer 冒烟测试（真实鼠标事件拖拽）
-│   ├─ verify-actions.js      工具栏动作序列校验（在浏览器里用真实 Mat 复算）
-│   └─ shots.js               逐关截图，便于人工检查
+│   ├─ smoke.mjs               Puppeteer 冒烟测试（真实鼠标事件拖拽）
+│   ├─ verify-actions.mjs      工具栏动作序列校验（在浏览器里用真实 Mat 复算）
+│   └─ shots.mjs               逐关截图，便于人工检查
 ├─ shots/                     截图产物（可随时重新生成）
 └─ package.json               仅 devDependency: puppeteer-core（只为测试）
 ```
@@ -224,7 +224,7 @@ engine.js                  ——  集中在一个 switch 里的判题器
 3. `explains` 里正解那条以 `✓ 对：` 开头，错误的两条以 `✗ 不对：` 开头，
    校验器要求「以 ✓ 开头的恰好一条，且下标等于 correct」。
 
-**界面约定**（这是本项目的产品原则，`tools/smoke.js` 会守着它）：
+**界面约定**（这是本项目的产品原则，`tools/smoke.mjs` 会守着它）：
 
 | 情况 | 行为 |
 |---|---|
@@ -318,13 +318,13 @@ python3 tools/check-lab.py
 cd 线代交互实验台
 npm install --cache /tmp/npmcache-linalg    # 只装 puppeteer-core，不下载浏览器
 python3 -m http.server 8791 --bind 127.0.0.1 &
-node tools/smoke.js                          # 全部通过 ✓
+node tools/smoke.mjs                          # 全部通过 ✓
 
 # 3) 工具栏动作序列校验（用真实 Mat 跑一遍，检查矩阵是否算错）
-node tools/verify-actions.js
+node tools/verify-actions.mjs
 
 # 4) 逐关截图做人工检查
-node tools/shots.js                          # 输出到 shots/lab-*.png
+node tools/shots.mjs                          # 输出到 shots/lab-*.png
 
 # 5) 辨析题正解位置平衡（改了 choice 题之后跑一次）
 python3 tools/balance-choices.py --dry-run    # 先看分布，不加 --dry-run 才写入
@@ -349,7 +349,7 @@ kill %1
   - **辨析题唯一性**——`options`/`explains` 一一对应、`correct` 下标合法、
     以 `✓` 开头的解释恰好一条且下标等于 `correct`、选项文本不重复。
 
-`verify-actions.js` 是第 2 轮新加的第三道校验：它把每个实验的工具栏动作
+`verify-actions.mjs` 是第 2 轮新加的第三道校验：它把每个实验的工具栏动作
 在真实页面上按顺序跑一遍，检查
 
 - 每个实验**至少有一个 preset 命中** match-matrix 任务的目标
@@ -412,7 +412,7 @@ kill %1
 2. **手算矩阵乘法会错。** 实验 4-4 里我把 A·B·C 写成了 `[[−1,0],[2,1]]`，
    实际是 `[[2,−1],[2,0]]`。页面上矩阵显示得好好的，所以肉眼审查根本看不出来，
    但那个任务永远不会通过。
-   → 新增 `tools/verify-actions.js`，把工具栏动作序列在真实浏览器里用真实
+   → 新增 `tools/verify-actions.mjs`，把工具栏动作序列在真实浏览器里用真实
    `Mat` 复算一遍，再和任务里写的目标比对。
 
 **第 3 轮又抓到四类错误，其中两个是引擎 bug：**
@@ -454,11 +454,11 @@ kill %1
 
 ```bash
 python3 tools/check-lab.py     # 数据 + 教学层（可达性 / 唯一性）+ 指纹 / 主题 token
-node tools/verify-actions.js   # 工具栏动作序列的矩阵复算
-node tools/smoke.js            # 真实交互、渲染、判题器抽查
-node tools/verify-themes.js    # 8 个主题组合的对比度（真实像素采样）
+node tools/verify-actions.mjs   # 工具栏动作序列的矩阵复算
+node tools/smoke.mjs            # 真实交互、渲染、判题器抽查
+node tools/verify-themes.mjs    # 8 个主题组合的对比度（真实像素采样）
 node tools/verify-links.js     # 两站互跳（hash 路由 + 讲义锚点）
-node tools/shots.js            # 逐关截图；加 --themes 则每套主题各截一张
+node tools/shots.mjs            # 逐关截图；加 --themes 则每套主题各截一张
 ```
 
 这四道里，**每一道都真实抓到过问题**：
@@ -466,9 +466,9 @@ node tools/shots.js            # 逐关截图；加 --themes 则每套主题各�
 | 校验 | 抓到的真实错误 |
 |---|---|
 | `check-lab.py` | 顶栏数字与实际实验数不符；`in-basis` 漏登记白名单；「无穷多解」那道题 b 不在列空间里 |
-| `verify-actions.js` | 4-4 的 A·B·C 手算错误（`[[−1,0],[2,1]]` 应为 `[[2,−1],[2,0]]`） |
-| `smoke.js` | `collinear`/`eigen` 把反向共线判成不共线（λ = −1 的任务不可完成） |
-| `shots.js` | 7-3 的列空间/零空间提示文字压在 y 轴标记上 |
+| `verify-actions.mjs` | 4-4 的 A·B·C 手算错误（`[[−1,0],[2,1]]` 应为 `[[2,−1],[2,0]]`） |
+| `smoke.mjs` | `collinear`/`eigen` 把反向共线判成不共线（λ = −1 的任务不可完成） |
+| `shots.mjs` | 7-3 的列空间/零空间提示文字压在 y 轴标记上 |
 
 第 4 轮另外发现：**校验器的判题类型白名单与 `engine.js` 的 case 容易不同步**。
 现在加判题类型的固定流程是「引擎 case → 白名单 → 教学层校验 → smoke 断言」四步缺一不可。
@@ -511,10 +511,10 @@ URL 就变，浏览器必然重新下载**；内容没变则 URL 不变，照旧
 | 校验 | 查什么 |
 |---|---|
 | `tools/check-lab.py` | 每个 `actions` 任务引用的日志名，必须真的存在于某个工具栏按钮上 |
-| `tools/verify-actions.js` | 在浏览器里把**每个被任务依赖的按钮**都点一遍，确认日志真的增长；再把每关所有按钮点完，确认该关的 `actions` 任务全部通过 |
+| `tools/verify-actions.mjs` | 在浏览器里把**每个被任务依赖的按钮**都点一遍，确认日志真的增长；再把每关所有按钮点完，确认该关的 `actions` 任务全部通过 |
 
 两条都是回归测试的一部分。把 `try-inverse` 的 `logAction` 再去掉一次，
-`verify-actions.js` 会立刻报「6-2 的按钮 try-inv 被任务依赖，但点了不写日志」。
+`verify-actions.mjs` 会立刻报「6-2 的按钮 try-inv 被任务依赖，但点了不写日志」。
 
 ### 若要做成产品，建议的顺序
 

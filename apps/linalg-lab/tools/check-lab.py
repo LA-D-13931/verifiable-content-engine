@@ -445,7 +445,7 @@ def check_action_logging(labs, problems, notes):
 
     这里只保证「名字有出处」。「动作被点了之后日志是否真的增长」
     属于运行时行为，静态查不可靠（engine 里用的是 logAction(logName) 动态写法），
-    所以交给 tools/verify-actions.js 在浏览器里逐个按钮点一遍来验证。
+    所以交给 tools/verify-actions.mjs 在浏览器里逐个按钮点一遍来验证。
     """
     available = set()
     for lab in labs:

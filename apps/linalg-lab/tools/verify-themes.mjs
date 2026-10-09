@@ -8,12 +8,34 @@
      现在的做法是截图 → 用 canvas 读元素左下内角的实际像素，
      渐变、半透明、阴影、页面自己的 canvas 全部包含在内。
 
-   用法：node tools/verify-themes.js [baseUrl]
+   用法：node tools/verify-themes.mjs [baseUrl]
    ============================================================ */
-const puppeteer = require('puppeteer-core');
+import puppeteer from 'puppeteer-core';
 
 const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
-const BASE = process.argv[2] || 'http://127.0.0.1:8791/apps/linalg-lab/index.html';
+const BASE_PATH = '/apps/linalg-lab';
+const PROBE_PATH = '/apps/linalg-lab/index.html';
+/* 本地服务由 serve.mjs 保证：它探活、必要时自己从仓库根起一个。
+   为什么不再假设「8791 上有个对的服务器」—— 那个假设错过两次，
+   失败现象（404）看着像内容坏了，实际跟内容无关。
+
+   本文件是 ESM（.mjs），所以可以顶层 await 与顶层 import。 */
+import { ensureServer } from './serve.mjs';
+let _srv;
+try {
+    _srv = await ensureServer({ basePath: BASE_PATH });
+} catch (e) {
+    console.log('无法准备本地服务：' + e.message);
+    process.exit(2);
+}
+/* BASE 必须是**带路径的完整地址**：
+   原来这里是 http://127.0.0.1:8791/apps/linalg-lab/index.html，
+   我第一版只取了服务主机（http://127.0.0.1:8791），路径丢了 ——
+   于是浏览器去连「根路径」，报 ERR_CONNECTION_REFUSED。
+   探针用 PROBE_PATH 是相对仓库根的路径，而浏览器要访问的是带
+   apps/linalg-lab 前缀的完整地址。 */
+const BASE = process.argv[2] ? _srv.base + (process.argv[2].startsWith('http') ? '' : BASE_PATH)
+                             : _srv.base;
 const THEMES = ['default', 'eyecare-warm', 'eyecare-cool', 'ink'];
 const MODES = ['light', 'dark'];
 
@@ -56,7 +78,7 @@ function ok(cond, msg) {
     const page = await browser.newPage();
     const errors = [];
     page.on('pageerror', e => errors.push(e.message));
-    await page.goto(BASE + '#5-1', { waitUntil: 'domcontentloaded' });
+    await page.goto(BASE + '/index.html#5-1', { waitUntil: 'domcontentloaded' });
     await new Promise(r => setTimeout(r, 600));
     await page.evaluate(() => { const h = document.getElementById('hint-box'); if (h) h.open = true; });
 
@@ -145,3 +167,6 @@ function ok(cond, msg) {
     fail.slice(0, 24).forEach(f => console.log('   - ' + f));
     process.exit(fail.length === 0 ? 0 : 1);
 })().catch(e => { console.error('崩溃：', e); process.exit(2); });
+
+/* 收尾：只停自己起的那个服务（复用别人的不动） */
+if (_srv) _srv.stop();
