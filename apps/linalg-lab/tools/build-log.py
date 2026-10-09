@@ -48,6 +48,7 @@ CHECKS = [
     ('真实交互与渲染', ['node', 'tools/smoke.js'], '全部通过'),
     ('8 组主题对比度', ['node', 'tools/verify-themes.js'], '全部通过'),
     ('静态内容适配器 vs 原脚本（差分对照）', ['python3', 'tools/verify-static-adapter.py'], '全部通过'),
+    ('可视化页（样例须触发缺陷、真实内容须全绿）', ['node', 'tools/verify-visual.mjs'], '全部通过'),
 ]
 
 
