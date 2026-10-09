@@ -1,0 +1,2221 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<title>内容体检 · 可验证的交互式教学内容引擎</title>
+<!--
+  引擎可视化页（演示形态）
+  ------------------------------------------------------------
+  设计目标：让「引擎拦住了什么」变成**看得见**的。
+  为什么需要它：引擎拦住的错误是「什么都没发生」—— 页面显示、点击反馈、
+  提示文本全都正常，只有那个任务的圆圈永远不变绿。评委看不到被拦住的错误，
+  只看到一个没出事的页面。所以本页做三件事：
+
+    ① 格子视图：全部任务变成红绿格子，异常的那一格一眼可见
+    ② 点开看证据：每一格点开，显示引擎给出的**原因与反证**
+    ③ 内置样例：四个按钮，其中三个是**故意做坏**的内容
+
+  判题核心由 tools/gen-visual.py 从 独立校验页.html 现取（12 个函数），
+  不复制粘贴 —— 避免同一份逻辑存在两处。
+-->
+<style>
+* { box-sizing: border-box; }
+body { margin:0; padding:22px 26px 60px; background:#f4f5f7; color:#1c2027; line-height:1.6;
+       font-family:"Songti SC","STSong","PingFang SC","Hiragino Sans GB","Microsoft YaHei",serif; }
+h1 { font-size:21px; margin:0 0 3px; color:#16202e; }
+.sub { font-size:13px; color:#5a6270; margin-bottom:18px; }
+.panel { background:#fff; border:1px solid #dfe2e8; border-radius:10px; padding:15px 17px; margin-bottom:15px; }
+h2 { font-size:15px; margin:0 0 10px; color:#16202e; }
+.verdict { font-size:15px; padding:12px 16px; border-radius:9px; margin-bottom:15px; font-weight:600; }
+.v-ok { background:#eef7f2; border-left:5px solid #2f7a5f; color:#1f5c45; }
+.v-bad { background:#fdf0f2; border-left:5px solid #a8445a; color:#8a3247; }
+
+/* 统计条 */
+.stats { display:flex; gap:10px; flex-wrap:wrap; margin-bottom:15px; }
+.stat { flex:1 1 110px; background:#fff; border:1px solid #dfe2e8; border-radius:9px;
+        padding:11px 12px; text-align:center; }
+.stat .n { font-size:24px; font-weight:700; line-height:1.1; color:#3e5184; }
+.stat .l { font-size:11.5px; color:#4b5563; margin-top:3px; }
+
+/* 格子视图 —— 这一页的主角 */
+.grid { display:flex; flex-wrap:wrap; gap:4px; margin:4px 0 6px; }
+.cell { width:22px; height:22px; border-radius:4px; cursor:pointer; border:1px solid transparent;
+        transition:transform .08s, box-shadow .08s; position:relative; }
+.cell:hover { transform:scale(1.35); box-shadow:0 2px 8px rgba(0,0,0,.22); z-index:5; }
+.cell.ok   { background:#8fd0b0; }
+.cell.bad  { background:#e0798f; box-shadow:0 0 0 2px #a8445a inset; }
+.cell.sel  { outline:2px solid #16202e; outline-offset:1px; }
+.legend { font-size:12.5px; color:#5a6270; display:flex; gap:16px; align-items:center; flex-wrap:wrap; }
+.legend i { display:inline-block; width:13px; height:13px; border-radius:3px;
+            vertical-align:-2px; margin-right:5px; }
+.group { margin-bottom:11px; }
+.group .gt { font-size:12.5px; color:#4b5563; margin-bottom:4px; }
+.group .gt b { color:#16202e; }
+
+/* 详情 */
+#detail { display:none; }
+#detail.on { display:block; }
+.d-head { display:flex; justify-content:space-between; align-items:baseline; gap:12px; flex-wrap:wrap; }
+.d-title { font-size:15px; font-weight:700; color:#16202e; }
+.d-kind { font-size:12.5px; padding:2px 9px; border-radius:11px; background:#fdf0f2; color:#8a3247; }
+.d-kind.ok { background:#eef7f2; color:#1f5c45; }
+table { width:100%; border-collapse:collapse; font-size:13px; margin-top:9px; }
+th, td { border:1px solid #e6e8ec; padding:6px 9px; text-align:left; vertical-align:top; }
+th { background:#eef0f4; width:110px; }
+code { background:#f1f2f4; border:1px solid #e2e4e8; border-radius:3px; padding:0 3px;
+       font-family:"SF Mono",Menlo,monospace; font-size:12px; }
+pre { background:#f6f7f9; border:1px solid #e2e4e8; border-radius:6px; padding:9px 11px;
+      font-family:"SF Mono",Menlo,monospace; font-size:12px; overflow-x:auto; margin:0; }
+.btn { font-family:inherit; font-size:13px; padding:7px 13px; border-radius:8px;
+       border:1px solid #c8ccd4; background:#fff; cursor:pointer; margin:0 7px 7px 0; text-align:left; }
+.btn:hover { border-color:#3e5184; }
+.btn.primary { background:#3e5184; border-color:#3e5184; color:#fff; }
+.btn.primary:hover { background:#33456f; }
+.btn.warn { border-color:#e0cfa8; background:#fffdf6; }
+.note { font-size:12.5px; color:#6b7280; }
+</style>
+</head>
+<body>
+
+<h1>内容体检 · 可验证的交互式教学内容引擎</h1>
+<div class="sub"><b>单文件版</b>（引擎已内联，双击即用、可单独发送）　｜　把交互式课件的内容交给引擎，它会告诉你：<b>哪一道学习任务做不出来、作者的判题规则哪里不健全</b>。</div>
+
+<div class="panel">
+  <h2>先试一个（三个是故意做坏的，一个是正常的）</h2>
+  <div id="sampleBtns"></div>
+  <div class="note" id="sampleNote">点任意一个按钮即可当场跑。也可以用下面的拖放区放自己的内容 JSON。</div>
+</div>
+
+<div class="panel">
+  <h2>或者拖入你自己的内容 JSON</h2>
+  <div id="drop" style="border:2px dashed #b9c2d4;border-radius:9px;padding:20px;text-align:center;background:#fafbfc;cursor:pointer">
+    <b style="color:#3e5184">把 labs.json 拖到这里</b>
+    <div class="note" style="margin-top:5px">或点此选择文件</div>
+    <input type="file" id="file" accept=".json,application/json" hidden>
+  </div>
+</div>
+
+<div id="verdict"></div>
+<div class="stats" id="stats"></div>
+
+<div class="panel">
+  <h2>全部任务（每格 = 一道学习任务，点开看引擎给出的证据）</h2>
+  <div class="legend" style="margin-bottom:9px">
+    <span><i style="background:#8fd0b0"></i>可达且判得对</span>
+    <span><i style="background:#e0798f"></i>有问题（点开看原因）</span>
+    <span class="note">鼠标悬停可看是哪一关</span>
+  </div>
+  <div id="grid"></div>
+</div>
+
+<div class="panel" id="detail">
+  <div class="d-head">
+    <div class="d-title" id="dTitle"></div>
+    <div class="d-kind" id="dKind"></div>
+  </div>
+  <table id="dTable"></table>
+</div>
+
+<script>
+/* ===== 内联自 engine-core/mat.js（单文件版；源文件在仓库里，改要改源文件） ===== */
+/* ============================================================
+ * 模块 1：矩阵内核（纯函数）
+ *
+ * ⚠️ 本文件由 tools/gen-mat-js.py 生成，请勿手改。
+ *    要改数学，改 engine-core/mat.py，然后重跑：
+ *        python3 tools/gen-mat-js.py
+ *    Python 侧读 engine-core/mat.py，浏览器侧读本文件，两侧是同一套定义。
+ *    一致性由 engine-core/mat-vectors.json 的测试向量在两侧各自自检来证明。
+ *
+ * 约定：矩阵是行数组的数组（[[a,b],[c,d]] 即
+ *   ┌ a b ┐
+ *   └ c d ┘
+ * 矩阵第 j 列 = 该列对应的基向量落点。
+ * ============================================================ */
+(function (root, factory) {
+    const api = factory(typeof require === 'function' ? require : null);
+    root.Mat = api;                       // 浏览器：window.Mat
+    if (typeof module === 'object' && module.exports) module.exports = api;  // Node
+}(typeof self !== 'undefined' ? self : this, function (require) {
+    'use strict';
+
+    // 数值零判定阈值 —— 与 engine-core/mat.py 的 EPS 必须相同
+    const EPS = 1e-10;
+    // 直线求交的零判定阈值（比 EPS 宽，因直线系数由点算出，误差更大）
+    const LINE_EPS = 1e-9;
+    // 交点回代检查允许的偏差（拖动是 0.5 步长，实测量级在 1e-2）
+    const INTERSECT_TOL = 0.05;
+
+    /* ---------------- 基础 ---------------- */
+
+    function identity(n) {
+        return Array.from({ length: n }, (_, i) =>
+            Array.from({ length: n }, (_, j) => (i === j ? 1 : 0)));
+    }
+
+    function clone(m) { return m.map(row => row.slice()); }
+
+    function mul(a, b) {
+        const n = a.length, k = b.length, m = b[0].length;
+        return Array.from({ length: n }, (_, i) =>
+            Array.from({ length: m }, (_, j) => {
+                let s = 0;
+                for (let t = 0; t < k; t++) s += a[i][t] * b[t][j];
+                return s;
+            }));
+    }
+
+    function mulVec(m, v) {
+        return m.map(row => row.reduce((s, x, j) => s + x * v[j], 0));
+    }
+
+    function dot(a, b) {
+        return a.reduce((s, x, i) => s + x * b[i], 0);
+    }
+
+    function cross(a, b) {
+        return [
+            a[1] * b[2] - a[2] * b[1],
+            a[2] * b[0] - a[0] * b[2],
+            a[0] * b[1] - a[1] * b[0]
+        ];
+    }
+
+    /* ---------------- 行列式与逆 ---------------- */
+
+    function det(m) {
+        const n = m.length;
+        if (n === 1) return m[0][0];
+        if (n === 2) return m[0][0] * m[1][1] - m[0][1] * m[1][0];
+        let d = 0;
+        for (let j = 0; j < n; j++) {
+            const minor = m.slice(1).map(row => row.filter((_, c) => c !== j));
+            d += (j % 2 === 0 ? 1 : -1) * m[0][j] * det(minor);
+        }
+        return d;
+    }
+
+    /* 2×2 逆矩阵；奇异（|det| < EPS）时返回 null。
+       用 < EPS 而不是 === 0：拖动产生的浮点误差会让本该为 0 的
+       行列式变成 1e-17 之类的值。 */
+    function inv2(m) {
+        const d = det(m);
+        if (Math.abs(d) < EPS) return null;
+        return [
+            [m[1][1] / d, -m[0][1] / d],
+            [-m[1][0] / d, m[0][0] / d]
+        ];
+    }
+
+    /* ---------------- 秩 ----------------
+       数值秩：带部分主元选取的高斯消元。
+       算法步骤与 engine-core/mat.py 的 rank() 逐步对应，不要单独改动此处。 */
+    function rank(m) {
+        const a = clone(m);
+        const rows = a.length, cols = a[0].length;
+        let r = 0;
+        for (let c = 0; c < cols; c++) {
+            if (r >= rows) break;
+            let piv = r;
+            for (let i = r + 1; i < rows; i++) {
+                if (Math.abs(a[i][c]) > Math.abs(a[piv][c])) piv = i;
+            }
+            if (Math.abs(a[piv][c]) < EPS) continue;
+            const tmp = a[r]; a[r] = a[piv]; a[piv] = tmp;
+            for (let i = r + 1; i < rows; i++) {
+                const f = a[i][c] / a[r][c];
+                for (let j = c; j < cols; j++) a[i][j] -= f * a[r][j];
+            }
+            r++;
+        }
+        return r;
+    }
+
+    /* ---------------- 2×2 特征 ----------------
+       返回 { values:[λ1,λ2], vectors:[v1,v2] }；无实特征值时返回 null。
+       方向已归一化。 */
+    function eigen2(m) {
+        const tr = m[0][0] + m[1][1];
+        const d = det(m);
+        const disc = tr * tr - 4 * d;
+        if (disc < 0) return null;
+        const sq = Math.sqrt(disc);
+        const l1 = (tr + sq) / 2, l2 = (tr - sq) / 2;
+        function raw(l) {
+            const a = m[0][0] - l, b = m[0][1], c = m[1][0], e = m[1][1] - l;
+            if (Math.abs(b) > EPS) return [b, -a];
+            if (Math.abs(c) > EPS) return [-e, c];
+            if (Math.abs(a) < EPS) return [1, 0];
+            return [0, 1];
+        }
+        function norm(v) {
+            const L = Math.hypot(v[0], v[1]);
+            return L < EPS ? [0, 0] : [v[0] / L, v[1] / L];
+        }
+        return { values: [l1, l2], vectors: [norm(raw(l1)), norm(raw(l2))] };
+    }
+
+    function solve2(A, b) {
+        const inv = inv2(A);
+        return inv ? mulVec(inv, b) : null;
+    }
+
+    /* 两向量夹角（度）。任一个接近零向量时返回 180。
+       ⚠️ 共线判定必须用 Math.min(ang, 180 - ang)，
+       否则反向共线（180°）会被误判为不共线——这个坑真实发生过。 */
+    function angleBetweenDeg(u, v) {
+        const lu = Math.hypot(u[0], u[1]), lv = Math.hypot(v[0], v[1]);
+        if (lu < EPS || lv < EPS) return 180;
+        let cos = dot(u, v) / (lu * lv);
+        cos = Math.max(-1, Math.min(1, cos));
+        return Math.acos(cos) * 180 / Math.PI;
+    }
+
+    /* ---------------- 可达性辅助 ---------------- */
+
+    /* 把向量 b 作为新的一列接到矩阵 A 右边，用于秩比较判可达 */
+    function augment(A, b) {
+        return A.map((row, i) => row.concat([b[i]]));
+    }
+
+    /* target 是否落在 A 的列空间内 —— 最核心的可达性判据：
+           b 可达  <=>  rank([A | b]) === rank(A)
+       加一列不会降秩；只要秩升高，就说明 b 带来了 A 无法生成的方向。 */
+    function onSpan(A, target, tol) {
+        if (tol === undefined) tol = INTERSECT_TOL;
+        return rank(augment(A, target)) === rank(A);
+    }
+
+    /* 求同时落在所有直线上的交点；不存在则返回 null。
+       lines 每项形如 {a, b, c}，表示直线 a·x + b·y = c。 */
+    function intersectLines(lines) {
+        for (let i = 0; i < lines.length; i++) {
+            for (let j = i + 1; j < lines.length; j++) {
+                const l1 = lines[i], l2 = lines[j];
+                const d = l1.a * l2.b - l2.a * l1.b;
+                if (Math.abs(d) < LINE_EPS) continue;
+                const p = [(l1.c * l2.b - l2.c * l1.b) / d,
+                           (l1.a * l2.c - l2.a * l1.c) / d];
+                let ok = true;
+                for (let k = 0; k < lines.length; k++) {
+                    const l = lines[k];
+                    if (Math.abs(l.a * p[0] + l.b * p[1] - l.c) >= INTERSECT_TOL) {
+                        ok = false; break;
+                    }
+                }
+                if (ok) return p;
+            }
+        }
+        return null;
+    }
+
+    /* ---------------- 测试向量自检 ----------------
+       读 engine-core/mat-vectors.json，与 Python 侧 engine-core/mat.py 的 _selftest()
+       读同一份向量。两侧都通过，才说明算的是同一个数学。 */
+
+    const DISPATCH = {
+        det: a => det(a[0]),
+        rank: a => rank(a[0]),
+        inv2: a => inv2(a[0]),
+        solve2: a => solve2(a[0], a[1]),
+        eigen2: a => eigen2(a[0]),
+        angleBetweenDeg: a => angleBetweenDeg(a[0], a[1]),
+        onSpan: a => onSpan(a[0], a[1]),
+        intersectLines: a => intersectLines(a[0]),
+        cross: a => cross(a[0], a[1]),
+        mul: a => mul(a[0], a[1]),
+        dot: a => dot(a[0], a[1]),
+        identity: a => identity(a[0]),
+        mulVec: a => mulVec(a[0], a[1])
+    };
+
+    function same(a, b) {
+        if (Array.isArray(a) && Array.isArray(b)) {
+            if (a.length !== b.length) return false;
+            return a.every((x, i) => same(x, b[i]));
+        }
+        if (a && b && typeof a === 'object' && typeof b === 'object') {
+            const ka = Object.keys(a), kb = Object.keys(b);
+            if (ka.length !== kb.length) return false;
+            return ka.every(k => same(a[k], b[k]));
+        }
+        if (a === null || b === null) return a === b;
+        if (typeof a === 'number' && typeof b === 'number') {
+            if (!isFinite(a) || !isFinite(b)) return a === b;
+            return Math.abs(a - b) < 1e-9;
+        }
+        return a === b;
+    }
+
+    /* 返回 { total, failed, details }；在浏览器里由 main.js 调用，
+       在 Node 里由 tools/verify-mat.mjs 调用。 */
+    function selftest(payloadOrList) {
+        // 兼容两种结构：{signature, vectors} 或裸数组
+        const data = Array.isArray(payloadOrList)
+            ? payloadOrList : payloadOrList.vectors;
+        const failed = [];
+        data.forEach(v => {
+            const fn = DISPATCH[v.fn];
+            if (!fn) { failed.push({ fn: v.fn, why: '未知函数' }); return; }
+            const got = fn(v.args);
+            if (!same(got, v.expect)) {
+                failed.push({ fn: v.fn, args: v.args, expect: v.expect, got: got });
+            }
+        });
+        return { total: data.length, failed: failed.length, details: failed };
+    }
+
+    return {
+        EPS: EPS, LINE_EPS: LINE_EPS, INTERSECT_TOL: INTERSECT_TOL,
+        identity: identity, clone: clone, mul: mul, mulVec: mulVec,
+        dot: dot, cross: cross, det: det, inv2: inv2, rank: rank,
+        eigen2: eigen2, solve2: solve2, angleBetweenDeg: angleBetweenDeg,
+        augment: augment, onSpan: onSpan, intersectLines: intersectLines,
+        selftest: selftest
+    };
+}));
+
+</script>
+<script>
+/* ===== 内联自 engine-core/registry.js（单文件版；源文件在仓库里，改要改源文件） ===== */
+/* ============================================================
+ * 判题注册表（引擎层）
+ *
+ * 定位：这里只放**与学科无关**的判题类型——数值命中、矩阵相等、
+ * 点积、选择题、动作序列。它们不需要知道「什么是行列式」。
+ *
+ * 学科专属的判题类型（det / rank / eigen / on-span / cross-dir …）
+ * 留在 engine.js 里，将来迁到 domains/<科目>/。分界线是：
+ *
+ *     判据里出现「秩、行列式、特征值、列空间」等概念 → 领域专属
+ *     判据只是「数值相等 / 位置命中 / 序列匹配」      → 引擎层
+ *
+ * ⚠️ 本文件必须与 engine.js 里对应的 case **逐字对齐**。
+ *    第一版是「照着记忆重写」的，结果五处偏差：
+ *      · actions 用了 App.log（对象），原实现是 App.actionLog（数组）
+ *      · actions 漏掉 check.ordered 的顺序匹配逻辑
+ *      · dot 写成 check.target / check.with，原实现是 check.a / check.b
+ *      · dot 漏掉 op 的 lt / gt 两种比较
+ *      · choice 漏掉 taskId != null 的判断
+ *    教训：**平移代码必须照源码逐行译，不能凭印象重写。**
+ *    平移是否忠实，由 tools/verify-registry.mjs 的离线用例与浏览器侧的
+ *    verify-actions / smoke 共同把关。
+ *
+ * 每个处理器返回 { pass, reason, certificate }：
+ *   · pass        —— 是否通过
+ *   · reason      —— 不通过时的一句话原因（给人看）
+ *   · certificate —— 判定依据（见证或反证），把诊断质量变成可核对的东西
+ *
+ * 加载顺序：必须在 engine.js 之前（engine.js 读 window.CheckRegistry）。
+ * ============================================================ */
+(function (root) {
+root.CheckRegistry = (function () {
+    'use strict';
+
+    const handlers = Object.create(null);
+
+    function register(type, fn) { handlers[type] = fn; }
+    function get(type) { return handlers[type] || null; }
+    function types() { return Object.keys(handlers); }
+
+    const ok = (cert)         => ({ pass: true,  reason: '', certificate: cert });
+    const bad = (reason, cert) => ({ pass: false, reason: reason, certificate: cert });
+
+    /* 把向量格式化成 (1, 2) 这样的短字符串，用于诊断信息 */
+    function fmt(v) {
+        return '(' + v.map(x => (Math.round(x * 100) / 100)).join(', ') + ')';
+    }
+
+    /* 数值比较：与原实现一致；op 不是 eq/lt/gt 时返回 false */
+    function cmp(got, op, value, tol) {
+        const t = tol == null ? 0.05 : tol;
+        if (op === 'eq') return Math.abs(got - value) <= t;
+        if (op === 'lt') return got < value;
+        if (op === 'gt') return got > value;
+        return false;
+    }
+
+    /* ---------------- 领域无关的判题类型 ---------------- */
+
+    /* 指定 id 的向量是否停在目标位置 */
+    register('vector-at', function (check, ctx) {
+        const v = ctx.vectors.find(x => x.id === check.target);
+        if (!v) return bad('找不到向量 ' + check.target);
+        const hit = ctx.vecEq(v.data, check.to, check.tol);
+        return hit ? ok({ witness: v.data })
+                   : bad('向量 ' + check.target + ' 在 ' + fmt(v.data) +
+                         '，目标是 ' + fmt(check.to),
+                         { current: v.data, target: check.to });
+    });
+
+    /* 变换后的向量 Av 是否命中目标 */
+    register('av-at', function (check, ctx) {
+        const v = ctx.vectors.find(x => x.id === 'v');
+        if (!v || !ctx.matrix) return bad('缺少向量 v 或矩阵');
+        const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+        const hit = ctx.vecEq(av, check.to, check.tol);
+        return hit ? ok({ witness: v.data, image: av })
+                   : bad('Av = ' + fmt(av) + '，目标是 ' + fmt(check.to),
+                         { current: av, target: check.to });
+    });
+
+    /* 矩阵的第 col 列是否等于目标向量 */
+    register('matrix-col-at', function (check, ctx) {
+        if (!ctx.matrix) return bad('当前没有矩阵');
+        const col = ctx.matrix.map(r => r[check.col]);
+        const hit = ctx.vecEq(col, check.to, check.tol);
+        return hit ? ok({ col: check.col })
+                   : bad('第 ' + (check.col + 1) + ' 列是 ' + fmt(col) +
+                         '，目标是 ' + fmt(check.to),
+                         { current: col, target: check.to });
+    });
+
+    /* 整个矩阵是否等于目标矩阵（逐元素，容差默认 0.05） */
+    register('match-matrix', function (check, ctx) {
+        if (!ctx.matrix) return bad('当前没有矩阵');
+        const tol = check.tol == null ? 0.05 : check.tol;
+        let worst = 0, at = null;
+        check.matrix.forEach((row, i) => row.forEach((x, j) => {
+            const d = Math.abs(ctx.matrix[i][j] - x);
+            if (d > worst) { worst = d; at = [i, j]; }
+        }));
+        return worst <= tol
+            ? ok({ maxDeviation: worst })
+            : bad('第 ' + (at[0] + 1) + ' 行第 ' + (at[1] + 1) + ' 列差 ' +
+                  (Math.round(worst * 100) / 100) + '，超出容差 ' + tol,
+                  { maxDeviation: worst, at: at });
+    });
+
+    /* 两指定向量 id 的点积；op 支持 eq / lt / gt（与原实现一致） */
+    register('dot', function (check, ctx) {
+        const a = ctx.vectors.find(x => x.id === check.a);
+        const b = ctx.vectors.find(x => x.id === check.b);
+        if (!a || !b) return bad('找不到向量 ' + (check.a || '?') + ' 或 ' + (check.b || '?'));
+        const d = ctx.Mat.dot(a.data, b.data);
+        return cmp(d, check.op, check.value, check.tol)
+            ? ok({ value: d })
+            : bad('点积是 ' + (Math.round(d * 100) / 100) +
+                  '，条件是 ' + (check.op || 'eq') + ' ' + check.value,
+                  { current: d, target: check.value, op: check.op });
+    });
+
+    /* 辨析题：只有当这一次的选择确实属于这道题时才算数。
+       同一关可能有两道辨析题，必须用 taskId 区分，否则互相干扰。 */
+    register('choice', function (check, ctx) {
+        if (ctx.taskId == null) return bad('缺少任务标识，无法判断这是哪一道题');
+        const picked = ctx.choices[ctx.taskId];
+        if (picked == null) return bad('还没有选择');
+        return picked === check.correct
+            ? ok({ picked: picked })
+            : bad('选了第 ' + (picked + 1) + ' 项，不是正确答案',
+                  { picked: picked, correct: check.correct });
+    });
+
+    /* 过程型任务：声明的动作必须都产生过可观测事件。
+       ordered 为真时要求按序出现（子序列匹配，允许中间夹别的动作）。
+       这一类专门捕捉「按钮点了但没写日志」导致的恒假任务。 */
+    register('actions', function (check, ctx) {
+        const all = check.all || [];
+        const log = ctx.actionLog || [];
+        if (check.ordered) {
+            let pos = 0;
+            for (const a of log) {
+                if (a === all[pos]) pos++;
+                if (pos >= all.length) return ok({ order: all });
+            }
+            return bad('顺序还没走完，已完成 ' + pos + ' / ' + all.length + ' 步',
+                       { matched: pos, need: all.length });
+        }
+        const missing = all.filter(n => !log.includes(n));
+        return missing.length === 0
+            ? ok({ done: all })
+            : bad('还缺少这些动作：' + missing.join('、'), { missing: missing });
+    });
+
+    const api = {
+        register: register,
+        get: get,
+        types: types,
+        /* 供测试直接调用：不依赖 App，只依赖传入的 ctx */
+        run: function (check, ctx) {
+            const fn = get(check.type);
+            if (!fn) return null;      // 未注册 → 由调用方决定怎么处理
+            return fn(check, ctx);
+        }
+    };
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
+})();
+}(typeof globalThis !== 'undefined' ? globalThis : this));
+
+</script>
+<script>
+/* ===== 内联自 engine-core/domains/linalg/judge.js（单文件版；源文件在仓库里，改要改源文件） ===== */
+/* ============================================================
+ * 线代领域判题插件
+ *
+ * 本文件里的 13 个判题类型是**线性代数专属**的：
+ *   det / rank / intercept / null-space / eigen / in-basis-matrix /
+ *   on-span / in-basis / vector-angle / cross-mag / cross-dir / solve / collinear
+ * 它们的判据里出现了「秩、行列式、特征值、列空间」这类概念，
+ * 换到高等数学就不成立，所以留在这里，不进引擎层。
+ *
+ * ⚠️ 这些 case **是从 assets/js/engine.js 逐字提取的**（用代码切片，不是手抄）。
+ *    engine/core 的判题注册表之前出过一次事故：照记忆重写导致五处偏差，
+ *    10 个任务在浏览器侧失败。所以本次改为「机器提取 + 回读校验」。
+ *
+ * 调用方需要提供 ctx（判题上下文），与引擎层注册表共用同一份：
+ *   { matrix, matrixSize, vectors, lines, actionLog, choices, Mat, vecEq }
+ *
+ * 引擎的 checkTask 会先问浏览器层注册表（7 个领域无关类型），
+ * 返回 null 时才落到这里。所以本文件不需要处理那 7 个类型。
+ * ============================================================ */
+(function (root) {
+root.LinalgJudge = (function () {
+    'use strict';
+
+    function vecEq(a, b, tol) {
+            const t = tol == null ? 0.15 : tol;
+            return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= t);
+        }
+
+    function intersectPair(l1, l2) {
+            const d = l1.a * l2.b - l2.a * l1.b;
+            if (Math.abs(d) < 1e-9) return null;
+            return [(l1.c * l2.b - l2.c * l1.b) / d, (l1.a * l2.c - l2.a * l1.c) / d];
+        }
+
+    function intersectLines(lines, n) {
+            const use = lines.slice(0, n);
+            for (let i = 0; i < use.length; i++) {
+                for (let j = i + 1; j < use.length; j++) {
+                    const p = intersectPair(use[i], use[j]);
+                    if (!p) continue;
+                    const onAll = use.every(l => Math.abs(l.a * p[0] + l.b * p[1] - l.c) < 0.05);
+                    if (onAll) return p;
+                }
+            }
+            return null;
+        }
+
+    function normVec(v) {
+            const L = Math.hypot.apply(null, v) || 1;
+            return v.map(x => x / L);
+        }
+
+
+    /* ---------------- 诊断补齐 ----------------
+       下面 13 个 case 是从 engine.js 逐字提取的，内部只 `return true/false`，
+       不带原因与证书。这与引擎层（返回 {pass, reason, certificate} 三元组）
+       不一致，导致**领域判题拿不到「为什么判不过」的表达能力**——
+       而可解释诊断正是本项目的核心主张之一。
+
+       做法：不改那 13 段已验证的代码，而是在这里按类型补一层诊断。
+       好处是不碰已验证的逻辑；代价是诊断与判定分处两地，
+       所以有一条自动检查（tools/verify-diagnostics.mjs）盯着覆盖率，
+       并要求「判不过必须给出原因」。 */
+
+    /* 把数值格式化成短字符串 */
+    function n2(v) {
+        return (typeof v === 'number' && isFinite(v)) ? (Math.round(v * 1000) / 1000) : String(v);
+    }
+
+    const DIAGNOSE = {
+        det: function (check, ctx) {
+            const d = ctx.Mat.det(ctx.matrix);
+            return {
+                reason: '当前 det = ' + n2(d) + '，要求 ' + check.op + ' ' + check.value
+                        + (check.tol != null ? '（容差 ' + check.tol + '）' : ''),
+                certificate: { determinant: d, op: check.op, target: check.value }
+            };
+        },
+        rank: function (check, ctx) {
+            const r = ctx.Mat.rank(ctx.matrix);
+            return {
+                reason: '当前秩 = ' + r + '，要求 ' + (check.op || 'eq') + ' ' + check.value,
+                certificate: { rank: r, op: check.op || 'eq', target: check.value }
+            };
+        },
+        solve: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            const av = (v && ctx.matrix) ? ctx.Mat.mulVec(ctx.matrix, v.data) : null;
+            return {
+                reason: av ? '当前 Av = ' + JSON.stringify(av.map(n2)) + '，目标是 '
+                             + JSON.stringify(check.to) : '缺少向量 v 或矩阵',
+                certificate: av ? { av: av, target: check.to } : null
+            };
+        },
+        collinear: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            const av = (v && ctx.matrix) ? ctx.Mat.mulVec(ctx.matrix, v.data) : null;
+            return {
+                reason: av ? 'v 与 Av 不共线（要求共线，容差 ' + (check.tolDeg || 4) + '°）'
+                           : '缺少向量 v 或矩阵',
+                certificate: av ? { v: v.data, av: av } : null
+            };
+        },
+        eigen: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            const vv = ctx.Mat.dot(v.data, v.data);
+            const lam = vv > 1e-12 ? ctx.Mat.dot(av, v.data) / vv : NaN;
+            return {
+                reason: '当前缩放倍数 λ = ' + n2(lam) + '，目标是 ' + check.value
+                        + '（容差 ' + (check.tol || 0.12) + '）',
+                certificate: { lambda: lam, target: check.value, av: av }
+            };
+        },
+        'on-span': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const m = ctx.matrix;
+            const aug = m.map((row, i) => row.concat([v.data[i]]));
+            const rA = ctx.Mat.rank(m), rAug = ctx.Mat.rank(aug);
+            return {
+                reason: 'rank(A) = ' + rA + '，rank([A|v]) = ' + rAug
+                        + (rAug > rA ? '（秩升高说明 v 不在列空间内）' : '（秩不变说明 v 在列空间内）'),
+                certificate: { rankA: rA, rankAug: rAug }
+            };
+        },
+        'in-basis': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const c = ctx.Mat.solve2(ctx.matrix, v.data);
+            return {
+                reason: c ? '在新基下的坐标是 ' + JSON.stringify(c.map(n2)) + '，目标是 '
+                            + JSON.stringify(check.to) : '当前基不可逆，坐标无法定义',
+                certificate: c ? { coords: c, target: check.to } : null
+            };
+        },
+        'in-basis-matrix': function (check, ctx) {
+            if (!ctx.matrix || !check.basis) return { reason: '缺少矩阵或 basis', certificate: null };
+            const Pi = ctx.Mat.inv2(check.basis);
+            if (!Pi) return { reason: 'basis 不可逆，P⁻¹ 不存在', certificate: null };
+            const got = ctx.Mat.mul(ctx.Mat.mul(Pi, ctx.matrix), check.basis);
+            return {
+                reason: '当前 P⁻¹AP = ' + JSON.stringify(got.map(r => r.map(n2)))
+                        + '，目标是 ' + JSON.stringify(check.matrix),
+                certificate: { got: got, target: check.matrix }
+            };
+        },
+        'vector-angle': function (check, ctx) {
+            const a = ctx.vectors.find(x => x.id === check.a);
+            const b = ctx.vectors.find(x => x.id === check.b);
+            if (!a || !b) return { reason: '找不到向量 ' + check.a + ' 或 ' + check.b, certificate: null };
+            const la = Math.hypot.apply(null, a.data);
+            const lb = Math.hypot.apply(null, b.data);
+            if (la < 1e-6 || lb < 1e-6) {
+                return { reason: '有一个向量长度为零，夹角没有定义',
+                         certificate: { la: la, lb: lb } };
+            }
+            if (check.unit) {
+                const ut = check.unitTol || 0.06;
+                if (Math.abs(la - 1) > ut || Math.abs(lb - 1) > ut) {
+                    return { reason: '要求两个都是单位向量，当前长度是 ' + n2(la) + ' 与 ' + n2(lb)
+                                     + '（容差 ' + ut + '）',
+                             certificate: { la: la, lb: lb, unitTol: ut } };
+                }
+            }
+            const ang = ctx.Mat.angleBetweenDeg(a.data, b.data);
+            return {
+                reason: '当前夹角 ' + n2(ang) + '°，目标是 ' + check.value + '°（容差 '
+                        + (check.tol || 5) + '°）',
+                certificate: { angle: ang, target: check.value }
+            };
+        },
+        'cross-mag': function (check, ctx) {
+            if (!ctx.matrix) return { reason: '缺少矩阵', certificate: null };
+            const a = ctx.matrix.map(r => r[check.colA]);
+            const b = ctx.matrix.map(r => r[check.colB]);
+            const mag = Math.hypot.apply(null, ctx.Mat.cross(a, b));
+            return {
+                reason: '当前 |a×b| = ' + n2(mag) + '，要求 ' + check.op + ' ' + check.value,
+                certificate: { magnitude: mag, op: check.op, target: check.value }
+            };
+        },
+        'cross-dir': function (check, ctx) {
+            if (!ctx.matrix) return { reason: '缺少矩阵', certificate: null };
+            const a = ctx.matrix.map(r => r[check.colA]);
+            const b = ctx.matrix.map(r => r[check.colB]);
+            const c = ctx.Mat.cross(a, b);
+            const L = Math.hypot(c[0], c[1], c[2]);
+            const u = L > 1e-12 ? [c[0] / L, c[1] / L, c[2] / L] : null;
+            const tl = Math.hypot.apply(null, check.dir) || 1;
+            const t = check.dir.map(x => x / tl);
+            const d = u ? (u[0] * t[0] + u[1] * t[1] + u[2] * t[2]) : null;
+            return {
+                reason: u ? 'a×b 方向与目标方向余弦 ' + n2(d) + '，要求 ≥ '
+                            + (check.minCos == null ? 0.999 : check.minCos) : 'a×b 为零向量，方向未定义',
+                certificate: u ? { direction: u, target: t, cos: d } : null
+            };
+        },
+        intercept: function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            return {
+                reason: '当前 v = ' + (v ? JSON.stringify(v.data.map(n2)) : '(无)')
+                        + '，需要落在若干直线的公共交点上',
+                certificate: v ? { v: v.data, lineCount: (ctx.lines || []).length } : null
+            };
+        },
+        'null-space': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const minLen = check.minLen || 0.25;
+            const tol = check.tol || 0.08;
+            const len = Math.hypot.apply(null, v.data);
+            if (len < minLen) {
+                return { reason: '向量长度 ' + n2(len) + ' 太短（要求 ≥ ' + minLen
+                                 + '），零向量不构成零空间里的方向',
+                         certificate: { len: len, minLen: minLen } };
+            }
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            const normAv = Math.hypot.apply(null, av);
+            /* 诊断必须**镜像判定的条件顺序**：判定在 ‖Av‖ 超标时就返回 false，
+               不会再看方向。所以这里也先报 ‖Av‖ —— 否则会出现
+               「诊断说方向不对、实际判定卡在 ‖Av‖」的不一致。 */
+            if (normAv > tol) {
+                const note = check.dir
+                    ? '（此时方向还未参与判定）' : '';
+                return { reason: '当前 |Av| = ' + n2(normAv) + '，要求接近 0（容差 '
+                                 + tol + '）' + note,
+                         certificate: { av: av, norm: normAv, tol: tol } };
+            }
+            if (check.dir) {
+                const cos = Math.abs(ctx.Mat.dot(normVec(v.data), normVec(check.dir)));
+                const minCos = check.minCos || 0.98;
+                if (cos < minCos) {
+                    return { reason: '方向不符：v 与目标方向的 |cos| = ' + n2(cos)
+                                     + '，要求 ≥ ' + minCos
+                                     + '（零空间条件 |Av| = ' + n2(normAv)
+                                     + ' 已满足，所以问题确实出在方向上）',
+                             certificate: { cos: cos, minCos: minCos, av: av } };
+                }
+            }
+            return { reason: '', certificate: { ok: true } };
+        },
+
+        /* 判定分支有 4 条失败条件，逐条对应（原表缺此条目，诊断退化为空原因）。 */
+        'eigen': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === (check.target || 'v'));
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const vv = ctx.Mat.dot(v.data, v.data);
+            if (vv < 1e-6) return { reason: '向量 v 是零向量，缩放倍数没有定义',
+                                    certificate: { vv: vv } };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            const lam = ctx.Mat.dot(av, v.data) / vv;
+            if (Math.abs(lam - check.value) > (check.tol || 0.12)) {
+                return { reason: '当前缩放倍数 λ = ' + n2(lam) + '，目标是 ' + check.value
+                                 + '（容差 ' + (check.tol || 0.12) + '）',
+                         certificate: { lambda: lam, av: av, target: check.value } };
+            }
+            const ang = ctx.Mat.angleBetweenDeg(v.data, av);
+            const off = Math.min(ang, 180 - ang);
+            return { reason: '缩放倍数 λ = ' + n2(lam) + ' 已符合，但 v 与 Av 不共线：'
+                             + '夹角偏离 ' + n2(off) + '°（容差 ' + (check.tolDeg || 4) + '°）',
+                     certificate: { lambda: lam, angleOff: off, av: av } };
+        },
+
+        /* 判定分支有 3 条失败条件，逐条对应（原表缺此条目，诊断退化为空原因）。 */
+        'collinear': function (check, ctx) {
+            const v = ctx.vectors.find(x => x.id === 'v');
+            if (!v || !ctx.matrix) return { reason: '缺少向量 v 或矩阵', certificate: null };
+            const lv = Math.hypot(v.data[0], v.data[1]);
+            if (lv < 0.25) return { reason: '向量 v 太短（长度 ' + n2(lv) + '，要求 ≥ 0.25）',
+                                    certificate: { len: lv } };
+            const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+            if (Math.hypot(av[0], av[1]) < 1e-6) {
+                return { reason: 'Av 是零向量（矩阵把 v 压扁了），共线无法判定 —— '
+                                 + '零向量与任何向量都谈不上「方向相同或相反」',
+                         certificate: { av: av } };
+            }
+            const ang = ctx.Mat.angleBetweenDeg(v.data, av);
+            const off = Math.min(ang, 180 - ang);
+            return { reason: 'v 与 Av 不共线：夹角偏离 ' + n2(off) + '°（容差 '
+                             + (check.tolDeg || 4) + '°）。共线含同向与反向（180°）两种情况，'
+                             + '两者都算共线',
+                     certificate: { angleOff: off, av: av } };
+        }
+    };
+
+    /* 判定入口。返回三态：
+         · null                                  —— 不是本领域的类型
+         · { pass:true,  reason:'', certificate } —— 判过
+         · { pass:false, reason:'…', certificate } —— 判不过（带原因）
+       下面 13 个 case 从 engine.js 逐字提取，内部仍写 `return true/false`，
+       由 judgeRaw 之后统一包装成三元组，避免改动那 13 段已验证的代码。 */
+    /* 规范化调用者传来的 ctx：缺失的字段给安全默认值。
+       为什么需要：这 13 个 case 是从 engine.js 逐字提取的，内部直接写
+       `ctx.vectors.find(...)`、`App.lines.length`。engine.js 调用时一定带这些字段，
+       但**插件作为公共接口被第三方调用时不一定**——只传 { taskId, Mat } 就会抛
+       TypeError。引擎不该要求调用者记得填全字段。
+       实测：加上本函数前，用最小 ctx 探测会有 5 个类型抛异常。 */
+    function normalizeCtx(ctx) {
+        const c = ctx || {};
+        return {
+            taskId: c.taskId == null ? null : c.taskId,
+            matrix: c.matrix === undefined ? null : c.matrix,
+            matrixSize: c.matrixSize == null ? 2 : c.matrixSize,
+            vectors: c.vectors || [],
+            lines: c.lines || [],
+            actionLog: c.actionLog || [],
+            choices: c.choices || {},
+            param: c.param === undefined ? null : c.param,
+            Mat: c.Mat,
+            vecEq: c.vecEq
+        };
+    }
+
+    function judgeRaw(check, ctx) {
+        ctx = normalizeCtx(ctx);
+        /* 别名：原代码读的是 App.xxx 与全局 Mat，这里改成从 ctx 取。
+           领域插件不依赖任何全局，因此可以在 Node 里独立加载与测试。 */
+        const App = ctx;
+        const Mat = ctx.Mat;
+        switch (check.type) {
+
+            case 'det': {
+                if (!App.matrix) return false;
+                const d = Mat.det(App.matrix);
+                if (check.op === 'eq') return Math.abs(d - check.value) <= (check.tol || 0.05);
+                if (check.op === 'lt') return d < check.value;
+                if (check.op === 'gt') return d > check.value;
+                return false;
+            }
+
+            case 'rank': {
+                if (!App.matrix) return false;
+                return Mat.rank(App.matrix) === check.value;
+            }
+
+            /* 行图像：拖动 v 去命中若干条直线的交点。
+               先把直线两两求交，取那个同时落在所有直线上的点。 */
+            case 'intercept': {
+                const v = App.vectors.find(x => x.id === (check.target || 'v'));
+                if (!v || !App.lines || App.lines.length < 2) return false;
+                const p = intersectLines(App.lines, check.maxLines || App.lines.length);
+                if (!p) return false;
+                return vecEq(v.data, p, check.tol);
+            }
+
+            /* v 是否落在零空间里：A·v ≈ 0，且 v 不是零向量 */
+            case 'null-space': {
+                const v = App.vectors.find(x => x.id === (check.target || 'v'));
+                if (!v || !App.matrix) return false;
+                if (Math.hypot.apply(null, v.data) < (check.minLen || 0.25)) return false;
+                const av = Mat.mulVec(App.matrix, v.data);
+                if (Math.hypot.apply(null, av) > (check.tol || 0.08)) return false;
+                if (check.dir) {
+                    const d = Math.abs(Mat.dot(normVec(v.data), normVec(check.dir)));
+                    if (d < (check.minCos || 0.98)) return false;
+                }
+                return true;
+            }
+
+            /* 特征值：v 与 Av 共线，且缩放倍数等于目标 λ。
+               λ = (Av·v)/(v·v)，对共线情形（同向或反向）都成立。 */
+            case 'eigen': {
+                const v = App.vectors.find(x => x.id === (check.target || 'v'));
+                if (!v || !App.matrix) return false;
+                const vv = Mat.dot(v.data, v.data);
+                if (vv < 1e-6) return false;
+                const av = Mat.mulVec(App.matrix, v.data);
+                const lam = Mat.dot(av, v.data) / vv;
+                if (Math.abs(lam - check.value) > (check.tol || 0.12)) return false;
+                // 共线包含同向（0°）与反向（180°）两种情况，
+                // angleBetweenDeg 对反向给 180，所以要折回锐角再比
+                const ang = Mat.angleBetweenDeg(v.data, av);
+                return Math.min(ang, 180 - ang) <= (check.tolDeg || 4);
+            }
+
+            /* 在新基 P 下看当前变换：要求 P⁻¹AP 等于目标矩阵 */
+            case 'in-basis-matrix': {
+                if (!App.matrix || !check.basis) return false;
+                const Pi = Mat.inv2(check.basis);
+                if (!Pi) return false;
+                const got = Mat.mul(Mat.mul(Pi, App.matrix), check.basis);
+                const tol = check.tol == null ? 0.08 : check.tol;
+                return check.matrix.every((row, i) =>
+                    row.every((x, j) => Math.abs(got[i][j] - x) <= tol));
+            }
+
+            /* v 是否落在矩阵列张成的（低维）子空间里。
+               做法：把 v 并成矩阵的最后一列，比较秩有没有变大。
+               秩不变 ⇒ v 在列空间里；秩变大 ⇒ v 在列空间外。
+               这个判定对 2×2 与 3×3 都成立。 */
+            case 'on-span': {
+                const v = App.vectors.find(x => x.id === (check.target || 'v'));
+                if (!v || !App.matrix) return false;
+                const m = App.matrix;
+                const aug = m.map((row, i) => row.concat([v.data[i]]));
+                const grew = Mat.rank(aug) > Mat.rank(m);
+                if (check.op === 'in') return !grew;
+                if (check.op === 'out') return grew;
+                return false;
+            }
+
+            case 'in-basis': {
+                // v 在新基（当前矩阵两列）下的坐标 = B⁻¹v
+                const v = App.vectors.find(x => x.id === (check.target || 'v'));
+                if (!v || !App.matrix || App.matrixSize !== 2) return false;
+                const c = Mat.solve2(App.matrix, v.data);
+                return !!c && vecEq(c, check.to, check.tol);
+            }
+
+            /* 两向量的夹角：可要求等于目标角度（带容差），也可要求两者都是单位向量 */
+            case 'vector-angle': {
+                const a = App.vectors.find(x => x.id === check.a);
+                const b = App.vectors.find(x => x.id === check.b);
+                if (!a || !b) return false;
+                const la = Math.hypot.apply(null, a.data);
+                const lb = Math.hypot.apply(null, b.data);
+                if (la < 1e-6 || lb < 1e-6) return false;
+                if (check.unit && (Math.abs(la - 1) > (check.unitTol || 0.06)
+                                || Math.abs(lb - 1) > (check.unitTol || 0.06))) return false;
+                const ang = Mat.angleBetweenDeg(a.data, b.data);
+                return Math.abs(ang - check.value) <= (check.tol || 5);
+            }
+
+            case 'cross-mag': {
+                if (!App.matrix || App.matrixSize !== 3) return false;
+                const a = App.matrix.map(r => r[check.colA]);
+                const b = App.matrix.map(r => r[check.colB]);
+                const mag = Math.hypot.apply(null, Mat.cross(a, b));
+                if (check.op === 'eq') return Math.abs(mag - check.value) <= (check.tol || 0.05);
+                if (check.op === 'lt') return mag < check.value;
+                if (check.op === 'gt') return mag > check.value;
+                return false;
+            }
+
+            /* a×b 的方向是否与给定方向一致（用归一化后的点积 ≥ minCos 判定） */
+            case 'cross-dir': {
+                if (!App.matrix || App.matrixSize !== 3) return false;
+                const a = App.matrix.map(r => r[check.colA]);
+                const b = App.matrix.map(r => r[check.colB]);
+                const c = Mat.cross(a, b);
+                const L = Math.hypot(c[0], c[1], c[2]);
+                if (L < 1e-6) return false;
+                const u = [c[0] / L, c[1] / L, c[2] / L];
+                const tl = Math.hypot.apply(null, check.dir) || 1;
+                const t = check.dir.map(x => x / tl);
+                const d = u[0] * t[0] + u[1] * t[1] + u[2] * t[2];
+                return d >= (check.minCos == null ? 0.999 : check.minCos);
+            }
+
+            case 'solve': {
+                const v = App.vectors.find(x => x.id === 'v');
+                if (!v || !App.matrix) return false;
+                return vecEq(Mat.mulVec(App.matrix, v.data), check.to, check.tol);
+            }
+
+            case 'collinear': {
+                const v = App.vectors.find(x => x.id === 'v');
+                if (!v || !App.matrix) return false;
+                const av = Mat.mulVec(App.matrix, v.data);
+                if (Math.hypot(v.data[0], v.data[1]) < 0.25) return false;
+                if (Math.hypot(av[0], av[1]) < 1e-6) return false;
+                const ang = Mat.angleBetweenDeg(v.data, av);
+                return Math.min(ang, 180 - ang) <= (check.tolDeg || 4);
+            }
+            default:
+                return null;
+        }
+    }
+
+    /* 包装：把布尔值规范化成 { pass, reason, certificate } 三元组，
+       与引擎层注册表的返回结构一致 —— 否则领域判题拿不到
+       「为什么判不过」的表达能力，而可解释诊断正是本项目的核心主张之一。
+
+       注：certificate 目前多为 null。逐个 case 补证书是后续工作；
+       先保证**结构一致**，再逐步填内容。 */
+    function judge(check, ctx) {
+        ctx = normalizeCtx(ctx);
+        const r = judgeRaw(check, ctx);
+        if (r === null) return null;
+        const pass = (typeof r === 'boolean') ? r : !!r.pass;
+
+        /* 判过时也给证书：立意文档 §5.3 要求每个策略都返回证书（见证或反证），
+           所以「通过」不该是 certificate: null。
+           身份不明的类型（无诊断）退化为 null，由 verify-diagnostics 盯着覆盖率。 */
+        const diagFn = DIAGNOSE[check.type];
+        if (pass) {
+            let cert = null;
+            if (diagFn) {
+                try { cert = (diagFn(check, ctx) || {}).certificate || null; } catch (e) { cert = null; }
+            }
+            return { pass: true, reason: '', certificate: cert };
+        }
+
+        /* 判不过：补上原因与证书。诊断与判定分处两地是刻意的取舍
+           （不碰那 13 段已验证的代码），覆盖率由 verify-diagnostics.mjs 盯着。 */
+        const diag = DIAGNOSE[check.type];
+        if (diag && ctx.matrix !== undefined) {
+            try {
+                const d = diag(check, ctx) || {};
+                return { pass: false, reason: d.reason || '', certificate: d.certificate || null };
+            } catch (e) {
+                return { pass: false, reason: '（诊断生成失败：' + e.message + '）', certificate: null };
+            }
+        }
+        return { pass: false, reason: '', certificate: null };
+    }
+
+    const api = { judge: judge, judgeRaw: judgeRaw };
+    /* Node 下同时导出，便于离线回归测试直接 require。 */
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
+})();
+}(typeof globalThis !== 'undefined' ? globalThis : this));
+
+</script>
+<script>
+/* ===== 内联自 engine-core/domains/calculus/judge.js（单文件版；源文件在仓库里，改要改源文件） ===== */
+/* ============================================================
+ * 高等数学领域判题插件
+ *
+ * 这是**第二个科目**，用于检验引擎接口的可复用性
+ * （见 engine/API_如何新增科目.md）。
+ *
+ * 三个判题类型，都围绕「连续参数空间」这一本项目关注的形态：
+ *
+ *   calc-limit       ε-δ 极限：用户拖动 δ，要求对邻域内所有 x 都有 |f(x)−L| < ε
+ *   calc-derivative  数值导数 = 目标值（用户拖动 h，要求割线斜率趋近目标）
+ *   calc-monotone    单调区间：给定区间内导数恒正（或恒负）
+ *
+ * 为什么这三个能体现「连续参数可达性」：
+ *   · calc-limit 若对给定 ε 找不到任何 δ 成立，则该教学任务**根本不可达**
+ *     —— 这正是引擎要判定的退化情形（解集为空）
+ *   · calc-derivative 的目标值若超出函数在该点的可导范围，同样不可达
+ *   · calc-monotone 若区间内存在驻点，则「恒正」不可达
+ *
+ * 表达式表示法：只支持程序构造的结构化形式，不支持解析字符串——
+ * 这样既能被 JS 求值，也能被 Python 侧以同样语义求值，两侧可互相校验。
+ *   {op:'var'}                          → x
+ *   {op:'const', v:2}                   → 2
+ *   {op:'add'|'sub'|'mul'|'div'|'pow', a, b}
+ *   {op:'sin'|'cos'|'exp'|'log'|'sqrt', a}
+ * ============================================================ */
+(function (root) {
+root.CalculusJudge = (function () {
+    'use strict';
+
+    const EPS = 1e-12;
+
+    /* 求值：把结构化表达式在 x 处求值 */
+    function evalF(expr, x) {
+        if (expr == null) return NaN;
+        switch (expr.op) {
+            case 'var':   return x;
+            case 'const': return expr.v;
+            case 'add':   return evalF(expr.a, x) + evalF(expr.b, x);
+            case 'sub':   return evalF(expr.a, x) - evalF(expr.b, x);
+            case 'mul':   return evalF(expr.a, x) * evalF(expr.b, x);
+            case 'div':   return evalF(expr.a, x) / evalF(expr.b, x);
+            case 'pow':   return Math.pow(evalF(expr.a, x), evalF(expr.b, x));
+            case 'sin':   return Math.sin(evalF(expr.a, x));
+            case 'cos':   return Math.cos(evalF(expr.a, x));
+            case 'exp':   return Math.exp(evalF(expr.a, x));
+            case 'log':   return Math.log(evalF(expr.a, x));
+            case 'sqrt':  return Math.sqrt(evalF(expr.a, x));
+            default:      return NaN;
+        }
+    }
+
+    const ok  = (cert)         => ({ pass: true,  reason: '', certificate: cert });
+    const bad = (reason, cert) => ({ pass: false, reason: reason, certificate: cert });
+
+    const num = (v) => Math.round(v * 1e6) / 1e6;
+
+    /* ---------------- ε-δ 极限 ----------------
+       用户拖动 δ。判定：对采样邻域内所有 x，|f(x) − L| < ε。
+       若对任何 δ 都无法成立，该任务不可达 —— 引擎报「解集为空」。 */
+    function checkLimit(check, ctx) {
+        const delta = ctx.param;
+        if (typeof delta !== 'number' || !isFinite(delta)) {
+            return bad('参数 δ 还不是一个有效数值', { delta: delta });
+        }
+        if (delta <= 0) return bad('δ 必须为正数', { delta: delta });
+
+        const { expr, at: x0, value: L, epsilon, tol } = check;
+        const t = tol == null ? epsilon : tol;
+        const N = check.samples || 400;
+        let worst = 0, worstX = null;
+        for (let i = 0; i <= N; i++) {
+            const x = x0 - delta + (2 * delta * i) / N;
+            if (Math.abs(x - x0) < EPS) continue;      // 跳过 x0 本身（可能无定义）
+            const fx = evalF(expr, x);
+            if (!isFinite(fx)) return bad('函数在 x = ' + num(x) + ' 处无定义', { x: x });
+            const dev = Math.abs(fx - L);
+            if (dev > worst) { worst = dev; worstX = x; }
+        }
+        return worst < t
+            ? ok({ delta: delta, worstDeviation: worst })
+            : bad('δ = ' + num(delta) + ' 时最坏偏差 ' + num(worst) +
+                  '，未小于 ε = ' + epsilon,
+                  { delta: delta, worstDeviation: worst, worstX: worstX });
+    }
+
+    /* ---------------- 数值导数 ----------------
+       用户拖动 h。判定：中心差商与目标导数值之差在容差内。 */
+    function checkDerivative(check, ctx) {
+        const h = ctx.param;
+        if (typeof h !== 'number' || !isFinite(h)) {
+            return bad('参数 h 还不是一个有效数值', { h: h });
+        }
+        if (h <= 0) return bad('步长 h 必须为正数', { h: h });
+
+        const { expr, at: x0, value: target, tol } = check;
+        const t = tol == null ? 0.05 : tol;
+        const f1 = evalF(expr, x0 + h), f0 = evalF(expr, x0 - h);
+        if (!isFinite(f1) || !isFinite(f0)) {
+            return bad('函数在 x = ' + num(x0) + ' ± ' + num(h) + ' 处无定义', { h: h });
+        }
+        const slope = (f1 - f0) / (2 * h);
+        return Math.abs(slope - target) <= t
+            ? ok({ h: h, slope: slope })
+            : bad('h = ' + num(h) + ' 时割线斜率 ' + num(slope) +
+                  '，目标 ' + target + '（容差 ' + t + '）',
+                  { h: h, slope: slope, target: target });
+    }
+
+    /* ---------------- 单调区间 ----------------
+       判定 [from, to] 上函数是否**非减**（sign = 1）或**非增**（sign = -1）。
+
+       为什么直接比较函数值，而不是检查「导数点点恒号」：
+       后者在驻点处会误判 —— 例如 x² 在 [-1, 0] 上确实单调递减，
+       但端点 x = 0 处导数为 0，逐点判据会把它判成「不满足恒负」。
+       直接比较相邻采样点的函数值没有这个问题，且更贴近「单调」的定义。
+
+       另加两条更严的检查（可选，由 strict 控制，默认开启）：
+         · 端点不能取等（否则是常函数区间，不是严格单调）
+         · 至少存在一段严格变化（排除「几乎处处相等」的退化情形）
+       ============================================================ */
+    function checkMonotone(check, ctx) {
+        const { expr, from, to, sign } = check;
+        if (!(from < to)) return bad('区间不合法：from 应小于 to', { from: from, to: to });
+        const want = sign == null ? 1 : sign;      // 1 非减，-1 非增
+        const N = check.samples || 200;
+        const t = check.tol == null ? 1e-9 : check.tol;
+        const strict = check.strict !== false;
+
+        let prev = evalF(expr, from);
+        if (!isFinite(prev)) return bad('x = ' + num(from) + ' 处函数无定义', { x: from });
+        let changed = 0;
+        let violatedAt = null;
+
+        for (let i = 1; i <= N; i++) {
+            const x = from + ((to - from) * i) / N;
+            const cur = evalF(expr, x);
+            if (!isFinite(cur)) return bad('x = ' + num(x) + ' 处函数无定义', { x: x });
+            const d = cur - prev;
+            if (want > 0 ? d < -t : d > t) { violatedAt = x; break; }
+            if (Math.abs(d) > t) changed += Math.abs(d);
+            prev = cur;
+        }
+
+        if (violatedAt !== null) {
+            return bad('x = ' + num(violatedAt) + ' 处打破了' +
+                       (want > 0 ? '非减' : '非增') + '（函数值反向变化了）',
+                       { at: violatedAt, sign: want });
+        }
+        if (strict && changed < t) {
+            return bad('该区间上函数值几乎没有变化，不是严格单调',
+                       { changed: changed, sign: want });
+        }
+        return ok({ from: from, to: to, sign: want, totalChange: changed });
+    }
+
+
+    /* ---------------- 黎曼和逼近定积分 ----------------
+       用户拖动分割数 n（或用滑杆）。判定：左端点和与定积分的差是否小于容差。
+       与 ε-δ 同构：δ 是「邻域能多小」，n 是「分割能多细」——两者都是
+       「把连续对象离散化的精度参数」，也都是**连续参数空间上的可达性判定**。
+       若对任何 n 都无法达标（例如函数在该区间无界），该任务不可达。 */
+    function checkRiemann(check, ctx) {
+        const n = ctx.param;
+        if (typeof n !== 'number' || !isFinite(n)) {
+            return bad('分割数 n 还不是一个有效数值', { n: n });
+        }
+        if (n < 1) return bad('分割数 n 至少要 1', { n: n });
+        const N = Math.max(1, Math.round(n));
+        const { expr, from, to, value: target, tol } = check;
+        if (!(from < to)) return bad('区间不合法：from 应小于 to', { from: from, to: to });
+
+        const h = (to - from) / N;
+        let sum = 0;
+        for (let i = 0; i < N; i++) {
+            const fx = evalF(expr, from + i * h);
+            if (!isFinite(fx)) return bad('x = ' + num(from + i * h) + ' 处函数无定义',
+                                          { at: from + i * h });
+            sum += fx * h;
+        }
+        const t = tol == null ? 0.05 : tol;
+        const err = Math.abs(sum - target);
+        return err <= t
+            ? ok({ n: N, sum: sum, error: err })
+            : bad('n = ' + N + ' 时左端点和为 ' + num(sum) + '，与目标 ' + target
+                  + ' 相差 ' + num(err) + '（容差 ' + t + '）',
+                  { n: N, sum: sum, target: target, error: err });
+    }
+
+    /* 判定入口。返回三态：
+         null                                  —— 不是本领域的类型
+         { pass:true,  reason:'', certificate } —— 判过
+         { pass:false, reason:'…', certificate } —— 判不过
+       与引擎层注册表、线代插件的返回结构一致。 */
+    /* 规范化 ctx：缺失字段给安全默认值。与 linalg 插件保持一致的行为——
+       插件作为公共接口被调用时，不该要求调用者填全所有字段。 */
+    function normalizeCtx(ctx) {
+        const c = ctx || {};
+        return {
+            taskId: c.taskId == null ? null : c.taskId,
+            matrix: c.matrix === undefined ? null : c.matrix,
+            matrixSize: c.matrixSize == null ? 2 : c.matrixSize,
+            vectors: c.vectors || [],
+            lines: c.lines || [],
+            actionLog: c.actionLog || [],
+            choices: c.choices || {},
+            param: c.param === undefined ? null : c.param,
+            Mat: c.Mat,
+            vecEq: c.vecEq
+        };
+    }
+
+    function judge(check, ctx) {
+        ctx = normalizeCtx(ctx);
+        switch (check.type) {
+            case 'calc-limit':      return checkLimit(check, ctx);
+            case 'calc-derivative': return checkDerivative(check, ctx);
+            case 'calc-monotone':   return checkMonotone(check, ctx);
+            case 'calc-riemann':    return checkRiemann(check, ctx);
+            default:                return null;   // 不是高数的类型
+        }
+    }
+
+    /* 导出表达式求值器，便于测试与将来的 Python 侧对照 */
+    const api = { judge: judge, evalF: evalF };
+
+    /* 供浏览器界面使用的示例关卡数据（也是离线测试的输入） */
+    api.sampleLabs = [
+        {
+            id: 'cal-1',
+            title: 'ε-δ：找到够小的 δ',
+            param: { name: 'delta', from: 0.01, to: 2, step: 0.01, init: 1 },
+            tasks: [
+                {
+                    id: 'make-small',
+                    text: '把 δ 调小，使邻域内所有 x 都满足 |f(x) − L| < ε',
+                    check: {
+                        type: 'calc-limit',
+                        expr: { op: 'var' },                 // f(x) = x
+                        at: 1, value: 1, epsilon: 0.1,
+                        samples: 400
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-2',
+            title: '导数：割线斜率的极限',
+            param: { name: 'h', from: 0.001, to: 1, step: 0.001, init: 0.5 },
+            tasks: [
+                {
+                    id: 'slope',
+                    text: '把 h 调小，让割线斜率趋近 f′(x₀)',
+                    check: {
+                        type: 'calc-derivative',
+                        /* 用 sin 而不是 x²：中心差商对二次函数**任何 h 都精确**
+                           等于导数，那样这个关卡判不出 h 的大小，作为教学任务
+                           是坏的（判据对参数不敏感）。sin(h)/h 会随 h 变化。 */
+                        expr: { op: 'sin', a: { op: 'var' } },
+                        at: 0, value: 1, tol: 0.02       // f(x)=sin x, f′(0)=1
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-3',
+            title: '单调区间：导数不变号',
+            param: { name: 'a', from: -2, to: 2, step: 0.1, init: 0 },
+            tasks: [
+                {
+                    id: 'increasing',
+                    text: '让函数在 [0, 1] 上单调递增',
+                    check: {
+                        type: 'calc-monotone',
+                        expr: { op: 'add', a: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } },
+                                b: { op: 'const', v: 0 } },
+                        from: 0, to: 1, sign: 1
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-4',
+            title: '切线：局部线性近似',
+            param: { name: 'h', from: 0.001, to: 2, step: 0.001, init: 1 },
+            tasks: [
+                {
+                    id: 'tangent',
+                    text: '把 h 调小，让切线斜率逼近 f′(x₀)',
+                    check: {
+                        type: 'calc-derivative',
+                        /* 用 sqrt 而不是多项式：它的中心差商随 h 明显变化，
+                           关卡才对参数敏感（二次函数的中心差商与 h 无关，见 cal-2 的注释）。 */
+                        expr: { op: 'sqrt', a: { op: 'var' } },
+                        at: 4, value: 0.25, tol: 0.01    // d/dx √x 在 x=4 处 = 1/4
+                    }
+                }
+            ]
+        },
+        {
+            id: 'cal-5',
+            title: '定积分：分割越细越准',
+            param: { name: 'n', from: 1, to: 200, step: 1, init: 1 },
+            tasks: [
+                {
+                    id: 'riemann',
+                    text: '把分割数 n 调大，让左端点和逼近 ∫₀¹ x² dx = 1/3',
+                    check: {
+                        type: 'calc-riemann',
+                        expr: { op: 'pow', a: { op: 'var' }, b: { op: 'const', v: 2 } },
+                        from: 0, to: 1, value: 1 / 3, tol: 0.01
+                    }
+                }
+            ]
+        }
+    ];
+
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
+})();
+}(typeof globalThis !== 'undefined' ? globalThis : this));
+
+</script>
+<script>
+(function () {
+'use strict';
+const Mat = window.Mat;
+
+/* ============================================================
+   判题核心 —— 由 tools/gen-visual.py 从 独立校验页.html 现取
+   （12 个函数；不复制粘贴，避免同一份逻辑存在两处）
+   ============================================================ */
+/* ============================================================
+   一、自动构造「最有利的上下文」
+   ------------------------------------------------------------
+   引擎判题不需要交互：给出状态就能判定。所以本页为每个任务造一份
+   「用户已经做到最好」的状态，再跑判定。在最有利条件下仍判不过的，
+   就是结构性缺陷。
+   ============================================================ */
+
+
+
+function vecEq(a, b, tol) {
+    const t = tol == null ? 0.15 : tol;
+    return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= t);
+}
+
+/* 按秩的要求造一个矩阵：秩为 r 就取前 r 个对角元非零 */
+function matrixWithRank(n, r) {
+    const m = Mat.identity(n);
+    for (let i = r; i < n; i++) m[i][i] = 0;
+    return m;
+}
+
+/* 按行列式的要求造矩阵：对角阵，乘积等于目标值 */
+function matrixWithDet(n, d) {
+    const m = Mat.identity(n);
+    if (n > 0) m[0][0] = d;
+    return m;
+}
+
+/* 造一个「长度足够、方向合适」的向量 */
+function unitVec(n, angleDeg) {
+    const a = (angleDeg || 0) * Math.PI / 180;
+    if (n === 2) return [Math.cos(a), Math.sin(a)];
+    return [Math.cos(a), Math.sin(a), 0];
+}
+
+/* 让 v 与 Av 共线：取 A 的一个特征向量方向。简单做法是用对角阵，
+   此时坐标轴方向就是特征方向 */
+function eigenVectorFor(n) {
+    const v = new Array(n).fill(0);
+    v[0] = 1;
+    return v;
+}
+
+/* 核心：为一个 task 构造判题上下文。
+   ============================================================
+   有两种模式，回答的是**两个不同的问题**：
+
+     默认（最有利）    「这道题能不能通过？」
+                      —— 按判据反推构造矩阵、填满动作日志、选对选择题。
+                      用途：查「判据恒假」与「数学上不可能」。
+
+     useScene=true     「**场景里声明的**参数下，这道题能不能通过？」
+                      —— 矩阵与向量忠实取场景的声明，不做反推。
+                      用途：查「场景与判据冲突」。例如场景矩阵是旋转 180°、
+                      判据却只认同向共线 —— 这个缺陷只有在忠实模式下才暴露，
+                      因为最有利模式会把矩阵换成不旋转的那个。
+
+   ⚠️ 忠实模式**不是更严格的验证**，不能拿来当发布门禁：
+      它用场景的**初始状态**判题，而多数任务本来就是「让用户把对象拖到目标」，
+      于是「用户还没拖」会被误报成「做不到」。
+      实测：58 关 168 个任务，最有利模式 0 个问题，忠实模式报出 72 个 ——
+      其中绝大多数是这类误报。所以它只用于**逐个场景的诊断**，不是全量扫描。
+   ============================================================ */
+function buildCtx(lab, task, opts) {
+    const useScene = !!(opts && opts.useScene);
+    const c = task.check || {};
+    const scene = lab.scene || {};
+    let n = 2;
+    let matrix = scene.matrix ? scene.matrix.map(r => r.slice()) : Mat.identity(2);
+    if (Array.isArray(matrix) && matrix.length) n = matrix.length;
+
+    const ctx = {
+        taskId: task.id,
+        matrix: matrix,
+        matrixSize: n,
+        vectors: [],
+        lines: (scene.lines || []).map(l => Object.assign({}, l)),
+        actionLog: [],
+        choices: {},
+        param: null,
+        Mat: Mat,
+        vecEq: vecEq
+    };
+
+    /* ① 动作型任务：把声明的动作全部视为已发生。
+          这是「最有利」——若连这样都判不过，说明判定机制失效
+          （真实缺陷 6-2 正是如此）。 */
+    if (c.type === 'actions') {
+        const all = c.all || [];
+        ctx.actionLog = c.ordered ? all.slice() : all.slice();
+    }
+
+    /* ② 选择题：直接选成正确项。这样能查出「正确项下标非法」这类问题，
+          但查不出「多个选项都对」——那个需要把每个选项各试一遍，
+          见下面的 availableChoices 检查。 */
+    if (c.type === 'choice') ctx.choices[task.id] = c.correct;
+
+    /* ③ 矩阵类：按判定条件反推构造
+          —— 忠实模式下整段跳过，改为用场景声明的矩阵与向量。 */
+    if (useScene) {
+        if (scene.vectors) {
+            ctx.vectors = scene.vectors.map(v => ({ id: v.id, data: v.data.slice() }));
+        }
+        /* 动作日志仍然填满：忠实模式下要保留的是「场景的几何」，
+           而不是「用户还没操作」这个初始态。 */
+        return ctx;
+    }
+    if (c.type === 'rank') {
+        const want = typeof c.value === 'number' ? c.value : 1;
+        ctx.matrix = matrixWithRank(n, Math.max(0, Math.min(n, want)));
+    }
+    if (c.type === 'det') {
+        let want = typeof c.value === 'number' ? c.value : 1;
+        if (c.op === 'lt') want = want - 1;
+        if (c.op === 'gt') want = want + 1;
+        if (c.op === 'eq' && Math.abs(want) < 1e-9) want = 0;   // 奇异矩阵
+        ctx.matrix = matrixWithDet(n, want);
+    }
+    if (c.type === 'eigen') {
+        /* 对角阵 + 坐标轴方向的向量，特征值正好是对角元 */
+        const lam = typeof c.value === 'number' ? c.value : 1;
+        ctx.matrix = Mat.identity(n);
+        ctx.matrix[0][0] = lam;
+        ctx.vectors = [{ id: c.target || 'v', data: eigenVectorFor(n) }];
+    }
+    if (c.type === 'collinear') {
+        ctx.matrix = Mat.identity(n);
+        ctx.vectors = [{ id: 'v', data: eigenVectorFor(n) }];
+    }
+    if (c.type === 'solve' || c.type === 'av-at') {
+        /* Av 要命中 to：取 A = I 则 v = to */
+        ctx.matrix = Mat.identity(n);
+        const to = c.to || new Array(n).fill(0);
+        ctx.vectors = [{ id: 'v', data: to.slice() }];
+    }
+    if (c.type === 'vector-at') {
+        ctx.vectors = [{ id: c.target || 'v', data: (c.to || [0, 0]).slice() }];
+    }
+    if (c.type === 'matrix-col-at') {
+        const m = Mat.identity(n);
+        const col = c.col || 0;
+        (c.to || []).forEach((x, i) => { if (m[i]) m[i][col] = x; });
+        ctx.matrix = m;
+    }
+    if (c.type === 'match-matrix') {
+        ctx.matrix = (c.matrix || []).map(r => r.slice());
+    }
+    if (c.type === 'in-basis-matrix') {
+        /* 引擎的判定是 P⁻¹AP ?= check.matrix，而 **P 由 check.basis 给定**，
+           不能自己选。所以要反解出 A：A = P · 目标 · P⁻¹。
+           第一版取「A = 目标, P = I」，在 basis 不是单位阵时必然误报。 */
+        const P = c.basis;
+        const T = c.matrix;
+        const Pi = Mat.inv2(P);
+        ctx.matrix = Pi ? Mat.mul(Mat.mul(P, T), Pi) : T.map(r => r.slice());
+    }
+    if (c.type === 'in-basis') {
+        ctx.matrix = Mat.identity(n);
+        ctx.vectors = [{ id: c.target || 'v', data: (c.to || [0, 0]).slice() }];
+    }
+    if (c.type === 'on-span') {
+        /* op=in：让 v 落在列空间里；op=out：让 v 在列空间外 */
+        const m = matrixWithRank(n, Math.min(n, 1));
+        ctx.matrix = m;
+        ctx.vectors = [{ id: c.target || 'v',
+                         data: c.op === 'out' ? new Array(n).fill(1) : eigenVectorFor(n) }];
+    }
+    if (c.type === 'null-space') {
+        /* 引擎的判定有三条：‖v‖ ≥ minLen（默认 0.25）、‖Av‖ ≤ tol（默认 0.08）、
+           若给了 dir 则 v 还必须与它平行（|cos| ≥ minCos，默认 0.98）。
+
+           ⚠️ 关键：这里的 A **必须是场景里给定的矩阵**，不能用自己造的。
+           第一版为了「省事」用了 matrixWithRank(n,1)，但引擎判的是场景矩阵
+           —— 两者零空间不同，于是挑出的向量在场景矩阵下不满足方向约束，
+           页面就把「我没构造好」误报成了「任务不可达」。 */
+        let dir = c.dir ? c.dir.slice() : null;
+        if (!dir) dir = (n === 2 ? [1, -1] : [1, -1, 0]);
+        const v = projectToNullSpace(ctx.matrix, dir, n);
+        ctx.vectors = [{ id: c.target || 'v', data: v }];
+    }
+    if (c.type === 'vector-angle') {
+        /* 让两个向量夹角等于目标角度；要单位向量就给单位向量 */
+        const target = (typeof c.value === 'number' ? c.value : 0) * Math.PI / 180;
+        const a = [1, 0];
+        const b = [Math.cos(target), Math.sin(target)];
+        if (c.unit) { /* a、b 已是单位向量 */ }
+        ctx.vectors = [{ id: c.a || 'u', data: a }, { id: c.b || 'v', data: b }];
+    }
+    if (c.type === 'dot') {
+        /* 要 u·v 满足 op value。gt/lt 是**严格**不等，所以不能正好给 value，
+           要留出余量（第一版给的是正好等于，于是 gt 1 与 lt -1 都误报）。
+           做法：u 取坐标轴单位向量，v 的对应分量取目标点积。 */
+        let want = typeof c.value === 'number' ? c.value : 0;
+        if (c.op === 'gt') want = want + 1;
+        if (c.op === 'lt') want = want - 1;
+        const a = [1, 0], b = [want, 0];
+        ctx.vectors = [{ id: c.a || 'u', data: a }, { id: c.b || 'v', data: b }];
+    }
+    if (c.type === 'intercept') {
+        /* 交点可达：把向量放到所有直线的公共交点上（若存在） */
+        const lines = ctx.lines.slice(0, c.maxLines || ctx.lines.length);
+        const p = intersect(lines);
+        ctx.vectors = [{ id: c.target || 'v', data: p || [0, 0] }];
+    }
+    if (c.type === 'cross-mag' || c.type === 'cross-dir') {
+        /* 叉积模长 = |a||b|sinθ。要 eq v：取两列正交、|a| = v、|b| = 1。
+           第一版取单位正交列，模长恒为 1，于是 eq 2 必然误报。 */
+        const colA = c.colA || 0, colB = c.colB || 1;
+        const vecA = [0, 0, 0], vecB = [0, 0, 0];
+        if (c.type === 'cross-mag') {
+            let want = typeof c.value === 'number' ? c.value : 1;
+            if (c.op === 'gt') want = want + 1;
+            if (c.op === 'lt') want = Math.max(0, want - 1);
+            vecA[colA] = want;                 // |a| = want
+            vecB[colB] = 1;                    // |b| = 1
+        } else {
+            /* 方向一致：取 a = e_colA、b = e_colB，叉积方向由右手定则决定；
+               若要求的 dir 是反向，就整体取负。 */
+            vecA[colA] = 1;
+            vecB[colB] = 1;
+        }
+        const m = [[0, 0, 0], [0, 0, 0], [0, 0, 0]];
+        for (let i = 0; i < 3; i++) { m[i][colA] = vecA[i]; m[i][colB] = vecB[i]; }
+        ctx.matrix = m;
+        ctx.matrixSize = 3;
+    }
+
+    /* ④ 高数类：param 需要按目标反推。
+          ε-δ 与黎曼和都是「参数越小/越大越准」，所以给一个好参数； */
+    if (c.type === 'calc-limit') ctx.param = 1e-4;
+    if (c.type === 'calc-derivative') ctx.param = 1e-4;
+    if (c.type === 'calc-monotone') ctx.param = 0;
+    if (c.type === 'calc-riemann') ctx.param = 2000;
+
+    return ctx;
+}
+
+/* 在 A 的零空间里找一个满足全部硬约束的向量。
+   ------------------------------------------------------------
+   引擎的 null-space 判定有三条硬约束：
+     ‖v‖ ≥ minLen（默认 0.25）· ‖Av‖ ≤ tol（默认 0.08）
+     · 若给了 dir，则 |cos(v, dir)| ≥ minCos（默认 0.98）
+
+   做法是**筛选**而不是打分：先用前两条挑出「在零空间里且够长」的候选，
+   再在其中挑与 dir 最平行的。第一版用的是加权评分（norm*100 + (1-cos)*10），
+   结果在「在零空间里但与 dir 不平行」和「不在零空间里」之间选错了 ——
+   两个约束被混成一个分数，就必然有取舍失败的情形。 */
+function projectToNullSpace(A, dir, n) {
+    const minLen = 0.25, tol = 0.08;
+    const base = normalize(dir.slice());
+    if (Mat.rank(A) === n) return base.map(x => x * Math.max(1, minLen));
+
+    /* 候选方向：均匀撒 32 个（2D）或绕 z 轴 32 个（3D） */
+    const cands = [];
+    for (let k = 0; k < 32; k++) {
+        const a = k * Math.PI / 16;
+        const p = new Array(n).fill(0);
+        if (n === 2) { p[0] = Math.cos(a); p[1] = Math.sin(a); }
+        else { p[0] = Math.cos(a); p[1] = Math.sin(a); p[2] = 0; }
+        cands.push(p);
+    }
+    /* 第一层筛选：必须落在零空间里 */
+    const inNull = cands.filter(function (p) {
+        return Math.hypot.apply(null, Mat.mulVec(A, p)) <= tol;
+    });
+    /* 一个都没有（例如数值上不够精确）：退回把 dir 投影掉 A 的像空间分量 */
+    if (!inNull.length) {
+        const aBase = Mat.mulVec(A, base);
+        const scale = Math.hypot.apply(null, aBase) > 1e-9 ? 1 : 1;
+        return base.map(x => x * 1.5 * scale);
+    }
+    /* 第二层：在「长度足够且与 dir 足够平行」的候选里挑一个。
+       —— 注意不能只按 cos 排序就完事：引擎的判定还要求 ‖Av‖ ≤ tol
+          与 ‖v‖ ≥ minLen，三个条件必须同时满足。
+          （第一版按 cos 排序后直接返回，结果挑出的向量 ‖Av‖ 超标，
+            页面把「我没构造好」误报成了「任务不可达」。） */
+    const minCos = minCosOf(dir);
+    let best = null;
+    for (const p of inNull) {
+        const cos = Math.abs(Mat.dot(normalize(p), base));
+        if (cos < minCos) continue;               // 方向必须够平行
+        for (const len of [1.5, 1.0, 0.6, 0.4, 0.3]) {
+            if (len < minLen) continue;
+            const cand = p.map(x => x * len);
+            if (Math.hypot.apply(null, Mat.mulVec(A, cand)) <= tol) {
+                best = cand;
+                break;
+            }
+        }
+        if (best) break;
+    }
+    if (best) return best;
+    /* 零空间里找不到同时满足方向与长度要求的向量。
+       这可能是真实的不可达，也可能只是我们的搜索不够细 —— 所以标记出来，
+       让上层区分显示，而不是武断地报成「任务有缺陷」。 */
+    const fallback = inNull[0].map(x => x * 1.5);
+    fallback.__undetermined = true;
+    return fallback;
+}
+
+/* 与引擎的默认值保持一致：check.minCos 默认 0.98 */
+function minCosOf(check) { return (check && check.minCos) || 0.98; }
+
+function normalize(v) {
+    const n = Math.hypot.apply(null, v);
+    return n < 1e-12 ? v.slice() : v.map(x => x / n);
+}
+
+function intersect(lines) {
+    for (let i = 0; i < lines.length; i++) {
+        for (let j = i + 1; j < lines.length; j++) {
+            const l1 = lines[i], l2 = lines[j];
+            const d = l1.a * l2.b - l2.a * l1.b;
+            if (Math.abs(d) < 1e-9) continue;
+            const p = [(l1.c * l2.b - l2.c * l1.b) / d,
+                       (l1.a * l2.c - l2.a * l1.c) / d];
+            if (lines.every(l => Math.abs(l.a * p[0] + l.b * p[1] - l.c) < 0.05)) return p;
+        }
+    }
+    return null;
+}
+
+/* 分派：先引擎层，再领域插件 —— 与 apps 里的 checkTask 同构 */
+function judge(check, ctx) {
+    const r1 = window.CheckRegistry.run(check, ctx);
+    if (r1 !== null) return { layer: 'engine', r: r1 };
+    if (window.LinalgJudge) {
+        const r2 = window.LinalgJudge.judge(check, ctx);
+        if (r2 !== null) return { layer: 'linalg', r: r2 };
+    }
+    if (window.CalculusJudge) {
+        const r3 = window.CalculusJudge.judge(check, ctx);
+        if (r3 !== null) return { layer: 'calculus', r: r3 };
+    }
+    return { layer: 'none', r: null };
+}
+
+/* ============================================================
+   二、跑全部任务，找出「在最有利条件下仍判不过」的
+   ============================================================ */
+function analyze(data, opts) {
+    const labs = data.labs || data;
+    const rows = [];
+    let total = 0, unreachable = 0, noHandler = 0, threw = 0;
+
+    for (const lab of labs) {
+        for (const task of (lab.tasks || [])) {
+            total++;
+            const check = task.check || {};
+            let out;
+            try {
+                out = judge(check, buildCtx(lab, task, opts));
+            } catch (e) {
+                threw++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '异常', reason: e.message });
+                continue;
+            }
+            if (out.layer === 'none') {
+                noHandler++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '无人接管', reason: '没有处理器认领这个类型' });
+                continue;
+            }
+            const r = out.r;
+            if (!r.pass) {
+                unreachable++;
+                rows.push({ lab: lab.id, task: task.id, type: check.type,
+                            pass: false, kind: '最有利条件下仍判不过',
+                            reason: r.reason || '（无原因）',
+                            cert: r.certificate });
+            } else {
+                rows.push({ lab: lab.id, task: task.id, type: check.type, pass: true });
+            }
+        }
+    }
+    return { total, unreachable, noHandler, threw, rows };
+}
+
+/* ============================================================
+   内置样例
+   ============================================================ */
+const SAMPLES = [
+ [
+  "① 目标不可达：满秩矩阵要求向量“在外面”",
+  "场景里的矩阵是满秩的，它的列空间就是整个平面 —— 任何向量都在里面。所以这个任务无论怎么拖都不可能完成。",
+  {
+   "faithful": true,
+   "labs": [
+    {
+     "id": "demo-unreachable",
+     "title": "不可达演示",
+     "scene": {
+      "matrix": [
+       [
+        1,
+        0
+       ],
+       [
+        0,
+        1
+       ]
+      ],
+      "vectors": [
+       {
+        "id": "v",
+        "data": [
+         1,
+         1
+        ]
+       }
+      ]
+     },
+     "tasks": [
+      {
+       "id": "outside-full-rank",
+       "text": "把 v 拖到矩阵列空间之外",
+       "check": {
+        "type": "on-span",
+        "op": "out",
+        "target": "v"
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ [
+  "② 判据不可能：2×2 矩阵要求秩为 5",
+  "2×2 矩阵的秩最大是 2。作者写了一个永远达不到的条件，而页面上看不出任何异常。",
+  {
+   "labs": [
+    {
+     "id": "demo-impossible-rank",
+     "title": "不可能的条件",
+     "scene": {
+      "matrix": [
+       [
+        1,
+        1
+       ],
+       [
+        1,
+        1
+       ]
+      ]
+     },
+     "tasks": [
+      {
+       "id": "rank-five",
+       "text": "把矩阵的秩调到 5",
+       "check": {
+        "type": "rank",
+        "op": "eq",
+        "value": 5
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ [
+  "③ 判据算错：叉积模长要求 99",
+  "两列都是单位正交向量，叉积模长恒为 1。要求它等于 99，说明作者手算错了 —— 这是真实出现过的缺陷类型。",
+  {
+   "faithful": true,
+   "labs": [
+    {
+     "id": "demo-cross",
+     "title": "判据算错演示",
+     "scene": {
+      "space": "3d",
+      "matrix": [
+       [
+        1,
+        0,
+        0
+       ],
+       [
+        0,
+        1,
+        0
+       ],
+       [
+        0,
+        0,
+        1
+       ]
+      ]
+     },
+     "tasks": [
+      {
+       "id": "cross-mag-99",
+       "text": "让两列的叉积模长等于 99",
+       "check": {
+        "type": "cross-mag",
+        "colA": 0,
+        "colB": 1,
+        "op": "eq",
+        "value": 99
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ [
+  "④ 无人接管：用了没有实现的判题类型",
+  "内容里出现了一个判题类型，但引擎和所有领域插件都不认识它 —— 这道题永远不会被判，而页面同样看不出异常。",
+  {
+   "labs": [
+    {
+     "id": "demo-none",
+     "title": "无人接管演示",
+     "tasks": [
+      {
+       "id": "unknown-type",
+       "text": "这一关用了一个没人实现的判题类型",
+       "check": {
+        "type": "not-a-real-type",
+        "value": 1
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ [
+  "⑤ 作者想错：旋转 90° 的矩阵不可能共线",
+  "这个任务要求「让 v 与 Av 共线」，但场景里的矩阵是旋转 90° —— 它把任何非零向量都转成垂直方向，两者永远不可能共线。作者把「共线」理解错了。",
+  {
+   "faithful": true,
+   "labs": [
+    {
+     "id": "demo-collinear",
+     "title": "不可能共线演示",
+     "scene": {
+      "matrix": [
+       [
+        0,
+        -1
+       ],
+       [
+        1,
+        0
+       ]
+      ],
+      "vectors": [
+       {
+        "id": "v",
+        "data": [
+         1,
+         1
+        ]
+       }
+      ]
+     },
+     "tasks": [
+      {
+       "id": "collinear-90",
+       "text": "让 v 与 Av 共线",
+       "check": {
+        "type": "collinear",
+        "tolDeg": 4
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ],
+ [
+  "⑥ 对照组：全部正常",
+  "四道题都能做出来、判得对 —— 用来证明这个工具不是「见谁都报错」。",
+  {
+   "labs": [
+    {
+     "id": "demo-ok",
+     "title": "正常内容",
+     "scene": {
+      "matrix": [
+       [
+        1,
+        0
+       ],
+       [
+        0,
+        1
+       ]
+      ]
+     },
+     "tasks": [
+      {
+       "id": "rank-ok",
+       "check": {
+        "type": "rank",
+        "op": "eq",
+        "value": 2
+       }
+      },
+      {
+       "id": "det-ok",
+       "check": {
+        "type": "det",
+        "op": "eq",
+        "value": 1,
+        "tol": 0.1
+       }
+      },
+      {
+       "id": "choice-ok",
+       "check": {
+        "type": "choice",
+        "correct": 0
+       }
+      },
+      {
+       "id": "actions-ok",
+       "check": {
+        "type": "actions",
+        "all": [
+         "reset"
+        ]
+       }
+      }
+     ]
+    }
+   ]
+  }
+ ]
+];
+
+/* ============================================================
+   渲染：格子视图
+   ============================================================ */
+let LAST = null;
+
+function render(res, title) {
+    const bad = res.rows.filter(r => !r.pass);
+
+    document.getElementById('verdict').innerHTML =
+        '<div class="verdict ' + (bad.length ? 'v-bad' : 'v-ok') + '">' +
+        (bad.length
+            ? '发现 <b>' + bad.length + '</b> 个任务有问题 —— 在「用户已经做到最好」的假设下仍然判不过，'
+              + '说明是内容或判据本身的问题，不是用户不会操作。'
+            : '全部 <b>' + res.total + '</b> 个任务通过 —— 在「最有利条件下」都能判定通过。') +
+        (title ? ' <span class="note">（' + esc(title) + '）</span>' : '') + '</div>';
+
+    document.getElementById('stats').innerHTML =
+        stat(res.total, '任务总数') +
+        stat(res.total - bad.length, '可达且判得对', '#2f7a5f') +
+        stat(bad.length, '有问题', bad.length ? '#a8445a' : '') +
+        stat(res.noHandler, '无人接管') +
+        stat(res.threw, '抛异常');
+
+    // 按实验分组画格子
+    const groups = {};
+    res.rows.forEach((r, i) => {
+        (groups[r.lab] = groups[r.lab] || []).push({ r: r, i: i });
+    });
+    let html = '';
+    Object.keys(groups).forEach(function (lab) {
+        const cells = groups[lab].map(function (g) {
+            const cls = g.r.pass ? 'ok' : 'bad';
+            return '<div class="cell ' + cls + '" data-i="' + g.i + '" title="' +
+                   esc(g.r.lab + ' / ' + g.r.task + '  [' + g.r.type + ']  ' +
+                       (g.r.pass ? '通过' : g.r.kind)) + '"></div>';
+        }).join('');
+        html += '<div class="group"><div class="gt"><b>' + esc(lab) + '</b>　' +
+                groups[lab].length + ' 个任务</div><div class="grid">' + cells + '</div></div>';
+    });
+    const g = document.getElementById('grid');
+    g.innerHTML = html;
+    Array.prototype.forEach.call(g.querySelectorAll('.cell'), function (c) {
+        c.onclick = function () { showDetail(res, +c.dataset.i); };
+    });
+
+    LAST = res;
+    document.getElementById('detail').classList.remove('on');
+}
+
+function stat(v, label, color) {
+    return '<div class="stat"><div class="n"' + (color ? ' style="color:' + color + '"' : '') +
+           '>' + v + '</div><div class="l">' + label + '</div></div>';
+}
+
+/* ============================================================
+   渲染：点开一格看证据
+   ============================================================ */
+function showDetail(res, idx) {
+    const r = res.rows[idx];
+    if (!r) return;
+    Array.prototype.forEach.call(document.querySelectorAll('.cell'), function (c) {
+        c.classList.toggle('sel', +c.dataset.i === idx);
+    });
+
+    document.getElementById('dTitle').textContent = r.lab + ' / ' + r.task;
+    const kind = document.getElementById('dKind');
+    kind.textContent = r.pass ? '可达且判得对' : r.kind;
+    kind.className = 'd-kind' + (r.pass ? ' ok' : '');
+
+    let rows = '<tr><th>判题类型</th><td><code>' + esc(r.type) + '</code>　' +
+               '<span class="note">决定这道题「怎么算过」</span></td></tr>';
+    if (r.pass) {
+        rows += '<tr><th>引擎结论</th><td style="color:#1f5c45">存在一种操作能让它通过　' +
+                '<span class="note">（引擎找到了一个满足判据的状态）</span></td></tr>';
+    } else {
+        rows += '<tr><th>引擎结论</th><td style="color:#8a3247">' + esc(r.kind) + '</td></tr>';
+        rows += '<tr><th>原因</th><td>' + esc(r.reason || '（无）') + '</td></tr>';
+        if (r.cert) {
+            rows += '<tr><th>判定依据<br><span class="note">证书</span></th><td>' +
+                    '<div class="note" style="margin-bottom:5px">引擎不只说「不对」，' +
+                    '它给出算出来的依据 —— 这个依据可以被人独立复核。</div>' +
+                    '<pre>' + esc(JSON.stringify(r.cert, null, 1)) + '</pre></td></tr>';
+        }
+    }
+    document.getElementById('dTable').innerHTML = rows;
+    document.getElementById('detail').classList.add('on');
+    const d = document.getElementById('detail');
+    if (d.scrollIntoView) d.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+}
+
+function esc(s) {
+    return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
+/* ============================================================
+   入口
+   ============================================================ */
+/* 两种模式，**默认用最有利模式**：
+     · 最有利（默认）—— 真实内容在这里应当全绿，适合「打开看一眼」的印象
+     · 忠实（按样例单独开）—— 只为暴露「场景与判据冲突」，
+       但它会把「用户还没拖」误报成「做不到」（实测 58 关会报 72 个），
+       所以**绝不能当默认**，否则一打开满屏红，反而砸招牌。
+   这个取舍是实测出来的：我第一版把忠实模式设成默认，真实内容显示了 72 个红格子。 */
+const OPTS = {};
+
+function runData(data, title, opts) {
+    const labs = data.labs || data;
+    if (!Array.isArray(labs)) {
+        document.getElementById('verdict').innerHTML =
+            '<div class="verdict v-bad">结构不对：找不到 labs 数组。' +
+            '期望形如 <code>{ labs: [ { id, tasks: [ … ] } ] }</code>。</div>';
+        return;
+    }
+    render(analyze(data, opts || OPTS), title);
+}
+
+function runText(text, title) {
+    let data;
+    try { data = JSON.parse(text); }
+    catch (e) {
+        document.getElementById('verdict').innerHTML =
+            '<div class="verdict v-bad">这不是合法的 JSON：' + esc(e.message) + '</div>';
+        return;
+    }
+    runData(data, title);
+}
+
+// 样例按钮
+document.getElementById('sampleBtns').innerHTML = SAMPLES.map(function (s, i) {
+    return '<button class="btn ' + (i === SAMPLES.length - 1 ? '' : 'warn') +
+           '" data-i="' + i + '">' + esc(s[0]) + '</button>';
+}).join('');
+Array.prototype.forEach.call(document.querySelectorAll('#sampleBtns .btn'), function (b) {
+    b.onclick = function () {
+        const s = SAMPLES[+b.dataset.i];
+        document.getElementById('sampleNote').innerHTML = '<b>' + esc(s[0]) + '</b>　' + esc(s[1]);
+        // 样例自带 faithful 标记：需要暴露「场景与判据冲突」的才用忠实模式
+        runData(s[2], s[0], s[2].faithful ? { useScene: true } : {});
+    };
+});
+
+// 拖放
+const drop = document.getElementById('drop'), file = document.getElementById('file');
+['dragenter', 'dragover'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.style.borderColor = '#3e5184'; });
+});
+['dragleave', 'drop'].forEach(function (ev) {
+    drop.addEventListener(ev, function (e) { e.preventDefault(); drop.style.borderColor = '#b9c2d4'; });
+});
+drop.addEventListener('drop', function (e) {
+    const f = e.dataTransfer.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = function () { runText(rd.result, f.name); };
+    rd.readAsText(f);
+});
+drop.onclick = function () { file.click(); };
+file.onchange = function () {
+    const f = file.files[0];
+    if (!f) return;
+    const rd = new FileReader();
+    rd.onload = function () { runText(rd.result, f.name); };
+    rd.readAsText(f);
+};
+
+/* 对外接口（便于自动化验证与将来集成） */
+window.EngineVisual = {
+    runData: runData,
+    runText: runText,
+    samples: SAMPLES,
+    analyze: analyze,
+    analyzeFavorable: function (d) { return analyze(d); },   // 最有利模式（对照）
+    buildCtx: buildCtx,
+    judge: judge,
+    version: '1.0'
+};
+})();
+</script>
+</body>
+</html>

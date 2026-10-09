@@ -20,6 +20,11 @@ const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = dirname(HERE);
 const REPO = dirname(dirname(APP));
 const PAGE = join(APP, '引擎可视化.html');
+//: 单文件版（引擎已内联）—— 也要检查，否则它会悄悄坏掉。
+//: 它存在的理由：源页面用相对路径引用 engine-core，**单独拷出来就打不开**
+//: （实测：拷到桌面后四个引擎文件全加载失败、格子数 0）。比赛演示要发给评委，
+//: 所以必须有能单独发送的版本。
+const STANDALONE = join(APP, '引擎可视化_单文件版.html');
 
 const require = createRequire(import.meta.url);
 let puppeteer;
@@ -84,6 +89,35 @@ try {
     ok(real.bad === 0, `真实内容全绿（${real.total} 个任务）`, `有问题 ${real.bad}`);
 } catch (e) {
     ok(false, '真实内容可加载', e.message);
+}
+
+/* ---- 单文件版：必须在**没有任何外部文件**的情况下可用 ---- */
+console.log('');
+console.log('单文件版（引擎内联，应零外部依赖）');
+{
+    const html = readFileSync(STANDALONE, 'utf-8');
+    const left = html.match(/<script src="[^"]*"><\/script>/g) || [];
+    ok(left.length === 0, '页面里没有残留的外部脚本引用', left.join(' '));
+    for (const f of ['mat.js', 'registry.js', 'judge.js']) {
+        ok(html.includes(f), `已内联 ${f} 的内容`);
+    }
+    const p2 = await br.newPage();
+    const e2 = [];
+    const failed = [];
+    p2.on('pageerror', e => e2.push(e.message));
+    p2.on('requestfailed', r => failed.push(r.url()));
+    await p2.goto(pathToFileURL(STANDALONE).href, { waitUntil: 'load' });
+    await new Promise(r => setTimeout(r, 400));
+    const st = await p2.evaluate(() => ({
+        mat: typeof window.Mat, ev: typeof window.EngineVisual,
+        n: window.EngineVisual ? window.EngineVisual.samples.length : 0
+    }));
+    ok(st.mat === 'object' && st.ev === 'object', '隔离打开后引擎与接口都可用',
+       `Mat=${st.mat} EngineVisual=${st.ev}`);
+    ok(st.n >= 4, `单文件版内置样例 ${st.n} 个`);
+    ok(failed.length === 0, '没有任何外部请求（零依赖）', failed.slice(0, 2).join(' '));
+    ok(e2.length === 0, '单文件版无脚本异常', e2.slice(0, 2).join(' | '));
+    await p2.close();
 }
 
 await br.close();
