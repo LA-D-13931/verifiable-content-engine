@@ -56,56 +56,11 @@ for (const p of plugins) {
 
 if (!plugins.length) { console.error('✗ 未发现任何领域插件'); process.exit(2); }
 
-/* 与 engine.js 的 checkTask 同构：先问注册表，再问领域插件。
-   刻意在这里复刻而不是加载 engine.js —— engine.js 依赖 DOM，
-   而这里要验证的正是「判题分派不依赖 DOM」。 */
-function judge(check, taskId, ctxOver) {
-    const ctx = Object.assign({
-        taskId: taskId,
-        matrix: null,
-        matrixSize: 2,
-        vectors: [],
-        lines: [],
-        choices: {},
-        actionLog: [],
-        Mat: Mat,
-        vecEq: (a, b, tol) => {
-            const t = tol == null ? 0.15 : tol;
-            return a.length === b.length && a.every((x, i) => Math.abs(x - b[i]) <= t);
-        }
-    }, ctxOver || {});
+/* 判题调用与上下文构造走共享模块 —— 与 audit-tautology.mjs 用同一套实现，
+   否则两个工具报的数字不可比。 */
+import { makeJudge, ctxFor } from './judge-ctx.mjs';
 
-    const r1 = Registry.run(check, ctx);
-    if (r1 !== null) return { layer: 'engine', result: r1 };
-    for (const p of plugins) {
-        const r = p.api.judge(check, ctx);
-        if (r !== null) return { layer: 'domain:' + p.domain, result: r };
-    }
-    return { layer: 'none', result: null };
-}
-
-/* 为每个任务构造一份「能触发该判题类型」的最小上下文，
-   目的只是让处理器真的执行到判定分支，而不是在参数检查处提前返回。 */
-function ctxFor(check, lab) {
-    const scene = lab.scene || {};
-    const base = {
-        matrix: scene.matrix || [[1, 0], [0, 1]],
-        matrixSize: (scene.matrix || [[1, 0], [0, 1]]).length,
-        vectors: [{ id: 'v', data: [1, 1] }, { id: 'u', data: [1, 0] }],
-        lines: [{ a: 1, b: 0, c: 1 }, { a: 0, b: 1, c: 2 }],
-        choices: { [check.__taskId]: 0 },
-        actionLog: ['apply-a', 'apply-b', 'apply-c', 'undo-a', 'undo-b',
-                    'try-inverse', 'view-ab', 'view-ba', 'play-transform']
-    };
-    if (check.type === 'dot') {
-        base.vectors = [{ id: check.a || 'u', data: [1, 0] },
-                        { id: check.b || 'v', data: [2, 1] }];
-    }
-    if (check.type === 'vector-at' || check.type === 'matrix-col-at') {
-        base.vectors = [{ id: check.target || 'v', data: check.to || [0, 0] }];
-    }
-    return base;
-}
+const judge = makeJudge(Registry, plugins, Mat);
 
 console.log('=== 引擎独立运行校验（无浏览器）===');
 console.log(`引擎层已注册类型：${Registry.types().length} 种`);
