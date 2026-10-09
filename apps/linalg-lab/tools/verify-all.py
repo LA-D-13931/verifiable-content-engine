@@ -44,6 +44,7 @@ CHECKS = [
     ('浏览器', '冒烟（控制台无错误）', ['node', 'tools/smoke.mjs'], 'browser'),
     ('浏览器', '8 组主题对比度', ['node', 'tools/verify-themes.mjs'], 'browser'),
     ('浏览器', '真实拖拽与判题抽查', ['node', 'tools/verify-actions.mjs'], 'browser'),
+    ('浏览器', '可视化页样例与内联引擎', ['node', 'tools/verify-visual.mjs'], 'browser'),
     ('静态适配器', '原脚本 vs 适配器差分', [PY, 'tools/verify-static-adapter.py'], 'adapter'),
 ]
 
