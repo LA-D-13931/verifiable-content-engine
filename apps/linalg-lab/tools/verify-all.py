@@ -32,6 +32,7 @@ CHECKS = [
     ('矩阵原语', 'Python 侧自检', [PY, os.path.join(ENGINE, 'mat.py')], None),
     ('矩阵原语', 'JS 侧与 Python 一致', ['node', 'tools/verify-mat.mjs'], None),
     ('矩阵原语', '两侧 + 生成物最新', [PY, 'tools/verify-mat.py'], None),
+    ('矩阵原语', '独立裁决（精确有理数复算）', ['node', 'tools/audit-matrix-exact.mjs'], None),
     ('内容', '内容规范与缓存指纹', [PY, 'tools/check-lab.py'], None),
     ('内容', 'lab-data.js 可无损重建', ['node', 'tools/verify-labs.mjs'], None),
     ('引擎', '无浏览器跑完全部任务', ['node', 'tools/verify-engine.mjs'], None),
