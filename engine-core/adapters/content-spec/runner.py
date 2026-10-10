@@ -23,6 +23,13 @@
 用法：
     python3 engine-core/adapters/content-spec/runner.py [--discover|--selftest|--report]
             [--source ID] [--check ID] [--quiet]
+    python3 ... --explain [--check ID]     # 讲清每条判据"凭什么成立、怎么用"（交出逻辑链）
+    python3 ... --json                     # 机器可读的判定结果（含证书），供别的 agent/工具消费
+    python3 ... --baseline                 # 显式重算基线（回归检查的依据；手改基线=关掉检查）
+
+设计原则（用户定的）：**不只是给 agent 一份规范，而是交出它发现与修正问题所需的逻辑链**。
+所以每条检查的判据说明写在它自己的 docstring 里（--explain 直接读它，不另写一份说明），
+失败时输出可操作的处置卡（结论/证据/缺陷所在/照着谁改/改法/泛化/验证命令）。
 """
 import json
 import os
@@ -111,7 +118,8 @@ def run_all(only_source=None, only_check=None):
                 out.append({'check': chk['id'], 'title': chk['title'],
                             'artifact': art['id'], 'kind': art.get('kind', 'product'),
                             'label': '%s · %s' % (art['id'], chk['id']),
-                            'severity': chk.get('severity', 'gate'), 'expect': exp, **r})
+                            'severity': chk.get('severity', 'gate'),
+                            'evidence': chk.get('evidence'), 'expect': exp, **r})
     return m, out
 
 
@@ -164,6 +172,57 @@ def evidence_summary(m):
     return dict(_c.Counter(c['evidence'] for c in m['checks']))
 
 
+def explain(m, only_check=None):
+    """`--explain`：把"这个判据凭什么成立、怎么用"讲出来。
+
+    用户定的原则：**不只是给 agent 一份规范，而是交出它的逻辑链**。
+    所以每条检查暴露三样东西：
+      ① 判据的来源与理由（检查自己的 docstring——写检查时就写在里面，不另写一份）；
+      ② 它在语料上的战绩（多少坏例被判红 / 多少好例保持绿 / 多少条不适用）；
+      ③ 它需要哪些声明（manifest 里这条检查用到的字段）。
+    """
+    import collections, inspect
+    for c in m['checks']:
+        if only_check and c['id'] != only_check:
+            continue
+        tally = collections.Counter((m['expectations'].get(c['id']) or {}).values())
+        print('══ %s ｜ %s' % (c['id'], c['title']))
+        print('   证据类型：%s ｜ 严重度：%s ｜ 适用：%s'
+              % (c['evidence'], c.get('severity', 'gate'),
+                 '全部来源' if not c.get('sources') else '、'.join(c['sources'])))
+        print('   战绩：坏例判红 %d ｜ 好例保持绿 %d ｜ 不适用 %d'
+              % (tally['fail'], tally['pass'], tally['skip']))
+        try:
+            fn = load_check(c['fn'])
+            doc = (inspect.getdoc(fn) or inspect.getdoc(__import__(c['fn'].split(':')[0])) or '').strip()
+        except Exception as e:
+            doc = '（读不到判据说明：%s）' % e
+        if doc:
+            print('   判据（为什么这样定、踩过什么坑）：')
+            for line in doc.split('\n'):
+                print('     ' + line.strip())
+        print()
+    print('提示：判据说明取自检查自己的 docstring——**写检查时写在里面**，不另写一份，避免两处不一致。')
+    return 0
+
+
+def as_json(m, results):
+    """`--json`：机器可读的判定结果（供别的 agent/工具消费，不用解析人类可读的输出）。"""
+    import collections
+    out = {'sources': [s['id'] for s in m['sources']], 'checks': len(m['checks']),
+           'evidence': evidence_summary(m), 'verdicts': []}
+    for r in results:
+        out['verdicts'].append({
+            'check': r['check'], 'artifact': r['artifact'], 'evidence': r.get('evidence'),
+            'verdict': _verdict(r), 'expect': r.get('expect'),
+            'reason': r.get('reason', ''), 'certificate': r.get('certificate'),
+            'advice': r.get('advice'),
+        })
+    out['tally'] = dict(collections.Counter(v['verdict'] for v in out['verdicts']))
+    print(json.dumps(out, ensure_ascii=False, indent=2))
+    return 0 if out['tally'].get('fail', 0) == 0 else 1
+
+
 def main():
     argv = sys.argv[1:]
     mode = 'report' if '--report' in argv else ('discover' if '--discover' in argv else 'selftest')
@@ -173,8 +232,12 @@ def main():
 
     if '--baseline' in argv:
         return write_baseline(only_source)
+    if '--explain' in argv or '--checks' in argv:
+        return explain(load_manifest(), only_check)
 
     m, results = run_all(only_source, only_check)
+    if '--json' in argv:
+        return as_json(m, results)
     problems = manifest_contract_problems(m)
     if problems:
         print('清单契约不成立（C1 证据类型 / C2 必须能被反证）：')
