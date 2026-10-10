@@ -13,9 +13,20 @@
     python3 tools/verify-all.py --all            # 以上全部
 
 退出码：
-    0  全部通过
+    0  **本档**全部通过（未选择的项不算在内，会在末尾如实列出）
     1  有失败项
     2  环境不满足（缺 Node、缺依赖、缺快照）——**不算通过**，也不算代码失败
+
+两种"没跑"必须分开，它们是**不同性质**的事（RX-01）：
+    · 未选择（not_selected）：我没要求跑（缺 --with-browser / --with-adapter / --all）。
+      这是**刻意的子集**，不算失败、不算环境不足，但**必须在末尾列出来**。
+    · 环境不足（environment）：我要求跑了，但环境不满足（缺依赖 / 缺快照 / 超时 /
+      子进程用退出码 2 自己声明"我因环境原因退出"）。→ 退出码 2。
+
+汇总的硬规则（E1 的教训）：
+    **只要存在"环境不足"项，就禁止打印「全部通过」**——改为「不可完整判定（N 项环境不足）」。
+    曾经的行为是：跳过 7 项、照样打印「全部通过」、照样 return 0，
+    于是"想让它绿，最省事的办法是少验"（激励方向错误）。跳过 ≠ 通过，这条在聚合层也要成立。
 """
 import os
 import subprocess
@@ -61,15 +72,51 @@ CHECKS = [
 
 PASS_MARKS = ('全部通过', '✓')
 
-#: 环境不足（而非代码失败）的信号。刻意写窄：宽了会把真实失败误判成「环境问题」，
+#: **结构化**的环境信号：子进程以退出码 2 退出 = 它自己声明"我因环境原因退出"。
+#: 这是首选判据——**不靠文案**，所以既不会漏（文案改了照样认），也不会误伤
+#: （内容失败应当用退出码 1）。审查方实测：11 处 `process.exit(2)` 的文案全部未命中下面的白名单，
+#: 靠子串匹配必然漏 —— 所以有了这条，白名单只是兼容层。
+ENV_EXIT_CODE = 2
+
+#: 兼容层：文案信号。刻意写窄：宽了会把真实失败误判成「环境问题」，
 #: 那正是本项目最反对的失效模式（用「跳过」掩盖真问题）。
+#: 但**只防一个方向的分类器，两个方向都会错**——窄了就把环境问题误判成内容失败
+#: （审查方实测：`--all` 在缺依赖时报「检查器可能坏了」，73 项成因全是环境）。
+#: 所以：结构化退出码为主，文案为辅，并且**两个方向都要有反例**。
 ENV_SIGNS = (
     'Cannot find module',          # node_modules 没装
     'ERR_MODULE_NOT_FOUND',
     '快照里没有',                   # 主站快照不在位
     '找不到讲义站 token',           # 兄弟站点不在位
     '目录不存在',
+    '无法准备本地服务',              # smoke.mjs / verify-themes.mjs / verify-actions.mjs / shots.mjs
+    '未发现任何领域插件',            # verify-engine.mjs
+    '未能从 lab-data.js 取到',       # gen-labs-json.mjs
+    '测试崩溃',                     # smoke.mjs / verify-actions.mjs / verify-themes.mjs
 )
+
+#: "环境不足"的补齐方式：汇总里必须给出**可执行**的那一步，而不是只说"环境不足"。
+FIX_HINTS = {
+    'Cannot find module': '装依赖：cd apps/linalg-lab && npm install',
+    'ERR_MODULE_NOT_FOUND': '装依赖：cd apps/linalg-lab && npm install',
+    '无法准备本地服务': '装依赖（puppeteer-core / 浏览器）：cd apps/linalg-lab && npm install',
+    '快照里没有': '挂上主站快照，或跳过该项（它需要 --with-adapter）',
+    '找不到讲义站 token': '把兄弟站点放在同级目录，或跳过（它是主题 token 的来源）',
+    '目录不存在': '确认工作区路径；该项需要仓库外的夹具',
+    '未发现任何领域插件': '装依赖 / 确认 Node 能解析本仓库',
+    '未能从 lab-data.js 取到': '确认生成物存在：node tools/gen-labs-json.mjs',
+    '测试崩溃': '看该脚本的 stderr；多半是浏览器或依赖缺失',
+    '未找到 node': '装 Node（≥20）',
+    '超时': '加大超时或换机器；该项可能真的卡住',
+    '声明式': '该脚本用退出码 2 声明了环境不足；按它的 stderr 补齐',
+}
+
+
+def fix_hint(reason):
+    for key, hint in FIX_HINTS.items():
+        if key in reason:
+            return hint
+    return '按该脚本的 stderr 补齐环境'
 
 
 def last_meaningful_line(text):
@@ -115,53 +162,96 @@ def main():
     print('仓库：%s' % REPO)
     print('')
 
+    # rows 是五元组：(分组, 名称, ok, 说明, kind)
+    #   kind: pass / fail / not_selected（我没要求跑）/ environment（要跑了但环境不满足）
     rows = []
     for group, name, cmd, need in CHECKS:
         if need == 'browser' and not want_browser:
-            rows.append((group, name, None, '跳过（需 --with-browser）'))
+            rows.append((group, name, None, '未选择（需 --with-browser）', 'not_selected'))
             continue
         if need == 'env-fixtures' and not (want_browser and want_adapter):
-            rows.append((group, name, None, '跳过（需 --with-browser 且 --with-adapter）'))
+            rows.append((group, name, None, '未选择（需 --with-browser 且 --with-adapter）', 'not_selected'))
             continue
         if need == 'adapter' and not want_adapter:
-            rows.append((group, name, None, '跳过（需 --with-adapter）'))
+            rows.append((group, name, None, '未选择（需 --with-adapter）', 'not_selected'))
             continue
         if cmd[0] == 'node' and not _has('node'):
-            rows.append((group, name, None, '跳过（未找到 node）'))
+            rows.append((group, name, None, '环境不足：未找到 node', 'environment'))
             continue
         try:
             r = subprocess.run(cmd, capture_output=True, text=True, cwd=SITE, timeout=1800)
         except subprocess.TimeoutExpired:
-            rows.append((group, name, None, '超时（>1800s）'))
+            rows.append((group, name, None, '环境不足：超时（>1800s）', 'environment'))
             continue
         out = (r.stdout or '') + (r.stderr or '')
         if r.returncode == 0:
-            rows.append((group, name, True, last_meaningful_line(r.stdout)))
-        elif any(sign in out for sign in ENV_SIGNS) and r.returncode in (1, 2):
-            rows.append((group, name, None, '环境不足：' + last_meaningful_line(out)))
+            rows.append((group, name, True, last_meaningful_line(r.stdout), 'pass'))
+        elif r.returncode == ENV_EXIT_CODE:
+            # 首选判据：子进程**自己声明**"我因环境原因退出"（结构化，不靠文案）
+            rows.append((group, name, None,
+                         '环境不足（声明式 · 退出码 2）：' + last_meaningful_line(out), 'environment'))
+        elif any(sign in out for sign in ENV_SIGNS) and r.returncode == 1:
+            # 兼容层：靠文案认环境问题。两个方向都有反例守着（见文件头 docstring）
+            rows.append((group, name, None, '环境不足（文案判据）：' + last_meaningful_line(out), 'environment'))
         else:
-            rows.append((group, name, False, last_meaningful_line(out)))
+            rows.append((group, name, False, last_meaningful_line(out), 'fail'))
 
-    width = max(len(n) for _, n, _, _ in rows) + 2
+    width = max(len(n) for _, n, _, _, _ in rows) + 2
     cur = None
-    for group, name, ok, detail in rows:
+    for group, name, ok, detail, kind in rows:
         if group != cur:
             print('── %s' % group)
             cur = group
-        mark = {True: '✓', False: '✗', None: '–'}[ok]
+        mark = {'pass': '✓', 'fail': '✗', 'not_selected': '·', 'environment': '–'}[kind]
         print('  %s %s%s' % (mark, name.ljust(width), detail))
 
-    hard_fail = [n for _, n, ok, _ in rows if ok is False]
-    skipped = [n for _, n, ok, _ in rows if ok is None]
+    hard_fail = [(g, n, d) for g, n, ok, d, k in rows if k == 'fail']
+    env_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'environment']
+    unselected = [(g, n, d) for g, n, ok, d, k in rows if k == 'not_selected']
+    print('')
+    print('  图例：✓ 通过 ｜ ✗ 失败 ｜ · 未选择（我没要求跑）｜ – 环境不足（要跑了跑不成）')
+
+    # 按分组列出"没跑成"的项 + 原因 + 补齐方式。
+    # 为什么必须分组：一个总体的"N 项跳过"无法告诉你"哪一个检查在哪一类产物上全报不适用"（E5 的教训）。
+    if env_bad:
+        print('')
+        print('环境不足的项（%d 个）——**它们既不算通过，也不算失败**：' % len(env_bad))
+        g = None
+        for grp, name, detail in env_bad:
+            if grp != g:
+                print('  [%s]' % grp)
+                g = grp
+            print('    – %s' % name)
+            print('       原因：%s' % detail)
+            print('       补齐：%s' % fix_hint(detail))
+    if unselected:
+        print('')
+        print('未选择的项（%d 个）——本档不含它们，想要就跑加旗标的档：' % len(unselected))
+        g = None
+        for grp, name, detail in unselected:
+            if grp != g:
+                print('  [%s]' % grp)
+                g = grp
+            print('    · %s —— %s' % (name, detail))
+
     print('')
     if hard_fail:
         print('失败 %d 项 ✗' % len(hard_fail))
-        for n in hard_fail:
+        for _, n, _ in hard_fail:
             print('   - %s' % n)
         return 1
-    print('全部通过 ✓  %d 项已跑、%d 项跳过' % (len(rows) - len(skipped), len(skipped)))
-    if skipped:
-        print('  （跳过不等于通过：加 --all 或装好依赖后再跑一遍）')
+    if env_bad:
+        # 硬规则：存在环境不足项时，**禁止**打印「全部通过」
+        print('不可完整判定 ✗  %d 项环境不足（另有 %d 项未选择）'
+              % (len(env_bad), len(unselected)))
+        print('  → 退出码 2：既不算通过，也不算代码失败。补齐上面列出的环境后重跑。')
+        return 2
+    if unselected:
+        print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
+              % (len(rows) - len(unselected), len(unselected)))
+        print('  → 退出码 0 表示**本档范围内**没有失败项；要更全的结论就加 --all 再跑一遍。')
+        return 0
+    print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
     return 0
 
 
