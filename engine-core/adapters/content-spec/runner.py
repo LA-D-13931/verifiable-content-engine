@@ -27,6 +27,7 @@
     python3 ... --json                     # 机器可读的判定结果（含证书），供别的 agent/工具消费
     python3 ... --baseline                 # 显式重算基线（回归检查的依据；手改基线=关掉检查）
     python3 ... --delegates                # 审计：门禁会替我执行哪些外部脚本（只读/超时/位置）
+    python3 ... --scope repo|env           # 只跑仓库内可判的（CI）/ 只跑依赖环境的（本机）
 
 设计原则（用户定的）：**不只是给 agent 一份规范，而是交出它发现与修正问题所需的逻辑链**。
 所以每条检查的判据说明写在它自己的 docstring 里（--explain 直接读它，不另写一份说明），
@@ -94,7 +95,22 @@ def write_baseline(only_source=None):
     return 0
 
 
-def run_all(only_source=None, only_check=None):
+def pair_is_env(src, chk):
+    """这一 (来源 × 检查) 组合是否**依赖仓库外环境**？
+
+    两种依赖，缺一都会让判定变成「环境不足」：
+      · 来源的产物在**仓库外**（`resolve: workspace`，例如站点快照）；
+      · 检查本身要**真实浏览器**（evidence=render）。
+    另外：委托（evidence=external）**不算**环境依赖——它跑的是声明路径上的脚本，
+    仓库内的夹具脚本在任何机器上都能跑；仓库外的委托会因上一条被归到 env。
+    """
+    if chk.get('evidence') == 'render':
+        return True
+    return any(a.get('resolve') == 'workspace' for a in (src.get('artifacts') or []))
+
+
+def run_all(only_source=None, only_check=None, scope=None):
+    """scope: None=全部 ｜ 'repo'=只跑仓库内可判的（CI 用）｜ 'env'=只跑依赖环境的"""
     m = load_manifest()
     out = []
     for src in m['sources']:
@@ -108,6 +124,10 @@ def run_all(only_source=None, only_check=None):
             # 高数站的章节页虽然都是产物，但前者才有渲染器源码/数据源/样式来源这些声明。
             if chk.get('sources') and src['id'] not in chk['sources']:
                 continue
+            if scope in ('repo', 'env'):
+                is_env = pair_is_env(src, chk)
+                if (scope == 'repo') == is_env:
+                    continue
             want = chk.get('applies_to') or 'product'
             arts = [a for a in src['artifacts'] if a.get('kind', 'product') == want]
             fn = load_check(chk['fn'])
@@ -260,6 +280,7 @@ def main():
     quiet = '--quiet' in argv
     only_source = argv[argv.index('--source') + 1] if '--source' in argv else None
     only_check = argv[argv.index('--check') + 1] if '--check' in argv else None
+    scope = argv[argv.index('--scope') + 1] if '--scope' in argv else None
 
     if '--baseline' in argv:
         return write_baseline(only_source)
@@ -268,7 +289,7 @@ def main():
     if '--delegates' in argv:
         return list_delegates(load_manifest())
 
-    m, results = run_all(only_source, only_check)
+    m, results = run_all(only_source, only_check, scope)
     if '--json' in argv:
         return as_json(m, results)
     problems = manifest_contract_problems(m)

@@ -51,8 +51,11 @@ CHECKS = [
     ('静态适配器', '原脚本 vs 适配器差分', [PY, 'tools/verify-static-adapter.py'], 'adapter'),
     # 内容规范域（第三个域）。这一项**反证检查器本身**：真实坏例必须被抓、正常产物必须保持绿。
     # 所以真实坏例可以长期留作夹具 —— 它变绿反而说明检查器坏了。
-    ('内容规范', '真实坏例与突变体必须被抓',
-     [PY, os.path.join(ENGINE, 'adapters', 'content-spec', 'runner.py'), '--selftest'], None),
+    ('内容规范', '真实坏例与突变体必须被抓（仓库内夹具，CI 可跑）',
+     [PY, os.path.join(ENGINE, 'adapters', 'content-spec', 'runner.py'), '--selftest', '--scope', 'repo'], None),
+    ('内容规范', '站点夹具 / 渲染量测 / 委托（依赖仓库外环境）',
+     [PY, os.path.join(ENGINE, 'adapters', 'content-spec', 'runner.py'), '--selftest', '--scope', 'env'],
+     'env-fixtures'),
 ]
 
 PASS_MARKS = ('全部通过', '✓')
@@ -115,6 +118,9 @@ def main():
     for group, name, cmd, need in CHECKS:
         if need == 'browser' and not want_browser:
             rows.append((group, name, None, '跳过（需 --with-browser）'))
+            continue
+        if need == 'env-fixtures' and not (want_browser and want_adapter):
+            rows.append((group, name, None, '跳过（需 --with-browser 且 --with-adapter）'))
             continue
         if need == 'adapter' and not want_adapter:
             rows.append((group, name, None, '跳过（需 --with-adapter）'))
