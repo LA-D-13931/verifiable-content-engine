@@ -10,17 +10,14 @@
 import os
 import re
 
+from common import triple
+
 
 def _read(path):
     with open(path, encoding='utf-8', errors='replace') as f:
         return f.read()
 
 
-def _triple(pass_, reason='', certificate=None, advice=None):
-    out = {'pass': bool(pass_), 'reason': reason, 'certificate': certificate}
-    if advice:
-        out['advice'] = advice
-    return out
 
 
 def _blocks(src):
@@ -46,11 +43,11 @@ def field_coverage(artifact, source, base):
     """
     path = os.path.join(base, artifact['path'])
     if not os.path.isfile(path):
-        return _triple(False, '找不到渲染器源码 %s' % artifact['path'])
+        return triple(False, '找不到渲染器源码 %s' % artifact['path'])
     src = _read(path)
     fields = source.get('text_fields') or []
     if not fields:
-        return _triple(False, 'manifest 没有声明 text_fields，无法判定')
+        return triple(False, 'manifest 没有声明 text_fields，无法判定')
 
     cert, raw_hits = {}, []
     for fname, fline, body in _blocks(src):
@@ -63,10 +60,10 @@ def field_coverage(artifact, source, base):
             raw_hits += ['%s 在 %s 里裸拼（%s）' % (field, a.split(':')[0], a) for a in raws]
 
     if not cert:
-        return _triple(False, '没扫到任何声明的文本字段（text_fields 与实际不符？）',
+        return triple(False, '没扫到任何声明的文本字段（text_fields 与实际不符？）',
                        {'fields': fields})
     if raw_hits:
-        return _triple(False,
+        return triple(False,
                        '%d 处字段没走转换：%s' % (len(raw_hits), '；'.join(raw_hits[:3])),
                        cert,
                        advice={'capabilities': [{
@@ -76,7 +73,74 @@ def field_coverage(artifact, source, base):
                                          '不能只按文件比对——按文件会漏掉"某条路径只漏一个字段"。',
                            'fix_hint': '把该字段的裸插值改成走转换函数（照同一文件里已经走转换的那条路径抄）。',
                        }]})
-    return _triple(True, '', cert)
+    return triple(True, '', cert)
+
+
+def capability_matrix(artifact, source, base):
+    """两条渲染路径的**能力矩阵**：未声明的分叉要报出来。
+
+    真实坏例：独立页有 markdown 转换、讲评/报告、iframe 高度自适应，片段三个都没有——
+    **没有任何地方声明这是有意差异**，于是它悄悄变成"片段能看不能讲评"。
+
+    判据不发明需求：检查只做**差异登记**——某项能力只有部分渲染单元具备时，
+    必须在 manifest 的 `allowed_divergence` 里逐条声明"有意如此"，否则算未声明分叉。
+    （能力探针是**粗粒度**的：例如"HTML 转义"只要单元里出现过转义调用就算有，
+      精确到字段的判定由 field-coverage 负责。）
+    """
+    path = os.path.join(base, artifact['path'])
+    if not os.path.isfile(path):
+        return triple(False, '找不到渲染器源码 %s' % artifact['path'])
+    src = _read(path)
+    # ⚠️ 要比的是**声明为可比**的单元：`STANDALONE_TEMPLATE` 是 HTML 模板、
+    #    `*_JS` 是脚本，把它们放在一起比会假阳性（模板当然没有 JS 能力）。
+    units = source.get('capability_units') or []
+    caps = source.get('capabilities') or {}
+    if not units or not caps:
+        return triple(False, 'manifest 没有声明 capability_units 或 capabilities，无法判定')
+
+    # 切出每个渲染单元的正文：从它的赋值行到下一个单元的赋值行
+    marks = []
+    for u in units:
+        m = re.search(r'^%s\s*=' % re.escape(u), src, re.M)
+        if m:
+            marks.append((u, m.start()))
+    marks.sort(key=lambda x: x[1])
+    bodies = {}
+    for i, (u, off) in enumerate(marks):
+        end = marks[i + 1][1] if i + 1 < len(marks) else len(src)
+        bodies[u] = src[off:end]
+    if len(bodies) < 2:
+        return triple(False, '只定位到 %d 个可比单元（capability_units 与实际不符？）' % len(bodies))
+
+    matrix = {u: {c: bool(re.search(pat, b)) for c, pat in caps.items()} for u, b in bodies.items()}
+    allowed = source.get('allowed_divergence') or []
+    undeclared = []
+    for cap in caps:
+        present = [u for u in bodies if matrix[u][cap]]
+        missing = [u for u in bodies if not matrix[u][cap]]
+        if present and missing:
+            for u in missing:
+                if not any(d.get('capability') == cap and d.get('unit') == u for d in allowed):
+                    undeclared.append({'capability': cap, 'missing_in': u, 'present_in': present})
+
+    cert = {'units': list(bodies), 'matrix': matrix, 'allowed_divergence': allowed,
+            'undeclared_divergence': undeclared}
+    if undeclared:
+        return triple(False,
+                       '有 %d 处**未声明的能力分叉**：%s'
+                       % (len(undeclared),
+                          '；'.join('%s 在 %s 缺' % (d['capability'], d['missing_in'])
+                                    for d in undeclared[:3])),
+                       cert,
+                       advice={'capabilities': [{
+                           'capability': 'capability-matrix',
+                           'title': '渲染能力矩阵',
+                           'generalize': '同一职责的多条实现会各自长功能：今天缺讲评、明天缺导出。'
+                                         '把"哪些差异是有意的"**声明出来**，剩下的差异就都是缺陷。',
+                           'fix_hint': '二选一：把缺的能力补到该路径（照已实现的那条抄），'
+                                       '或在 manifest 的 allowed_divergence 里逐条声明为有意差异并写明理由。',
+                       }]})
+    return triple(True, '', cert)
 
 
 def selfcheck_path_coverage(artifact, source, base):
@@ -91,7 +155,7 @@ def selfcheck_path_coverage(artifact, source, base):
     """
     path = os.path.join(base, artifact['path'])
     if not os.path.isfile(path):
-        return _triple(False, '找不到渲染器源码 %s' % artifact['path'])
+        return triple(False, '找不到渲染器源码 %s' % artifact['path'])
     src = _read(path)
     fed = set(re.findall(r're\.findall\([^,]+,\s*([A-Z][A-Z0-9_]+)\s*\)', src))
     # ⚠️ 渲染单元由 manifest **声明**，不按名字猜：`REGISTRY_JS` / `NN_JUDGE_JS` 这类是
@@ -103,9 +167,9 @@ def selfcheck_path_coverage(artifact, source, base):
     cert = {'render_units': sorted(units), 'fed_into_selfcheck': sorted(fed),
             'uncovered': uncovered}
     if not units:
-        return _triple(False, '没扫到任何渲染单元标识符（判据与实际不符？）', cert)
+        return triple(False, '没扫到任何渲染单元标识符（判据与实际不符？）', cert)
     if uncovered:
-        return _triple(False,
+        return triple(False,
                        '自检只喂了 %d/%d 条渲染路径，未覆盖：%s'
                        % (len(fed & units), len(units), '、'.join(uncovered)),
                        cert,
@@ -116,4 +180,4 @@ def selfcheck_path_coverage(artifact, source, base):
                                          '另一条路径的动作/分支分叉不会被任何检查发现。',
                            'fix_hint': '把未覆盖的单元也喂进同一条自检（或对每条路径各跑一遍）。',
                        }]})
-    return _triple(True, '', cert)
+    return triple(True, '', cert)

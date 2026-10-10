@@ -50,7 +50,7 @@ CHECKS = [
     ('静态适配器', '原脚本 vs 适配器差分', [PY, 'tools/verify-static-adapter.py'], 'adapter'),
     # 内容规范域（第三个域）。这一项**反证检查器本身**：真实坏例必须被抓、正常产物必须保持绿。
     # 所以真实坏例可以长期留作夹具 —— 它变绿反而说明检查器坏了。
-    ('内容规范', '渲染能力（真实坏例必须被抓）',
+    ('内容规范', '真实坏例与突变体必须被抓',
      [PY, os.path.join(ENGINE, 'adapters', 'content-spec', 'runner.py'), '--selftest'], None),
 ]
 

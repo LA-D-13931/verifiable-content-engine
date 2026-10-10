@@ -30,6 +30,15 @@ import sys
 
 BASE = os.path.dirname(os.path.abspath(__file__))
 
+#: 三态：True 通过 / False 失败 / None **不适用**。
+#: 不适用必须自成一态：静态检查在"运行时生成 DOM"的产物上会在空集里通过，
+#: 那叫假绿——所以判据明确返回 None，而不是 True。
+_MARK = {'pass': '✓', 'fail': '✗', 'skip': '–'}
+
+
+def _verdict(r):
+    return 'skip' if r.get('pass') is None else ('pass' if r['pass'] else 'fail')
+
 
 def load_manifest():
     with open(os.path.join(BASE, 'manifest.json'), encoding='utf-8') as f:
@@ -51,7 +60,7 @@ def run_all(only_source=None, only_check=None):
         for chk in m['checks']:
             if only_check and chk['id'] != only_check:
                 continue
-            want = 'source' if chk.get('applies_to') == 'source' else 'product'
+            want = chk.get('applies_to') or 'product'
             arts = [a for a in src['artifacts'] if a.get('kind', 'product') == want]
             fn = load_check(chk['fn'])
             for art in arts:
@@ -101,18 +110,20 @@ def main():
 
     if mode == 'discover':
         for r in results:
-            print('  %s %-52s %s' % ('✓' if r['pass'] else '✗', r['label'],
-                                     'pass' if r['pass'] else r['reason'][:96]))
+            print('  %s %-52s %s' % (_MARK[_verdict(r)], r['label'],
+                                     'pass' if r['pass'] else (r['reason'][:96] or '不适用')))
         print('')
-        print('标定完成：%d 条判定（其中失败 %d 条）。把这些结论按 (检查 × 产物) 冻结成'
-              ' manifest.expectations 后，再用 --selftest 反证。'
-              % (len(results), sum(1 for r in results if not r['pass'])))
+        print('标定完成：%d 条判定（通过 %d / 失败 %d / 不适用 %d）。把这些结论按 (检查 × 产物) '
+              '冻结成 manifest.expectations 后，再用 --selftest 反证。'
+              % (len(results), sum(1 for r in results if _verdict(r) == 'pass'),
+                 sum(1 for r in results if _verdict(r) == 'fail'),
+                 sum(1 for r in results if _verdict(r) == 'skip')))
         return 0
 
     if mode == 'selftest':
         ok, fails, unset = 0, [], []
         for r in results:
-            actual = 'pass' if r['pass'] else 'fail'
+            actual = _verdict(r)
             if r['expect'] is None:
                 unset.append(r)
                 continue
@@ -134,19 +145,24 @@ def main():
             return 1
         if not fails:
             nf = sum(1 for r in results if r['expect'] == 'fail')
-            print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿）'
-                  % (len(results), nf, len(results) - nf))
+            np_ = sum(1 for r in results if r['expect'] == 'pass')
+            ns = sum(1 for r in results if r['expect'] == 'skip')
+            print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿'
+                  '%s）' % (len(results), nf, np_,
+                            ' / %d 条按不适用处理' % ns if ns else ''))
             return 0
         print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）' % len(fails))
         return 1
 
-    bad = [r for r in results if not r['pass']]
+    bad = [r for r in results if r.get('pass') is False]
     for r in results:
         if r['pass'] and quiet:
             continue
-        print('  %s %-48s %s' % ('✓' if r['pass'] else '✗', r['label'],
-                                 'pass' if r['pass'] else 'fail —— ' + r['reason']))
-        if not r['pass']:
+        v = _verdict(r)
+        print('  %s %-48s %s' % (_MARK[v], r['label'],
+                                 'pass' if v == 'pass' else (r['reason'] if v == 'skip'
+                                                             else 'fail —— ' + r['reason'])))
+        if v == 'fail':
             print_advice(r)
             print('')
     if not quiet:

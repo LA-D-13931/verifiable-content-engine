@@ -11,17 +11,64 @@ import json
 import os
 import re
 
+from common import triple
+
 
 def _read(path):
     with open(path, encoding='utf-8', errors='replace') as f:
         return f.read()
 
 
-def _triple(pass_, reason='', certificate=None, advice=None):
-    out = {'pass': bool(pass_), 'reason': reason, 'certificate': certificate}
-    if advice:
-        out['advice'] = advice
-    return out
+
+
+STYLE_BLOCK = re.compile(r'<style\b.*?</style>', re.S | re.I)
+CLASS_IN_TAG = re.compile(r'<[a-zA-Z][\w-]*[^>]*\bclass="([^"]*)"')
+CSS_RULE = re.compile(r'\.([A-Za-z_][\w-]*)')
+
+
+def style_coverage(artifact, source, base):
+    """静态标记里用到的每个类名，都要能在声明的样式来源里找到规则。
+
+    **三态**：如果产物的静态标记里**一个类名都没有**（DOM 完全由运行时 JS 生成），
+    这条检查返回「不适用」而不是「通过」——那种情况下静态扫类名是在**空集上通过**，
+    也就是假绿。真实坏例正是如此：片段 HTML 去掉 `<script>` 后不含任何类名与文本。
+    """
+    apath = os.path.join(base, artifact['path'])
+    if not os.path.isfile(apath):
+        return triple(False, '找不到产物 %s' % artifact['path'])
+    html = _read(apath)
+    markup = re.sub(r'<script\b.*?</script>', ' ', html, flags=re.S | re.I)
+    used = set()
+    for m in CLASS_IN_TAG.finditer(markup):
+        used |= {c for c in m.group(1).split() if c}
+    cert = {'classes_used_in_static_markup': sorted(used)}
+    if not used:
+        cert['why'] = ('静态标记里没有类名（DOM 由运行时生成）——静态类名检查在这里无效，'
+                       '要验只能走渲染层')
+        return triple(None, '不适用：静态标记里没有类名，静态检查会在空集上通过（假绿）', cert)
+
+    rules = set()
+    for blk in STYLE_BLOCK.findall(html):
+        rules |= set(CSS_RULE.findall(blk))
+    for rel in (source.get('style_sources') or []):
+        p = os.path.join(base, rel)
+        if os.path.isfile(p):
+            rules |= set(CSS_RULE.findall(_read(p)))
+    undefined = sorted(used - rules)
+    cert.update({'rules_found': len(rules), 'undefined': undefined})
+    if undefined:
+        return triple(False,
+                       '%d 个类名没有任何样式规则：%s（浏览器按默认样式排 → 常见表现是挤成一行）'
+                       % (len(undefined), '、'.join(undefined[:6])), cert,
+                       advice={'capabilities': [{
+                           'capability': 'style-coverage',
+                           'title': '类名覆盖',
+                           'generalize': '「产出的类名」与「写好的样式」分居两处时，改前缀、改模板'
+                                         '都会让某一侧静默失配——页面不报错，只是排得不对。',
+                           'fix_hint': '给这些类名补样式规则，或把模板里的类名改成已有规则的名字；'
+                                       '注意前缀约定（本项目片段用 lab- 前缀正是为了不污染站点样式）。',
+                       }]})
+    return triple(True, '', cert)
 
 
 def undefined_style_token(artifact, source, base):
@@ -32,7 +79,7 @@ def undefined_style_token(artifact, source, base):
     """
     apath = os.path.join(base, artifact['path'])
     if not os.path.isfile(apath):
-        return _triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(False, '找不到产物 %s' % artifact['path'])
     html = _read(apath)
     used = set(re.findall(r'var\(\s*(--[\w-]+)', html))
     style_sources = source.get('style_sources') or []
@@ -45,9 +92,9 @@ def undefined_style_token(artifact, source, base):
     cert = {'used': sorted(used), 'defined_in_sources': sorted(defined),
             'style_sources': style_sources, 'undefined': undefined}
     if not style_sources:
-        return _triple(False, 'manifest 没有声明 style_sources，无法判定', cert)
+        return triple(False, 'manifest 没有声明 style_sources，无法判定', cert)
     if undefined:
-        return _triple(False,
+        return triple(False,
                        '有 %d 个样式变量用了但没有任何定义：%s（var() 无回退值 → 静默不生效）'
                        % (len(undefined), '、'.join(undefined)),
                        cert,
@@ -59,7 +106,7 @@ def undefined_style_token(artifact, source, base):
                            'fix_hint': '在样式来源里补上该变量的定义，或改用法去掉它；'
                                        '顺手确认 `defined` 里有没有反向的"定义了但没人用"。',
                        }]})
-    return _triple(True, '', cert)
+    return triple(True, '', cert)
 
 
 def _collect_values(obj, key, out):
@@ -85,7 +132,7 @@ def declared_value_vs_actual(artifact, source, base):
     spath = os.path.join(base, artifact['path'])
     dpath = os.path.join(base, source.get('data', ''))
     if not os.path.isfile(spath) or not os.path.isfile(dpath):
-        return _triple(False, '找不到渲染器源码或数据文件')
+        return triple(False, '找不到渲染器源码或数据文件')
     src, data = _read(spath), json.load(open(dpath, encoding='utf-8'))
     cert, bad = {}, []
     for ec in (source.get('enum_checks') or []):
@@ -101,9 +148,9 @@ def declared_value_vs_actual(artifact, source, base):
             bad.append('%s：声明了没用到的 %s；用了没声明的 %s'
                        % (ec['name'], only_declared or '无', only_actual or '无'))
     if not cert:
-        return _triple(False, 'manifest 没有声明 enum_checks，无法判定')
+        return triple(False, 'manifest 没有声明 enum_checks，无法判定')
     if bad:
-        return _triple(False, '；'.join(bad), cert,
+        return triple(False, '；'.join(bad), cert,
                        advice={'capabilities': [{
                            'capability': 'declared-value-vs-actual',
                            'title': '声明取值 vs 实际取值',
@@ -112,4 +159,4 @@ def declared_value_vs_actual(artifact, source, base):
                                          '两侧集合必须相等——多一个少一个都要报。',
                            'fix_hint': '决定以哪一侧为准：改声明（最常见）或改语料，然后两侧都重跑。',
                        }]})
-    return _triple(True, '', cert)
+    return triple(True, '', cert)
