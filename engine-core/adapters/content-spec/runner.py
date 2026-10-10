@@ -26,6 +26,7 @@
     python3 ... --explain [--check ID]     # 讲清每条判据"凭什么成立、怎么用"（交出逻辑链）
     python3 ... --json                     # 机器可读的判定结果（含证书），供别的 agent/工具消费
     python3 ... --baseline                 # 显式重算基线（回归检查的依据；手改基线=关掉检查）
+    python3 ... --delegates                # 审计：门禁会替我执行哪些外部脚本（只读/超时/位置）
 
 设计原则（用户定的）：**不只是给 agent 一份规范，而是交出它发现与修正问题所需的逻辑链**。
 所以每条检查的判据说明写在它自己的 docstring 里（--explain 直接读它，不另写一份说明），
@@ -223,6 +224,34 @@ def as_json(m, results):
     return 0 if out['tally'].get('fail', 0) == 0 else 1
 
 
+def list_delegates(m):
+    """`--delegates`：**审计**——门禁会替我执行哪些外部脚本？
+
+    一个会在门禁里执行外部代码的系统，必须能一条命令答清这件事：
+    脚本在哪、是否声明只读、超时多少、期望是什么、为什么委托它。
+    缺 `read_only` 或 `timeout` 的委托会被标红（它们在运行时会被拒绝执行）。
+    """
+    rows, bad = [], 0
+    for src in m['sources']:
+        for a in src['artifacts']:
+            if a.get('kind') != 'delegate':
+                continue
+            ro, to = a.get('read_only'), a.get('timeout')
+            if not ro or not to:
+                bad += 1
+            rows.append((src['id'], a['id'], a['path'], '只读' if ro else '**未声明只读**',
+                         ('%ss' % to) if to else '**未声明超时**'))
+    print('门禁将执行 %d 个外部脚本：' % len(rows))
+    print('  %-22s %-26s %-8s %-10s %s' % ('来源', '委托', '只读', '超时', '脚本'))
+    for r in rows:
+        print('  %-22s %-26s %-8s %-10s %s' % (r[0][:22], r[1][:26], r[3], r[4], r[2][:64]))
+    if bad:
+        print('\n✗ 有 %d 个委托缺 只读/超时 声明——运行时会**拒绝执行**（这是有意为之的守卫）' % bad)
+        return 1
+    print('\n全部委托都已声明 只读 + 超时 ✓（这是它们被允许执行的前提）')
+    return 0
+
+
 def main():
     argv = sys.argv[1:]
     mode = 'report' if '--report' in argv else ('discover' if '--discover' in argv else 'selftest')
@@ -234,6 +263,8 @@ def main():
         return write_baseline(only_source)
     if '--explain' in argv or '--checks' in argv:
         return explain(load_manifest(), only_check)
+    if '--delegates' in argv:
+        return list_delegates(load_manifest())
 
     m, results = run_all(only_source, only_check)
     if '--json' in argv:
