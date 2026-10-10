@@ -314,6 +314,61 @@
           "timeout": 60,
           "what": "**首个真实委托**：站点自有的编号一致性检查器（中英两侧编号一一对应、Property 残留为 0）",
           "why": "站点特有口径 + 已有成熟实现 → Q13 的委托条件成立"
+        },
+        {
+          "id": "delegate-latex",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-latex.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 120,
+          "what": "公式渲染体检：25,931 个公式、0 个问题（本次实测退出码 0）",
+          "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
+        },
+        {
+          "id": "delegate-missing-math",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-missing-math.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 60,
+          "what": "**缺公式检测**：本次实测**退出码 1**，报 exam.html 有 1 处",
+          "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
+        },
+        {
+          "id": "delegate-refs",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-refs.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 60,
+          "what": "正文引用的定理/定义是否在本节找得到（实测退出码 0）",
+          "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
+        },
+        {
+          "id": "delegate-example-order",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-example-order.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 60,
+          "what": "103 个小节的例题编号顺序（实测退出码 0）",
+          "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
+        },
+        {
+          "id": "delegate-style",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-style.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 60,
+          "what": "文段风格统计（实测退出码 0）",
+          "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
         }
       ],
       "pages_glob": "chapters/ch[0-9]*.html",
@@ -884,6 +939,16 @@
       "found_by": "**content-spec 首条 render 证据的检查**（真实浏览器，不是静态推断）",
       "check_id": "render-measure",
       "severity": "轻微：可达性/触屏可用性，属建议级"
+    },
+    {
+      "id": "missing-math-in-exam",
+      "status": "未修（在**高数站**里，本域只报告不代改）",
+      "what": "站点自己的 check-missing-math.py 报**多处「汉字与标点间有空格（公式疑被抽走）」**：正文里本该有公式的位置空了，留下 `…从而 。`、`分母 ，商 =0.99744` 这类断口（如 chapters/ch1.html 行 713 / 1682 / 1808 / 2389 / 2512 / 2759 …）。这正是台账 M6 那一类「内容被静默吃掉」——静态结构校验全过，读起来才发现少东西。",
+      "evidence": "委托 delegate-missing-math（站点脚本 check-missing-math.py，退出码 1，逐行列出断口）",
+      "found_by": "**委托机制的首个真实产出**：把站点自有的 27 个脚本接进来后，这一条立刻暴露",
+      "check_id": "delegate",
+      "note": "这正是 Q13 说的分工——口径是站点自己的，引擎不重写它的规矩，只把结论纳入同一契约",
+      "id_note": "原登记名 missing-math-in-exam 基于脚本末行（exam.html: 1）；正文实为 ch1.html 多处，已改正"
     }
   ],
   "expectations": {
@@ -1100,11 +1165,16 @@
       "page-ch9.html": "pass"
     },
     "delegate": {
-      "delegate-ok": "pass",
       "delegate-bad": "fail",
-      "delegate-unreadonly": "fail",
+      "delegate-example-order": "pass",
+      "delegate-latex": "pass",
       "delegate-missing": "skip",
-      "delegate-numbering": "pass"
+      "delegate-missing-math": "fail",
+      "delegate-numbering": "pass",
+      "delegate-ok": "pass",
+      "delegate-refs": "pass",
+      "delegate-style": "pass",
+      "delegate-unreadonly": "fail"
     },
     "render-measure": {
       "ch6.dup-mutant": "skip",
