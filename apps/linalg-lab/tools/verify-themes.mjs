@@ -10,7 +10,16 @@
 
    用法：node tools/verify-themes.mjs [baseUrl]
    ============================================================ */
-import puppeteer from 'puppeteer-core';
+/* 依赖动态获取（D-2）：静态 `import puppeteer from 'puppeteer-core'` 会在 node_modules 缺失时
+   **在用户代码之前**让 Node 以 1 退出 —— 于是本文件自己的 process.exit(2) 守卫永远走不到，
+   只能靠聚合层的文案白名单接住（脆弱：Node 换打印格式就掉成"内容失败"）。
+   改成动态 import：环境不足 → 退出码 2（结构化信号），聚合层不需要猜。 */
+let puppeteer;
+try { puppeteer = (await import('puppeteer-core')).default; }
+catch (e) {
+  console.log('环境不足：未安装 puppeteer-core（浏览器类工具需要它）');
+  process.exit(2);
+}
 
 const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
 const BASE_PATH = '/apps/linalg-lab';

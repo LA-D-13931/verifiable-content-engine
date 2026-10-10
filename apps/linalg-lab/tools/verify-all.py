@@ -205,11 +205,18 @@ def main():
         mark = {'pass': '✓', 'fail': '✗', 'not_selected': '·', 'environment': '–'}[kind]
         print('  %s %s%s' % (mark, name.ljust(width), detail))
 
+    # D-2：**兼容层（文案判据）命中数必须出现在汇总里**——它是待迁移的债务：
+    # 说明结构化信号（退出码 2）没被走到，而"靠 Node.js vX.Y.Z 这种串认环境"是不稳定的。
+    compat_hits = [(g, n) for g, n, ok, d, k in rows if k == 'environment' and '文案判据' in d]
     hard_fail = [(g, n, d) for g, n, ok, d, k in rows if k == 'fail']
     env_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'environment']
     unselected = [(g, n, d) for g, n, ok, d, k in rows if k == 'not_selected']
     print('')
     print('  图例：✓ 通过 ｜ ✗ 失败 ｜ · 未选择（我没要求跑）｜ – 环境不足（要跑了跑不成）')
+    print('  环境判据来源：声明式（子进程退出码 2）%d 项 ｜ 兼容层（文案匹配）%d 项%s'
+          % (len([1 for g, n, ok, d, k in rows if k == 'environment' and '声明式' in d]),
+             len(compat_hits),
+             '  ← 兼容层命中应尽量为 0，命中即为待迁移债务（D-2）' if compat_hits else ''))
 
     # 按分组列出"没跑成"的项 + 原因 + 补齐方式。
     # 为什么必须分组：一个总体的"N 项跳过"无法告诉你"哪一个检查在哪一类产物上全报不适用"（E5 的教训）。

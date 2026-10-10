@@ -4,7 +4,16 @@
      2) mul-left 序列跑完后，det 是否等于 det 任务要求的目标
    这能在浏览器里用真正的 Mat 实现验证矩阵运算，避免手算出错。
    用法：node tools/verify-actions.mjs [baseUrl]   （需要先起静态服务） */
-import puppeteer from 'puppeteer-core';
+/* 依赖动态获取（D-2）：静态 `import puppeteer from 'puppeteer-core'` 会在 node_modules 缺失时
+   **在用户代码之前**让 Node 以 1 退出 —— 于是本文件自己的 process.exit(2) 守卫永远走不到，
+   只能靠聚合层的文案白名单接住（脆弱：Node 换打印格式就掉成"内容失败"）。
+   改成动态 import：环境不足 → 退出码 2（结构化信号），聚合层不需要猜。 */
+let puppeteer;
+try { puppeteer = (await import('puppeteer-core')).default; }
+catch (e) {
+  console.log('环境不足：未安装 puppeteer-core（浏览器类工具需要它）');
+  process.exit(2);
+}
 const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
 const BASE_PATH = '/apps/linalg-lab';
 const PROBE_PATH = '/apps/linalg-lab';

@@ -30,8 +30,8 @@ const require = createRequire(import.meta.url);
 let puppeteer;
 try { puppeteer = require('puppeteer-core'); }
 catch (e) {
-    console.log('跳过：未安装 puppeteer-core（浏览器类工具需要它）');
-    process.exit(0);
+    console.log('环境不足：未安装 puppeteer-core（浏览器类工具需要它）');
+    process.exit(2);   // 环境原因 → 退出码 2（D-1：以前是 0，于是被聚合层记成「✓ 通过」）
 }
 const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
 const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
@@ -44,7 +44,7 @@ function ok(cond, name, extra) {
 }
 
 const exe = (() => { for (const p of [EDGE, CHROME]) { try { readFileSync(p); return p; } catch {} } return null; })();
-if (!exe) { console.log('跳过：找不到 Edge 或 Chrome'); process.exit(0); }
+if (!exe) { console.log('环境不足：找不到 Edge 或 Chrome'); process.exit(2); }
 
 const br = await puppeteer.launch({ executablePath: exe, headless: 'new',
     args: ['--no-sandbox', '--disable-gpu'] });
