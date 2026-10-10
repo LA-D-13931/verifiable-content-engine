@@ -41,6 +41,7 @@ CHECKS = [
     ('引擎', '诊断覆盖率', ['node', 'tools/verify-diagnostics.mjs'], None),
     ('引擎', '诊断指向的失败条件正确', ['node', 'tools/verify-diagnosis-accuracy.mjs'], None),
     ('引擎', '插件 API 边界', ['node', 'tools/verify-plugin-api.mjs'], None),
+    ('引擎', '引擎层边界（学科概念不得进引擎层）', ['node', 'tools/verify-boundary.mjs'], None),
     ('引擎', '逐类型信息量审计', ['node', 'tools/audit-coverage.mjs'], None),
     ('引擎', '判据区分力审计（抓恒真判据）', ['node', 'tools/audit-tautology.mjs'], None),
     ('浏览器', '冒烟（控制台无错误）', ['node', 'tools/smoke.mjs'], 'browser'),
