@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="zh-CN"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自测 · L00-S3</title>
+<style>
+ :root { color-scheme: light dark; }
+ * { box-sizing: border-box; }
+ body { margin: 0; padding: 14px 16px 20px;
+        font: 15px/1.7 -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif;
+        background: Canvas; color: CanvasText; }
+ a.top { font-size: .82rem; opacity: .7; text-decoration: none; color: inherit;
+         border-bottom: 1px dashed currentColor; }
+ h2 { font-size: 1.05rem; margin: 6px 0 12px; }
+</style>
+<style>
+/* 独立小页样式。规范依据：docs/交互式命题与批改规范.md 与 docs/界面组织与交互逻辑要求.md。
+   两条硬纪律：不用 color-mix()（Edge/Safari 都要稳）；正文不铺彩色底。 */
+* { box-sizing: border-box; }
+body { margin: 0; padding: 16px 18px 28px; background: Canvas; color: CanvasText;
+       font: 15px/1.75 -apple-system, "PingFang SC", "Hiragino Sans GB", sans-serif; }
+a.top { font-size: .82rem; opacity: .7; text-decoration: none; color: inherit;
+        border-bottom: 1px dashed currentColor; }
+h2.qt { font-size: 1.08rem; margin: 10px 0 4px; padding-left: 9px;
+        border-left: 4px solid #6b7f95; }
+.sub { font-size: .82rem; opacity: .62; margin: 0 0 14px 13px; }
+
+/* 工具栏 */
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center;
+       margin: 0 0 16px; font-size: .88rem; }
+.bar button { font: inherit; font-size: .86rem; padding: 5px 13px; cursor: pointer;
+              border-radius: 6px; border: 1px solid rgba(128,128,128,.45);
+              background: transparent; color: inherit; }
+.bar button:hover { background: rgba(128,128,128,.12); }
+.bar button.primary { border-color: #3f7f5f; color: #2f6a4d; }
+.bar button:disabled { opacity: .45; cursor: default; }
+#sc { margin-left: auto; opacity: .75; }
+
+/* 题目卡片：每题一块，靠左侧色条区分状态 */
+.q { border-left: 4px solid rgba(128,128,128,.28); border-radius: 8px;
+     padding: 12px 14px 14px; margin: 0 0 16px;
+     background: rgba(128,128,128,.045); }
+.q.ok { border-left-color: #2f855a; }
+.q.no { border-left-color: #c0392b; }
+
+/* 题头：编号 · 难度 · 知识点，三样分开、可辨 */
+.hd { display: flex; flex-wrap: wrap; gap: 10px; align-items: center;
+      font-size: .78rem; opacity: .8; margin-bottom: 8px; }
+.hd .no { font-weight: 600; opacity: 1; }
+.df { padding: 1px 7px; border-radius: 4px; border: 1px solid currentColor;
+      font-size: .74rem; }
+.df.基础 { color: #2f6a4d; }
+.df.中等 { color: #8a6d1f; }
+.df.考研 { color: #8a3b3b; }
+.qid { margin-left: auto; font-family: ui-monospace, Menlo, monospace; opacity: .7; }
+
+/* 题干 */
+.tx { margin: 0 0 10px; }
+.tx code, .opts code, .exps code, .cd { font-family: ui-monospace, Menlo, monospace;
+      font-size: .88em; background: rgba(128,128,128,.14); padding: 1px 5px;
+      border-radius: 4px; }
+.cd { display: block; white-space: pre; overflow-x: auto; padding: 10px 12px;
+      margin: 8px 0 10px; line-height: 1.55; background: rgba(128,128,128,.10); }
+
+/* 选项：**每个选项独占一行**（这是原先最糊的地方——它们被塞进同一行） */
+.opts { display: flex; flex-direction: column; gap: 2px; margin: 0; }
+.opt { display: flex; gap: 10px; align-items: flex-start; padding: 5px 8px;
+       border-radius: 6px; cursor: pointer; }
+.opt:hover { background: rgba(128,128,128,.10); }
+.opt input { margin: .38em 0 0; flex: none; }
+.opt span { flex: 1; }
+.opt.picked { background: rgba(128,128,128,.14); }
+
+/* 判定结果与解析 */
+.vd { margin-top: 9px; font-size: .9rem; }
+.vd .yes { color: #2f855a; font-weight: 600; }
+.vd .not { color: #b3382c; font-weight: 600; }
+.exps { margin-top: 10px; border-top: 1px dashed rgba(128,128,128,.35); padding-top: 9px; }
+.ex { padding: 4px 0 4px 11px; border-left: 3px solid transparent;
+      font-size: .9rem; opacity: .82; }
+.ex.right { border-left-color: #2f855a; opacity: 1; }
+
+/* 讲评报告 */
+.report { border-left: 4px solid #6b7f95; border-radius: 8px; padding: 14px 16px;
+          margin: 0 0 18px; background: rgba(128,128,128,.05); }
+.report h3 { font-size: .95rem; margin: 14px 0 6px; }
+.report h3:first-child { margin-top: 0; }
+.report .score { font-size: 1.5rem; font-weight: 600; }
+.report .tier { font-size: .88rem; opacity: .8; }
+.report table { border-collapse: collapse; width: 100%; font-size: .86rem; }
+.report td, .report th { text-align: left; padding: 4px 8px;
+                         border-bottom: 1px solid rgba(128,128,128,.22); }
+.report ol { margin: 4px 0 0 18px; padding: 0; }
+</style>
+</head><body>
+<a class="top" href="#L00-S3">← 回到正文对应小节</a>
+<h2>自测 · L00-S3</h2>
+<div class="bar" id="bar">
+  <button data-act="judge">判定</button>
+  <button data-act="exps">显示解析</button>
+  <button data-act="redo">重做</button>
+  <span id="sc"></span>
+</div>
+<div id="report" class="report" style="display:none"></div>
+<div id="host"></div>
+<script id="csc-judge-core">/* ============================================================
+ * 判题注册表（引擎层）
+ *
+ * 定位：这里只放**与学科无关**的判题类型——数值命中、矩阵相等、
+ * 点积、选择题、动作序列。它们不需要知道「什么是行列式」。
+ *
+ * 学科专属的判题类型（det / rank / eigen / on-span / cross-dir …）
+ * 留在 engine.js 里，将来迁到 domains/<科目>/。分界线是：
+ *
+ *     判据里出现「秩、行列式、特征值、列空间」等概念 → 领域专属
+ *     判据只是「数值相等 / 位置命中 / 序列匹配」      → 引擎层
+ *
+ * ⚠️ 本文件必须与 engine.js 里对应的 case **逐字对齐**。
+ *    第一版是「照着记忆重写」的，结果五处偏差：
+ *      · actions 用了 App.log（对象），原实现是 App.actionLog（数组）
+ *      · actions 漏掉 check.ordered 的顺序匹配逻辑
+ *      · dot 写成 check.target / check.with，原实现是 check.a / check.b
+ *      · dot 漏掉 op 的 lt / gt 两种比较
+ *      · choice 漏掉 taskId != null 的判断
+ *    教训：**平移代码必须照源码逐行译，不能凭印象重写。**
+ *    平移是否忠实，由 tools/verify-registry.mjs 的离线用例与浏览器侧的
+ *    verify-actions / smoke 共同把关。
+ *
+ * 每个处理器返回 { pass, reason, certificate }：
+ *   · pass        —— 是否通过
+ *   · reason      —— 不通过时的一句话原因（给人看）
+ *   · certificate —— 判定依据（见证或反证），把诊断质量变成可核对的东西
+ *
+ * 加载顺序：必须在 engine.js 之前（engine.js 读 window.CheckRegistry）。
+ * ============================================================ */
+(function (root) {
+root.CheckRegistry = (function () {
+    'use strict';
+
+    const handlers = Object.create(null);
+
+    function register(type, fn) { handlers[type] = fn; }
+    function get(type) { return handlers[type] || null; }
+    function types() { return Object.keys(handlers); }
+
+    const ok = (cert)         => ({ pass: true,  reason: '', certificate: cert });
+    const bad = (reason, cert) => ({ pass: false, reason: reason, certificate: cert });
+
+    /* 把向量格式化成 (1, 2) 这样的短字符串，用于诊断信息 */
+    function fmt(v) {
+        return '(' + v.map(x => (Math.round(x * 100) / 100)).join(', ') + ')';
+    }
+
+    /* 数值比较：与原实现一致；op 不是 eq/lt/gt 时返回 false */
+    function cmp(got, op, value, tol) {
+        const t = tol == null ? 0.05 : tol;
+        if (op === 'eq') return Math.abs(got - value) <= t;
+        if (op === 'lt') return got < value;
+        if (op === 'gt') return got > value;
+        return false;
+    }
+
+    /* ---------------- 领域无关的判题类型 ---------------- */
+
+    /* 指定 id 的向量是否停在目标位置 */
+    register('vector-at', function (check, ctx) {
+        const v = ctx.vectors.find(x => x.id === check.target);
+        if (!v) return bad('找不到向量 ' + check.target);
+        const hit = ctx.vecEq(v.data, check.to, check.tol);
+        return hit ? ok({ witness: v.data })
+                   : bad('向量 ' + check.target + ' 在 ' + fmt(v.data) +
+                         '，目标是 ' + fmt(check.to),
+                         { current: v.data, target: check.to });
+    });
+
+    /* 变换后的向量 Av 是否命中目标 */
+    register('av-at', function (check, ctx) {
+        const v = ctx.vectors.find(x => x.id === 'v');
+        if (!v || !ctx.matrix) return bad('缺少向量 v 或矩阵');
+        const av = ctx.Mat.mulVec(ctx.matrix, v.data);
+        const hit = ctx.vecEq(av, check.to, check.tol);
+        return hit ? ok({ witness: v.data, image: av })
+                   : bad('Av = ' + fmt(av) + '，目标是 ' + fmt(check.to),
+                         { current: av, target: check.to });
+    });
+
+    /* 矩阵的第 col 列是否等于目标向量 */
+    register('matrix-col-at', function (check, ctx) {
+        if (!ctx.matrix) return bad('当前没有矩阵');
+        const col = ctx.matrix.map(r => r[check.col]);
+        const hit = ctx.vecEq(col, check.to, check.tol);
+        return hit ? ok({ col: check.col })
+                   : bad('第 ' + (check.col + 1) + ' 列是 ' + fmt(col) +
+                         '，目标是 ' + fmt(check.to),
+                         { current: col, target: check.to });
+    });
+
+    /* 整个矩阵是否等于目标矩阵（逐元素，容差默认 0.05） */
+    register('match-matrix', function (check, ctx) {
+        if (!ctx.matrix) return bad('当前没有矩阵');
+        const tol = check.tol == null ? 0.05 : check.tol;
+        let worst = 0, at = null;
+        check.matrix.forEach((row, i) => row.forEach((x, j) => {
+            const d = Math.abs(ctx.matrix[i][j] - x);
+            if (d > worst) { worst = d; at = [i, j]; }
+        }));
+        return worst <= tol
+            ? ok({ maxDeviation: worst })
+            : bad('第 ' + (at[0] + 1) + ' 行第 ' + (at[1] + 1) + ' 列差 ' +
+                  (Math.round(worst * 100) / 100) + '，超出容差 ' + tol,
+                  { maxDeviation: worst, at: at });
+    });
+
+    /* 两指定向量 id 的点积；op 支持 eq / lt / gt（与原实现一致） */
+    register('dot', function (check, ctx) {
+        const a = ctx.vectors.find(x => x.id === check.a);
+        const b = ctx.vectors.find(x => x.id === check.b);
+        if (!a || !b) return bad('找不到向量 ' + (check.a || '?') + ' 或 ' + (check.b || '?'));
+        const d = ctx.Mat.dot(a.data, b.data);
+        return cmp(d, check.op, check.value, check.tol)
+            ? ok({ value: d })
+            : bad('点积是 ' + (Math.round(d * 100) / 100) +
+                  '，条件是 ' + (check.op || 'eq') + ' ' + check.value,
+                  { current: d, target: check.value, op: check.op });
+    });
+
+    /* 辨析题：只有当这一次的选择确实属于这道题时才算数。
+       同一关可能有两道辨析题，必须用 taskId 区分，否则互相干扰。 */
+    register('choice', function (check, ctx) {
+        if (ctx.taskId == null) return bad('缺少任务标识，无法判断这是哪一道题');
+        const picked = ctx.choices[ctx.taskId];
+        if (picked == null) return bad('还没有选择');
+        return picked === check.correct
+            ? ok({ picked: picked })
+            : bad('选了第 ' + (picked + 1) + ' 项，不是正确答案',
+                  { picked: picked, correct: check.correct });
+    });
+
+    /* 过程型任务：声明的动作必须都产生过可观测事件。
+       ordered 为真时要求按序出现（子序列匹配，允许中间夹别的动作）。
+       这一类专门捕捉「按钮点了但没写日志」导致的恒假任务。 */
+    register('actions', function (check, ctx) {
+        const all = check.all || [];
+        const log = ctx.actionLog || [];
+        if (check.ordered) {
+            let pos = 0;
+            for (const a of log) {
+                if (a === all[pos]) pos++;
+                if (pos >= all.length) return ok({ order: all });
+            }
+            return bad('顺序还没走完，已完成 ' + pos + ' / ' + all.length + ' 步',
+                       { matched: pos, need: all.length });
+        }
+        const missing = all.filter(n => !log.includes(n));
+        return missing.length === 0
+            ? ok({ done: all })
+            : bad('还缺少这些动作：' + missing.join('、'), { missing: missing });
+    });
+
+    const api = {
+        register: register,
+        get: get,
+        types: types,
+        /* 供测试直接调用：不依赖 App，只依赖传入的 ctx */
+        run: function (check, ctx) {
+            const fn = get(check.type);
+            if (!fn) return null;      // 未注册 → 由调用方决定怎么处理
+            return fn(check, ctx);
+        }
+    };
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
+})();
+}(typeof globalThis !== 'undefined' ? globalThis : this));
+</script>
+<script>/* ============================================================
+ * 神经网络 / 计算机视觉领域判题插件（CS231n 教材用）
+ *
+ * 这是**第三个领域**，接入方式完全沿用引擎自己的扩展机制
+ * （见 engine-core/API_如何新增科目.md）：只新增本文件，
+ * 引擎层 registry.js / mat.js / mat.py / ctx 结构一字不改。
+ *
+ * ⚠️⚠️ 契约漂移警告（必读，否则插件恒判不过）⚠️⚠️
+ *   API_如何新增科目.md:37-44 写着「插件返回 true 或 false」，
+ *   这是**过期文档**。真实契约见 apps/linalg-lab/assets/js/engine.js:166：
+ *
+ *       const r = window.LinalgJudge.judge(check, ctx);
+ *       if (r !== null) return !!r.pass;      // 两层返回结构一致（三元组）
+ *
+ *   即：处理器必须返回三元组 { pass, reason, certificate }，或返回 null 表示
+ *   「这不是我的类型」。若照文档返回裸 `true`，调用方读到 `true.pass === undefined`
+ *   → 恒判不过，且**没有任何报错**。本文件一律返回三元组。
+ *
+ * 为什么这些判据不能放引擎层：
+ *   引擎层的分界线是「判据里出现秩/行列式/特征值/列空间等学科概念 → 领域专属」。
+ *   本文件涉及 softmax、交叉熵、数值梯度、卷积输出形状 —— 全是 CV/DL 学科概念，
+ *   因此按项目自己的规则必须留在领域插件里。
+ *
+ * 本文件与 __tests__/nn.test.mjs 一起构成该领域的回归门禁：
+ *   node engine-harness/__tests__/nn.test.mjs
+ * 测试用的地面真值由 Python 权威参考独立复算（见 engine-harness/参考实现.py），
+ * 不是「同一个函数调两次」，也不是把学习者的答案回显一遍。
+ *
+ * 答案通道（ctx 扩展）：
+ *   ctx.answers = { [answerKey]: {...} }
+ *   这是**消费者层**对 ctx 的扩展。引擎层与既有插件只读固定字段，
+ *   多出的字段被忽略，因此引擎层未被修改。
+ *   形状：{ dw?:number[]|number[][], loss?:number, shape?:number[],
+ *           update?:number[]|number[][], probs?:number[] }
+ * ============================================================ */
+(function (root) {
+root.NnJudge = (function () {
+    'use strict';
+
+    /* ---------------- 容差政策（本领域**唯一**来源） ----------------
+       与引擎原语层的关系必须说清，否则会被当成「另立一套容差」：
+
+       · 引擎原语层的零政策 threshold = EPS × 尺度^阶数，EPS = 1e-10，
+         是给**精确线性代数**（det / rank / inv）用的——在那里「是否奇异」
+         必须只有一个定义处。
+       · 本插件判的是**浮点意义上的近似相等**（数值梯度 vs 解析梯度、
+         损失值、形状），物理上不可能达到 1e-10 的绝对一致：
+         有限差分的截断误差本身就在 1e-7 量级。
+
+       **梯度类判据用混合容差，不能用纯绝对容差。**
+       理由（实测）：本教材 fixture 的解析梯度与数值梯度的最大绝对偏差是
+       1e-12 量级，而梯度分量的量级只有 0.1~1。若只用绝对容差 1e-6，
+       等于对一个小量级分量放行了 1e-5 的相对误差——比官方口径
+       （A1 作业要求 relative error ~e-7 或更低）松 5 个数量级，
+       会把有细节错误的实现判过。
+
+       混合判据：|got − want| ≤ ATOL + RTOL × max(|got|, |want|)
+         · ATOL 兜住「梯度本来就是 0」的情形（ReLU 大量输出 0 梯度，
+           纯相对误差在 0/0 处无定义）。
+         · RTOL 让判据随量级缩放，与官方相对误差口径对齐。
+
+       固定常量而不是逐任务复制 tol：固定阈值更可审计——它不能被悄悄放宽
+       来让坏答案通过，而「随便填一个 tol 通过」正是判据退化的常见形态。
+       任务仍可显式覆盖（check.tol / check.rtol）。 */
+    const NN_ATOL = 1e-9;         // 梯度 / 参数更新 / 损失 的绝对下限
+    const NN_RTOL = 1e-6;         // 相对项。与 A1 作业的官方口径对齐
+                                  // （作业要求 relative error 约 e-7 或更低）；
+                                  // 再宽一个量级留给学习者的实现差异。
+    const PROB_TOL = 1e-9;        // softmax 归一化：容差必须紧，否则「和为 1」形同虚设
+
+    /* 混合容差比较。返回 {pass, worst, at, tolAt} */
+    function mixedClose(got, want, atol, rtol) {
+        let worst = 0, at = -1, tolAt = 0;
+        const n = Math.min(got.length, want.length);
+        for (let i = 0; i < n; i++) {
+            const scale = Math.max(Math.abs(got[i]), Math.abs(want[i]));
+            const tol = atol + rtol * scale;
+            const excess = Math.abs(got[i] - want[i]) - tol;   // >0 即超差
+            if (excess > worst) { worst = excess; at = i; tolAt = tol; }
+        }
+        return { pass: worst <= 0, worst: worst, at: at, tolAt: tolAt, n: n };
+    }
+
+
+    /* ---------------- 返回构造器（镜像 registry.js:41-42） ---------------- */
+    function ok(cert) { return { pass: true, reason: '', certificate: cert }; }
+    function bad(reason, cert) { return { pass: false, reason: reason, certificate: cert }; }
+
+    /* ---------------- 小工具 ---------------- */
+
+    /* 数值格式化，用于诊断文本；NaN/Inf 要能看出来 */
+    function fmt(x) {
+        if (typeof x !== 'number' || !isFinite(x)) return String(x);
+        if (x === 0) return '0';
+        const a = Math.abs(x);
+        if (a < 1e-4 || a >= 1e6) return x.toExponential(3);
+        return String(Math.round(x * 1e6) / 1e6);
+    }
+
+    /* 把 number[] 或 number[][] 摊平成一维；顺带做结构校验。 */
+    function flatten(v) {
+        if (typeof v === 'number') return { ok: true, data: [v], shape: [] };
+        if (!Array.isArray(v)) return { ok: false, why: '不是数值、也不是数组' };
+        if (v.length === 0) return { ok: false, why: '是空数组' };
+        if (typeof v[0] === 'number') {
+            for (const x of v) {
+                if (typeof x !== 'number' || !isFinite(x)) {
+                    return { ok: false, why: '含非有限数值：' + fmt(x) };
+                }
+            }
+            return { ok: true, data: v.slice(), shape: [v.length] };
+        }
+        if (Array.isArray(v[0])) {
+            const rows = v.length, cols = v[0].length;
+            const out = [];
+            for (const row of v) {
+                if (!Array.isArray(row) || row.length !== cols) {
+                    return { ok: false, why: '不是规整矩阵（各行列数不一致）' };
+                }
+                for (const x of row) {
+                    if (typeof x !== 'number' || !isFinite(x)) {
+                        return { ok: false, why: '含非有限数值：' + fmt(x) };
+                    }
+                    out.push(x);
+                }
+            }
+            return { ok: true, data: out, shape: [rows, cols] };
+        }
+        return { ok: false, why: '元素既不是数值也不是数组' };
+    }
+
+    /* 从 ctx.answers 取答案。缺答案要给「还没作答」这种可执行的诊断，
+       而不是含混的「判不过」——这是引擎 3.1 契约的要求。 */
+    function getAnswer(check, ctx) {
+        const key = check.answerKey;
+        if (key == null || key === '') {
+            return { ok: false, why: '判据缺少 answerKey，无法定位学习者答案' };
+        }
+        const bag = ctx && ctx.answers;
+        if (!bag || typeof bag !== 'object') {
+            return { ok: false, why: '当前上下文没有答案通道 ctx.answers' };
+        }
+        if (!(key in bag)) {
+            return { ok: false, why: '还没有提交答案（' + key + '）' };
+        }
+        return { ok: true, value: bag[key], key: key };
+    }
+
+    /* 从答案对象里按候选键取名。学习者可能把梯度叫 dw / grad_w / dW。 */
+    function pickField(answer, candidates) {
+        if (answer == null || typeof answer !== 'object') return null;
+        for (const name of candidates) {
+            if (answer[name] !== undefined && answer[name] !== null) return answer[name];
+        }
+        return null;
+    }
+
+    /* 有限差分：中心差商。f 是 number[] -> number 的标量函数。 */
+    function numericalGrad(f, x, h) {
+        const step = h == null ? 1e-5 : h;
+        const g = new Array(x.length);
+        for (let i = 0; i < x.length; i++) {
+            const orig = x[i];
+            const hi = Math.abs(orig) * step + step;   // 尺度自适应，避免 x=0 时差商为 0
+            x[i] = orig + hi;
+            const fp = f(x);
+            x[i] = orig - hi;
+            const fm = f(x);
+            x[i] = orig;
+            g[i] = (fp - fm) / (2 * hi);
+        }
+        return g;
+    }
+
+    /* 逐元素比较两个一维序列，返回最大绝对偏差及其下标。
+       使用绝对偏差而不是相对误差：0/0 是数值梯度的正常情形。 */
+    function maxAbsDiff(a, b) {
+        const n = Math.min(a.length, b.length);
+        let worst = 0, at = -1, va = 0, vb = 0;
+        for (let i = 0; i < n; i++) {
+            const d = Math.abs(a[i] - b[i]);
+            if (d > worst) { worst = d; at = i; va = a[i]; vb = b[i]; }
+        }
+        return { worst: worst, at: at, n: n, va: va, vb: vb,
+                 lengthMismatch: a.length !== b.length,
+                 lenA: a.length, lenB: b.length };
+    }
+
+    /* ================= 判题类型 =================
+       check.type 一律以 'nn-' 前缀开头，与高数的 'calc-' 同一约定，
+       这样分派链一眼能看出归属，也避免与引擎层类型名冲突。 */
+
+    /* ---------- nn-grad-check：解析梯度是否等于数值梯度 ----------
+       判据：\|numgrad − \|max ≤ tol。
+       这是本教材的门槛判据（决策记录 D-07）：它只能靠真的理解链式法则通过，
+       且**与「梯度检查」这个学习动作本身同构**——教材既教这个方法，又用它判分。
+
+       check 参数：
+         answerKey  答案键（必填）
+         numgrad    数值梯度（一维），由消费者在验证时用参考实现算出
+         tol        可选，覆盖默认 NN_TOL
+         maxReport  可选，诊断里最多列几个不一致分量（默认 3） */
+    function checkGrad(check, ctx) {
+        const got = getAnswer(check, ctx);
+        if (!got.ok) return bad(got.why, null);
+
+        const ans = pickField(got.value, ['dw', 'dW', 'grad', 'grad_w', 'dW_num']);
+        if (ans == null) {
+            return bad('答案 ' + got.key + ' 里没有梯度字段（可用 dw / dW / grad / grad_w）', null);
+        }
+        const flat = flatten(ans);
+        if (!flat.ok) return bad('梯度格式不对：' + flat.why, null);
+
+        const ref = check.numgrad;
+        if (!Array.isArray(ref) || ref.length === 0) {
+            return bad('判据缺少 numgrad（数值梯度），该任务不可判定', null);
+        }
+        if (flat.data.length !== ref.length) {
+            return bad('梯度长度不符：提交 ' + flat.data.length + ' 个，应为 ' + ref.length + ' 个',
+                       { gotLength: flat.data.length, wantLength: ref.length });
+        }
+
+        const atol = check.tol == null ? NN_ATOL : check.tol;
+        const rtol = check.rtol == null ? NN_RTOL : check.rtol;
+        const diff = maxAbsDiff(flat.data, ref);
+        const close = mixedClose(flat.data, ref, atol, rtol);
+        if (close.pass) {
+            return ok({ maxAbsDiff: diff.worst, atol: atol, rtol: rtol,
+                        compared: ref.length });
+        }
+
+        const maxReport = check.maxReport == null ? 3 : check.maxReport;
+        const bads = [];
+        for (let i = 0; i < ref.length && bads.length < maxReport; i++) {
+            const scale = Math.max(Math.abs(flat.data[i]), Math.abs(ref[i]));
+            const tol = atol + rtol * scale;
+            const d = Math.abs(flat.data[i] - ref[i]);
+            if (d > tol) {
+                bads.push({ index: i, got: flat.data[i], want: ref[i],
+                            absDiff: d, tol: tol, scale: scale });
+            }
+        }
+        const first = bads[0];
+        return bad('第 ' + first.index + ' 个分量偏差 ' + fmt(first.absDiff) +
+                   '（提交 ' + fmt(first.got) + '，数值梯度 ' + fmt(first.want) +
+                   '；该分量容差 ' + fmt(first.tol) + ' = ' + fmt(atol) +
+                   ' + ' + fmt(rtol) + '×' + fmt(first.scale) + '）',
+                   { maxAbsDiff: diff.worst, atol: atol, rtol: rtol,
+                     mismatches: bads, matched: ref.length - bads.length,
+                     compared: ref.length });
+    }
+
+    /* ---------- nn-loss-value：损失值是否命中 ----------
+       引擎层今天连「裸标量带容差相等」都没有（cmp() 只经 dot 暴露），
+       而「损失值对不对」是 DL 教学里最常见的判据，故在此提供。 */
+    function checkLoss(check, ctx) {
+        const got = getAnswer(check, ctx);
+        if (!got.ok) return bad(got.why, null);
+        const val = pickField(got.value, ['loss', 'value', 'L']);
+        if (typeof val !== 'number' || !isFinite(val)) {
+            return bad('答案 ' + got.key + ' 里的 loss 不是有限数值（拿到 ' + fmt(val) + '）', null);
+        }
+        if (typeof check.value !== 'number') {
+            return bad('判据缺少 value，该任务不可判定', null);
+        }
+        const atol = check.tol == null ? NN_ATOL : check.tol;
+        const rtol = check.rtol == null ? NN_RTOL : check.rtol;
+        const d = Math.abs(val - check.value);
+        const tol = atol + rtol * Math.max(Math.abs(val), Math.abs(check.value));
+        return d <= tol
+            ? ok({ got: val, want: check.value, absDiff: d, tol: tol,
+                   atol: atol, rtol: rtol })
+            : bad('损失值 ' + fmt(val) + '，应为 ' + fmt(check.value) +
+                  '（偏差 ' + fmt(d) + '，该量级容差 ' + fmt(tol) + '）',
+                  { got: val, want: check.value, absDiff: d, tol: tol,
+                    atol: atol, rtol: rtol });
+    }
+
+    /* ---------- nn-shape-of：张量/输出形状是否正确 ----------
+       形状是**结构**主张，不含学科概念，但引擎层的 match-matrix 只比数值、
+       无法表达「形状」这一独立断言，故在此提供。 */
+    function checkShape(check, ctx) {
+        const got = getAnswer(check, ctx);
+        if (!got.ok) return bad(got.why, null);
+        const shape = pickField(got.value, ['shape', 'outShape']);
+        if (!Array.isArray(shape) || shape.length === 0 ||
+            !shape.every(n => typeof n === 'number' && n >= 0 && Number.isInteger(n))) {
+            return bad('答案 ' + got.key + ' 里的 shape 不是非负整数数组', null);
+        }
+        const want = check.shape;
+        if (!Array.isArray(want) || want.length === 0) {
+            return bad('判据缺少 shape，该任务不可判定', null);
+        }
+        const same = shape.length === want.length && shape.every((n, i) => n === want[i]);
+        return same
+            ? ok({ shape: shape })
+            : bad('形状是 ' + JSON.stringify(shape) + '，应为 ' + JSON.stringify(want),
+                  { got: shape, want: want });
+    }
+
+    /* ---------- nn-param-update：参数更新量是否等于参考值 ----------
+       覆盖 SGD / 动量 / Adam 的「这一步参数该怎么动」。 */
+    function checkUpdate(check, ctx) {
+        const got = getAnswer(check, ctx);
+        if (!got.ok) return bad(got.why, null);
+        const ans = pickField(got.value, ['update', 'delta', 'dw', 'dW']);
+        if (ans == null) {
+            return bad('答案 ' + got.key + ' 里没有更新量字段（可用 update / delta）', null);
+        }
+        const flat = flatten(ans);
+        if (!flat.ok) return bad('更新量格式不对：' + flat.why, null);
+        const ref = check.update;
+        if (!Array.isArray(ref) || ref.length === 0) {
+            return bad('判据缺少 update，该任务不可判定', null);
+        }
+        if (flat.data.length !== ref.length) {
+            return bad('更新量长度不符：提交 ' + flat.data.length + ' 个，应为 ' + ref.length + ' 个',
+                       { gotLength: flat.data.length, wantLength: ref.length });
+        }
+        const atol = check.tol == null ? NN_ATOL : check.tol;
+        const rtol = check.rtol == null ? NN_RTOL : check.rtol;
+        const diff = maxAbsDiff(flat.data, ref);
+        const close = mixedClose(flat.data, ref, atol, rtol);
+        return close.pass
+            ? ok({ maxAbsDiff: diff.worst, atol: atol, rtol: rtol,
+                   compared: ref.length })
+            : bad('第 ' + close.at + ' 个分量偏差 ' + fmt(Math.abs(
+                    flat.data[close.at] - ref[close.at])) +
+                  '（提交 ' + fmt(flat.data[close.at]) + '，参考 ' + fmt(ref[close.at]) +
+                  '；该分量容差 ' + fmt(close.tolAt) + '）',
+                  { maxAbsDiff: diff.worst, at: close.at, atol: atol, rtol: rtol,
+                    got: flat.data, want: ref });
+    }
+
+    /* ---------- nn-softmax-normalized：概率向量是否合法 ----------
+       不变量：非负、和为 1（概率单纯形）。这是 softmax 输出的定义性性质，
+       因此容差用紧的 PROB_TOL，而不是 NN_TOL——否则「和为 1」形同虚设。 */
+    function checkSoftmaxNorm(check, ctx) {
+        const got = getAnswer(check, ctx);
+        if (!got.ok) return bad(got.why, null);
+        const ans = pickField(got.value, ['probs', 'p', 'softmax']);
+        if (ans == null) {
+            return bad('答案 ' + got.key + ' 里没有概率向量字段（可用 probs / p / softmax）', null);
+        }
+        const flat = flatten(ans);
+        if (!flat.ok) return bad('概率向量格式不对：' + flat.why, null);
+        if (flat.data.length === 1) {
+            return bad('概率向量只有 1 个分量，无法构成有意义的分布', null);
+        }
+        const neg = flat.data.findIndex(x => x < -PROB_TOL);
+        if (neg >= 0) {
+            return bad('第 ' + neg + ' 个概率为负：' + fmt(flat.data[neg]),
+                       { probs: flat.data, at: neg });
+        }
+        const sum = flat.data.reduce((a, b) => a + b, 0);
+        const tol = check.tol == null ? PROB_TOL : check.tol;
+        return Math.abs(sum - 1) <= tol
+            ? ok({ sum: sum, tol: tol, n: flat.data.length })
+            : bad('概率和为 ' + fmt(sum) + '，偏离 1 达 ' + fmt(Math.abs(sum - 1)) +
+                  '（容差 ' + fmt(tol) + '）',
+                  { sum: sum, tol: tol, probs: flat.data });
+    }
+
+    /* ================= 分派 ================= */
+
+    const HANDLERS = {
+        'nn-grad-check': checkGrad,
+        'nn-loss-value': checkLoss,
+        'nn-shape-of': checkShape,
+        'nn-param-update': checkUpdate,
+        'nn-softmax-normalized': checkSoftmaxNorm
+    };
+
+    /* 返回三元组；不是我的类型返回 null（**不是** false）。 */
+    function judge(check, ctx) {
+        if (!check || typeof check.type !== 'string') return null;
+        const fn = HANDLERS[check.type];
+        if (!fn) return null;
+        return fn(check, ctx);
+    }
+
+    /* 只读列表，供门禁核对「注册了几个类型、有没有人接管」。 */
+    function types() { return Object.keys(HANDLERS).sort(); }
+
+    const api = {
+        judge: judge,
+        types: types,
+        /* 暴露给测试的纯函数，避免测试里重写第二份实现 */
+        _internals: {
+            numericalGrad: numericalGrad,
+            maxAbsDiff: maxAbsDiff,
+            flatten: flatten,
+            NN_ATOL: NN_ATOL,
+            NN_RTOL: NN_RTOL,
+            PROB_TOL: PROB_TOL,
+            mixedClose: mixedClose
+        }
+    };
+    if (typeof module === 'object' && module.exports) module.exports = api;
+    return api;
+})();
+}(typeof globalThis !== 'undefined' ? globalThis : this));
+</script>
+<script>window.__LAB_DATA__ = {"anchor": "lab-L00-S3", "section": "L00-S3", "title": "自测 · L00-S3", "questions": [{"id": "L00-S3-例1", "kind": "choice", "difficulty": "基础", "text": "`np.zeros((3,4)).mean(axis=0)` 的结果形状是？", "options": ["(4,)", "(3,)", "(3,4)", "标量"], "correct": 0, "explains": ["✓ axis 指的是被消掉的那一维。axis=0 消掉长度 3 的那一维，剩下 4。", "✗ (3,) 是把 axis 理解成了「操作方向」。沿 axis=1 求均值才得到 (3,)。", "✗ (3,4) 说明没有消维。", "✗ 标量是所有维都消掉（axis=None）的结果。"]}, {"id": "L00-S3-例2", "kind": "choice", "difficulty": "中等", "text": "`np.zeros((3,4)).mean(axis=1, keepdims=True)` 的结果形状是？", "options": ["(3,1)", "(3,)", "(1,4)", "(3,4)"], "correct": 0, "explains": ["✓ axis=1 消掉长度 4 的那一维，keepdims 把它保留成 1，得到 `(3,1)`。", "✗ (3,) 是没加 keepdims 的结果。", "✗ (1,4) 对应的是 `axis=0, keepdims=True`。", "✗ (3,4) 说明没有做归约。"]}, {"id": "L00-S3-例3", "kind": "choice", "difficulty": "综合", "text": "`x` 形状 `(32,10)`。要让 `x - x.mean(...)` 形状合法，均值那一项必须怎么取？", "options": ["`x.mean(axis=1, keepdims=True)`", "`x.mean(axis=1)`", "`x.mean(axis=0)`", "`x.mean()`"], "correct": 0, "explains": ["✓ 必须保留维：`(32,1)` 与 `(32,10)` 相加时广播成 `(32,10)`，每行减自己的均值。这是 A1 里 `batchnorm_forward` 与各类归一化的标准写法。", "✗ `(32,)` 与 `(32,10)` 右对齐成 `(1,32)` 与 `(32,10)`，32≠10 且都不为 1，直接报错。这是最常见的一处形状错误。", "✗ `(10,)` 是每列各自的均值，语义变成「每列减列均值」。", "✗ 标量是所有元素的均值，语义变成整体中心化。"]}], "review": [{"id": "L00-S2-K1", "kind": "判定", "title": "广播规则", "body": "两个形状相加时，先把它们右对齐，再逐维比较：每一维长度相等，或其中之一为 1，则这一维合法，结果长度为两者较大值。\n\n适用条件是右对齐后每一维都必须满足上述条件，任一维不满足则整体报错。\n\n```\nscores = np.zeros((32, 10))\nb = np.zeros(10)\nout = scores + b            # (10,) 补成 (1,10) -> 结果 (32,10)\n```\n\n这段代码把 `(10,)` 补成 `(1,10)`，再沿第 0 维复制 32 次，所以每个样本加的是同一组偏置。"}]};</script>
+<script>
+/* 独立小页渲染器。
+   设计依据：docs/交互式命题与批改规范.md（判分/报告/订正）与
+             docs/界面组织与交互逻辑要求.md（视觉与交互纪律）。
+
+   关键实现点（都是踩过坑后的决定）：
+   · 题干里的 `反引号` 要**渲染成内联代码**，不能原样露出反引号（用户截图指出的"糊"）。
+   · 选项必须**逐个独占一行**（原先被塞进同一行）。
+   · 「订正」与「重做」是**两个不同动作**（规范 §八）：
+       订正只解锁错题，且全对时入口必须消失；重做整卷清零并能再次提交。
+   · 报告固定五段（规范 §七）。
+   · 难度档合法值只有 基础 / 中等 / 考研（规范 §十.2）。
+   · 所有状态跨会话保存（规范 §八.3）。
+*/
+(function (D) {
+  var KEY = 'cs231n-progress';
+  var SKEY = 'cs231n-state:' + D.section;      /* 本卷的作答与判分状态 */
+  var PASS_LINE = D.passLine || 0.7;
+
+  function jload(k, d) { try { return JSON.parse(localStorage.getItem(k)) || d; } catch (e) { return d; } }
+  function jsave(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+
+  /* 行内 Markdown -> HTML：只处理反引号代码与 **加粗**，不做别的
+     （题干是受控文本，不需要完整 Markdown 解析器）。 */
+  function md(x) {
+    return String(x)
+      .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+      .replace(/`([^`]+)`/g, '<code>$1</code>')
+      .replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
+  }
+
+  var state = jload(SKEY, { answers: {}, judged: false, corrected: false, mode: 'normal' });
+
+  function saveState() { jsave(SKEY, state); remember(); }
+  function remember() {   /* 与首页进度条共享的累计进度 */
+    var g = jload(KEY, {});
+    D.questions.forEach(function (q) {
+      if (state.answers && state.answers[q.id] && state.answers[q.id].ok) g[q.id] = true;
+    });
+    jsave(KEY, g);
+  }
+
+  function isRight(q, pick) {
+    if (pick === undefined || pick === null || pick === '') return null;
+    var r = window.CheckRegistry.run(
+      { type: 'choice', correct: q.correct },
+      { taskId: q.id, choices: (function () { var o = {}; o[q.id] = Number(pick); return o; })() });
+    return r && r.pass;
+  }
+
+  /* ---------- 渲染 ---------- */
+  function renderQuestion(q, i) {
+    var el = document.createElement('div');
+    el.className = 'q'; el.id = 'q-' + q.id;
+    var a = (state.answers && state.answers[q.id]) || {};
+    if (state.judged && a.pick !== undefined) el.classList.add(a.ok ? 'ok' : 'no');
+
+    var opts = q.options.map(function (o, k) {
+      var picked = String(a.pick) === String(k);
+      return '<label class="opt' + (picked ? ' picked' : '') + '">'
+        + '<input type="radio" name="' + q.id + '" value="' + k + '"'
+        + (picked ? ' checked' : '') + (state.mode === 'correct' && a.ok ? ' disabled' : '')
+        + '><span>' + md(o) + '</span></label>';
+    }).join('');
+
+    el.innerHTML =
+      '<div class="hd"><span class="no">第 ' + (i + 1) + ' 题</span>'
+      + '<span class="df ' + q.difficulty + '">' + q.difficulty + '</span>'
+      + '<span class="qid">' + q.id + '</span></div>'
+      + '<div class="tx">' + md(q.text) + '</div>'
+      + (q.code ? '<pre class="cd">' + md(q.code) + '</pre>' : '')
+      + '<div class="opts">' + opts + '</div>'
+      + '<div class="vd"></div>';
+    return el;
+  }
+
+  function showVerdict(q) {
+    var el = document.getElementById('q-' + q.id);
+    var a = (state.answers && state.answers[q.id]) || {};
+    var vd = el.querySelector('.vd');
+    el.classList.remove('ok', 'no');
+    if (a.pick === undefined) { vd.innerHTML = '<span class="not">未作答</span>'; return; }
+    el.classList.add(a.ok ? 'ok' : 'no');
+    vd.innerHTML = a.ok ? '<span class="yes">✓ 正确</span>'
+                        : '<span class="not">✗ 错误（正确答案：'
+                          + 'ABCD'[q.correct] + '）</span>';
+  }
+
+  function showExps(q) {
+    var el = document.getElementById('q-' + q.id);
+    if (el.querySelector('.exps')) return;
+    var d = document.createElement('div');
+    d.className = 'exps';
+    d.innerHTML = q.explains.map(function (e, k) {
+      return '<div class="ex ' + (k === q.correct ? 'right' : '') + '">' + md(e) + '</div>';
+    }).join('');
+    el.appendChild(d);
+  }
+
+  /* 判分：档次 + 知识点聚合（规范 §六） */
+  function grade() {
+    var total = D.questions.length, right = 0, byDiff = {}, wrong = [];
+    D.questions.forEach(function (q) {
+      var a = state.answers[q.id] || {};
+      byDiff[q.difficulty] = byDiff[q.difficulty] || { n: 0, ok: 0 };
+      byDiff[q.difficulty].n++;
+      if (a.ok) { right++; byDiff[q.difficulty].ok++; } else { wrong.push(q); }
+    });
+    var pct = Math.round(right / total * 100);
+    var tier, tip;
+    if (right === total) {
+      tier = '满分'; tip = '本卷没有需要订正的题目。可以直接进入下一小节。';
+    } else if (pct >= PASS_LINE * 100) {
+      tier = '通过';
+      var hard = byDiff['考研'] || { n: 0, ok: 0 };
+      tip = (hard.n && hard.ok === hard.n)
+        ? '基础与中等档全对，失分集中在最高档——建议回读本节的判定与例题，再战一次。'
+        : '已过通过线。错题集中在哪一档，回读对应小节最省时间。';
+    } else {
+      tier = '未过通过线';
+      var base = byDiff['基础'] || { n: 0, ok: 0 };
+      tip = (base.ok < base.n)
+        ? '基础档就有失分，说明定义还没立住。建议先回读本节的「定义」与「判定」，再重做。'
+        : '基础档没问题，失分在中高档。建议回读例题，然后重做整卷。';
+    }
+    return { right: right, total: total, pct: pct, tier: tier, tip: tip,
+             byDiff: byDiff, wrong: wrong };
+  }
+
+  function renderReport() {
+    var g = grade();
+    var host = document.getElementById('report');
+    var diffRows = Object.keys(g.byDiff).map(function (k) {
+      return '<tr><td>' + k + '</td><td>' + g.byDiff[k].ok + ' / ' + g.byDiff[k].n + '</td></tr>';
+    }).join('');
+    var wrongList = g.wrong.length
+      ? '<ol>' + g.wrong.map(function (q) {
+          var a = state.answers[q.id] || {};
+          return '<li>' + q.id + '：你选了 ' + (a.pick !== undefined ? 'ABCD'[a.pick] : '（未答）')
+               + '，正确是 ' + 'ABCD'[q.correct] + '</li>';
+        }).join('') + '</ol>'
+      : '<p>全对，没有需要订正的题目。</p>';
+    host.innerHTML =
+      '<h3>一、得分与档次</h3>'
+      + '<div class="score">' + g.pct + '%　<span class="tier">' + g.tier + '</span></div>'
+      + '<p>' + g.tip + '</p>'
+      + '<h3>二、本次考查的知识点</h3><table>' + diffRows + '</table>'
+      + '<h3>三、逐题订正 · 你的答案 vs 正确答案</h3>' + wrongList
+      + '<h3>四、讲评</h3><p>' + (D.review || '（本卷讲评待撰写。）') + '</p>'
+      + '<h3>五、出口</h3>'
+      + '<div class="bar">'
+      + (g.wrong.length ? '<button data-act="correct" class="primary">订正这 ' + g.wrong.length + ' 道错题</button>' : '')
+      + '<button data-act="redo">重做整卷</button>'
+      + '</div>';
+    host.style.display = 'block';
+  }
+
+  /* ---------- 生命周期 ---------- */
+  function mount() {
+    var host = document.getElementById('host');
+    D.questions.forEach(function (q, i) { host.appendChild(renderQuestion(q, i)); });
+    if (state.judged) {
+      D.questions.forEach(function (q) { showVerdict(q); if (!(state.answers[q.id] || {}).ok) showExps(q); });
+      renderReport();
+    }
+    score();
+
+    document.getElementById('bar').addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+      if (act === 'judge') {
+        D.questions.forEach(function (q) {
+          var p = document.querySelector('input[name="' + q.id + '"]:checked');
+          var pick = p ? Number(p.value) : undefined;
+          var ok = isRight(q, pick);
+          state.answers[q.id] = { pick: pick, ok: !!ok };
+        });
+        state.judged = true; state.mode = 'normal';
+        saveState();
+        D.questions.forEach(function (q) { showVerdict(q); if (!state.answers[q.id].ok) showExps(q); });
+        renderReport(); score();
+        /* 判定后不自动滚动：报告就在同一流里，自动滚动既多余又容易让人丢失位置
+           （用户反馈内层滚动很容易误触）。让读者自己决定要不要往下看。 */
+        setTimeout(fitHeight, 50);
+      } else if (act === 'exps') {
+        D.questions.forEach(showExps);
+      } else if (act === 'redo') {
+        /* 重做整卷：彻底清零，并清除上一次报告（规范 §八.2） */
+        state = { answers: {}, judged: false, corrected: false, mode: 'normal' };
+        saveState();
+        document.getElementById('report').style.display = 'none';
+        document.getElementById('report').innerHTML = '';
+        D.questions.forEach(function (q) {
+          var el = document.getElementById('q-' + q.id);
+          el.classList.remove('ok', 'no');
+          el.querySelector('.vd').innerHTML = '';
+          var x = el.querySelector('.exps'); if (x) x.remove();
+          el.querySelectorAll('input').forEach(function (i) { i.checked = false; i.disabled = false; });
+          el.querySelectorAll('.opt').forEach(function (o) { o.classList.remove('picked'); });
+        });
+        score();
+        setTimeout(fitHeight, 50);
+      } else if (act === 'correct') {
+        /* 订正：只解锁错题（规范 §八.1） */
+        state.mode = 'correct';
+        D.questions.forEach(function (q) {
+          var a = state.answers[q.id] || {};
+          var el = document.getElementById('q-' + q.id);
+          if (a.ok) { el.querySelectorAll('input').forEach(function (i) { i.disabled = true; }); }
+          else {
+            el.querySelectorAll('input').forEach(function (i) { i.disabled = false; i.checked = false; });
+            el.classList.remove('no');
+            var x = el.querySelector('.exps'); if (x) x.remove();
+          }
+        });
+        saveState();
+        document.getElementById('report').style.display = 'none';
+        setTimeout(fitHeight, 50);
+      }
+    });
+
+    document.getElementById('host').addEventListener('change', function (ev) {
+      if (ev.target.type !== 'radio') return;
+      var name = ev.target.name;
+      document.querySelectorAll('input[name="' + name + '"]').forEach(function (i) {
+        i.closest('.opt').classList.toggle('picked', i.checked);
+      });
+    });
+  }
+
+  function score() {
+    var n = D.questions.filter(function (q) {
+      return state.answers[q.id] && state.answers[q.id].ok; }).length;
+    var el = document.getElementById('sc');
+    if (el) el.textContent = state.judged ? ('已判分 · 正确 ' + n + ' / ' + D.questions.length)
+                                          : ('未判分 · ' + D.questions.length + ' 题');
+  }
+
+  /* ---------- 自适应高度：消灭内层滚动条 ----------
+     用户反馈：题目区里有**独立的滚动条**（右侧那条），与整页滚动叠在一起，
+     很容易误触。根因是父页给 iframe 写死了高度，内容比它高。
+     做法：内页把自己的真实高度回写给父页的 frameElement。
+     为什么在**内页**里做而不是父页：MyST 会剥掉 Markdown 里的 <script>，
+     父页塞不进监听脚本；而内页是自己生成的，能自由加代码。
+     file:// 下同源，可访问 frameElement；若被跨源限制则静默放弃（不影响作答）。 */
+  function fitHeight() {
+    try {
+      var fe = window.frameElement;
+      if (!fe) return;
+      var h = Math.ceil(document.documentElement.scrollHeight);
+      if (!h) return;
+      fe.style.height = h + 'px';
+      fe.style.position = 'static';      /* MyST 会把它设成 absolute */
+      fe.setAttribute('scrolling', 'no');
+      /* ⚠️ 关键：MyST 把 iframe 包进一个**固定宽高比**的容器：
+           <div style="padding-bottom:60%"><iframe style="position:absolute"></iframe></div>
+         高度实际由 padding-bottom 决定，只改 iframe 没用。
+         必须同时把父容器的 padding-bottom 与 min-height 解除，
+         否则无论怎么设都会显示成 16:10 的矮框（题目被裁掉）。 */
+      var pd = fe.parentElement;
+      if (pd && pd.style) {
+        pd.style.paddingBottom = '0';
+        pd.style.height = 'auto';
+        pd.style.minHeight = '0';
+        pd.style.width = '100%';
+        pd.style.position = 'static';
+      }
+    } catch (e) { /* 跨源则放弃自适应，退化为内部滚动 */ }
+  }
+
+  function watchHeight() {
+    fitHeight();
+    [80, 300, 900, 2000].forEach(function (t) { setTimeout(fitHeight, t); });
+    if (window.ResizeObserver) {
+      try { new ResizeObserver(fitHeight).observe(document.documentElement); } catch (e) {}
+    }
+    window.addEventListener('resize', fitHeight);
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', function () { mount(); watchHeight(); });
+  } else { mount(); watchHeight(); }
+})(window.__LAB_DATA__);
+</script>
+</body></html>

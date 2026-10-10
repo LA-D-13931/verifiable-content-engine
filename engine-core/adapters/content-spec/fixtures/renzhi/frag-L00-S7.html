@@ -1,0 +1,181 @@
+<div id="lab-L00-S7"></div>
+<script>(function(F){
+/* 片段脚本：注入正文页后在本页上下文执行。
+   与整页版共用同一套判题内核（CheckRegistry + NnJudge），判定逻辑不另写一份。 */
+(function (F) {
+  var ROOT_KEY = 'cs231n-progress';
+  /* F 由外层 IIFE 传参进来，「不能」改成读全局：
+     同一页会注入多个片段，若都写 window.__LAB_FRAGMENT__，
+     后写的会覆盖前面的，于是每个片段的判定都拿到同一份（最后一份）题目。
+     这个 bug 一旦发生是静默的——判定仍会返回结果，只是判的是别人的题。 */
+
+  function load() {
+    try { return JSON.parse(localStorage.getItem(ROOT_KEY) || '{}'); } catch (e) { return {}; }
+  }
+  function save(st) {
+    try { localStorage.setItem(ROOT_KEY, JSON.stringify(st)); } catch (e) {}
+  }
+
+  function judgeChoice(q, picked) {
+    if (picked === null || picked === undefined) {
+      return { pass: false, reason: '还没有选择', certificate: null };
+    }
+    return window.CheckRegistry.run(
+      { type: 'choice', correct: q.correct },
+      { taskId: q.id, choices: (function () { var o = {}; o[q.id] = Number(picked); return o; })() });
+  }
+
+  function renderQuestion(q, i, total) {
+    var el = document.createElement('div');
+    el.className = 'lab-q';
+    el.id = 'labq-' + q.id;
+    var code = q.code ? '<div class="lab-code">' + q.code
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;') + '</div>' : '';
+    var opts = (q.options || []).map(function (o, k) {
+      return '<label class="lab-opt"><input type="radio" name="' + q.id + '" value="' + k + '">'
+           + '<span>' + o + '</span></label>';
+    }).join('');
+    el.innerHTML =
+      '<div class="lab-head"><span>第 ' + (i + 1) + ' / ' + total + ' 题</span>'
+      + '<span>' + q.id + '</span>'
+      + '<span class="lab-diff">' + q.difficulty + '</span></div>'
+      + '<div class="lab-text">' + q.text + '</div>' + code
+      + '<div class="lab-opts">' + opts + '</div>'
+      + '<div class="lab-verdict" id="labv-' + q.id + '"></div>';
+    return el;
+  }
+
+  /* HTML 实体常量。注意 &#42; 在 <script> 里会被解码成 "*"，所以字符串值不变，
+     但 HTML 「源码里不再出现字面的 `」` —— 引擎的内容卫生检查器会去注释、去标签后
+     扫正文里的 Markdown 加粗，注入的 JS 本来是会被它误判的。
+     这个坑很隐蔽：页面显示完全正常，只有门禁会报"正文里有 Markdown 加粗"。 */
+  var A2 = '&#42;&#42;', A2E = '&#42;&#42;';
+
+  function showExps(q, host) {
+    // 折叠/揭示纪律：解析「点开那一刻才渲染」（界面母规范 §七.1）
+    if (host.querySelector('.lab-exps')) return;
+    var box = document.createElement('div');
+    box.className = 'lab-exps';
+    box.innerHTML = (q.explains || []).map(function (e, k) {
+      return '<div class="lab-exp ' + (k === q.correct ? 'lab-exp-right' : '')
+           + '">' + e + '</div>';
+    }).join('');
+    host.appendChild(box);
+  }
+
+  function mount() {
+    var wrap = document.getElementById(F.anchor);
+    if (!wrap) return;
+    wrap.className = 'lab-wrap';
+    var st = load();
+
+    var bar = document.createElement('div');
+    bar.className = 'lab-bar';
+    bar.innerHTML = '<b>' + F.title + '</b>'
+      + '<span id="labscore-' + F.section + '"></span>'
+      + '<button class="lab-btn" data-act="judge">判定</button>'
+      + '<button class="lab-btn" data-act="exps">显示解析</button>'
+      + '<button class="lab-btn" data-act="reset">重做</button>'
+      + (F.review && F.review.length
+          ? '<button class="lab-btn" data-act="review">回炉（看本节依赖的 '
+            + F.review.length + ' 个知识点）</button>'
+          : '');
+    wrap.appendChild(bar);
+
+    var body = document.createElement('div');
+    wrap.appendChild(body);
+
+    var foot = document.createElement('div');
+    foot.className = 'lab-foot';
+    foot.textContent = '判定用的是教材同一套引擎（registry.js + NN 领域插件），'
+      + '原样内联，无外部请求。进度存在本机浏览器，可在首页导出为文件。';
+    wrap.appendChild(foot);
+
+    F.questions.forEach(function (q, i) { body.appendChild(renderQuestion(q, i, F.questions.length)); });
+
+    function refresh() {
+      var n = 0;
+      F.questions.forEach(function (q) { if (st[q.id]) n++; });
+      var s = document.getElementById('labscore-' + F.section);
+      if (s) s.textContent = '（已过 ' + n + ' / ' + F.questions.length + '）';
+    }
+    refresh();
+
+    wrap.addEventListener('click', function (ev) {
+      var b = ev.target.closest('button[data-act]');
+      if (!b) return;
+      var act = b.getAttribute('data-act');
+
+      if (act === 'judge') {
+        var allOk = true;
+        F.questions.forEach(function (q) {
+          var picked = wrap.querySelector('input[name="' + q.id + '"]:checked');
+          var r = judgeChoice(q, picked ? picked.value : null);
+          var host = document.getElementById('labq-' + q.id);
+          var box = document.getElementById('labv-' + q.id);
+          host.classList.remove('lab-done', 'lab-bad');
+          if (r.pass) {
+            host.classList.add('lab-done');
+            box.innerHTML = '<span style="color:var(--lab-ok)">✓ 通过</span>';
+            showExps(q, host);
+          } else {
+            host.classList.add('lab-bad');
+            box.innerHTML = '<span style="color:var(--lab-no)">✗ ' + (r.reason || '未通过') + '</span>';
+            allOk = false;
+          }
+          st[q.id] = !!r.pass;
+        });
+        save(st); refresh();
+        if (allOk) { /* 全对：不动用户滚动位置（§五.5 禁止把用户拽回去） */ }
+      } else if (act === 'exps') {
+        F.questions.forEach(function (q) {
+          showExps(q, document.getElementById('labq-' + q.id));
+        });
+      } else if (act === 'review') {
+        // 回炉：把本节依赖的知识点定义原文就地调出来（不跳页）。
+        // 内容在点击那一刻才渲染（界面母规范 §七.1）。
+        var host = wrap.querySelector('.lab-review');
+        if (host) { host.remove(); return; }
+        host = document.createElement('div');
+        host.className = 'lab-review';
+        (F.review || []).forEach(function (it) {
+          var d = document.createElement('div');
+          d.className = 'lab-review-item';
+          d.innerHTML = '<b>' + it.id + '　' + it.kind + '　' + it.title + '</b>'
+            + it.body.replace(/&/g,'&amp;').replace(/</g,'&lt;')
+                .split(/\n\n+/).map(function(p){
+                  return '<p>' + p.replace(/\n/g,'<br>') + '</p>'; }).join('');
+          host.appendChild(d);
+        });
+        var tip = document.createElement('div');
+        tip.className = 'lab-review-tip';
+        tip.textContent = '上面是本节依赖的知识点原文。看完再点一次「回炉」收起。';
+        host.appendChild(tip);
+        bar.insertAdjacentElement('afterend', host);
+      } else if (act === 'reset') {   /* 兼容旧名：与 redo 同义 */
+        if (!confirm('清空本节作答记录？')) return;
+        F.questions.forEach(function (q) { delete st[q.id]; });
+        save(st);
+        wrap.querySelectorAll('input[type=radio]').forEach(function (i) { i.checked = false; });
+        wrap.querySelectorAll('.lab-q').forEach(function (h) { h.classList.remove('lab-done', 'lab-bad'); });
+        wrap.querySelectorAll('.lab-verdict').forEach(function (v) { v.innerHTML = ''; });
+        wrap.querySelectorAll('.lab-exps').forEach(function (v) { v.remove(); });
+        refresh();
+      }
+    });
+
+    // 恢复已通过的题：只标状态，不预先展开解析
+    F.questions.forEach(function (q) {
+      if (st[q.id]) {
+        var host = document.getElementById('labq-' + q.id);
+        if (host) host.classList.add('lab-done');
+      }
+    });
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', mount);
+  } else { mount(); }
+})();
+
+})({"anchor": "lab-L00-S7", "section": "L00-S7", "title": "自测 · L00-S7", "questions": [{"id": "L00-S7-例1", "kind": "choice", "difficulty": "基础", "text": "`a = np.arange(6).reshape(2,3)`。`a.T.reshape(6)` 与 `a.reshape(6)` 是同一个序列吗？", "options": ["是，两者都把 6 个数排成一维", "不是：`a.T` 是 `[[0,3],[1,4],[2,5]]`，展平后是 `[0,3,1,4,2,5]`", "不是：`a.T` 会打乱数据，无法还原", "是，因为 reshape 不搬动数据"], "correct": 1, "explains": ["✗ 两者元素顺序不同。", "✓ `reshape` 保持行优先的展平顺序，`transpose` 改变轴的顺序。先转置再展平，得到转置后的读法。", "✗ 转置是确定的轴交换，不是随机打乱。", "✗ 「不搬动数据」是对的，但 `a.T` 已经把读法换掉了。"]}, {"id": "L00-S7-例2", "kind": "choice", "difficulty": "中等", "text": "形状 `(2,3)` 的数组，`reshape(3,2)` 与 `.T`，哪个会改变元素在内存里的顺序？", "options": ["两者都不改变", "reshape 改变，转置不改变", "两者都改变", "reshape 不改变，转置改变内存顺序"], "correct": 0, "explains": ["✓ `reshape` 只换读法；`.T` 交换两个轴的下标，返回的是视图，也不搬动数据。真正搬数据的是 `np.ascontiguousarray(a.T)` 这类显式调用。", "✗ `reshape` 不改变数据。", "✗ 两者都可以是视图。", "✗ 转置返回视图，不复制。"]}, {"id": "L00-S7-例3", "kind": "choice", "difficulty": "综合", "text": "A1 的 `layers.py` 里要把 `(N,C,H,W)` 的特征图整理成 `(N, C*H*W)` 以接全连接层。哪一句对？", "options": ["`x.reshape(N, -1)` 就够，因为按行优先展平会把通道与空间维依次排开", "必须先用 `transpose` 换成 `(N,H,W,C)` 再 reshape", "必须先用 `transpose` 换成 `(C,H,W,N)` 再 reshape", "`reshape` 与 `transpose` 在这个场景下效果一样"], "correct": 0, "explains": ["✓ 特征图本来就连续，按行优先展平即把 C、H、W 依次排开。`-1` 由 NumPy 推出。官方实现的注释也是这个意思。", "✗ 那是从 NHWC 格式转过来时才需要。", "✗ 换轴序会把批次挪到最后，语义完全变了。", "✗ 两者语义不同。"]}], "review": [{"id": "L00-S1-K1", "kind": "定义", "title": "形状", "body": "<strong>形状（shape）</strong> 是数组每一维长度组成的元组，记作 `(d₀, d₁, …, dₙ₋₁)`，其中 `n` 是维数，`dᵢ` 是第 `i` 维的长度。\n\n三个形状 `(3,)`、`(3,1)`、`(1,3)` 互不相同：`(3,)` 是一维，后两个是二维。删掉这个区分，`L00-S2` 的广播规则就不成立。\n\n<strong>Shape</strong> is the tuple of the lengths of every dimension of an array, written `(d₀, d₁, …, dₙ₋₁)`, where `n` is the number of dimensions and `dᵢ` is the length of dimension `i`.\n\nThe three shapes `(3,)`, `(3,1)`, and `(1,3)` are distinct: `(3,)` is one-dimensional, the other two are two-dimensional. Drop this distinction and the broadcasting rule in `L00-S2` no longer holds."}]});</script>

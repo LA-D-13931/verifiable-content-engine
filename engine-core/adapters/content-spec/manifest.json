@@ -3,26 +3,174 @@
   "kind": "adapter",
   "title": "内容规范域",
   "evidence": "structural",
-  "note": "第三个域：内容与呈现层的规范检查。检查分两处——跨站通用且需要证书的规则在本目录自研；站点特有且已有成熟实现的走 delegates 委托。详见 ../../API_如何新增科目.md 与仓库根 AGENTS.md。",
+  "note": "第三个域：内容与呈现层的规范检查。跨站通用且需要证书的规则在本目录自研；站点特有且已有成熟实现的走 delegates 委托。详见仓库根 AGENTS.md 与 给AI助手_约定.md。",
   "sources": [
     {
-      "id": "renzhi-l00s1",
-      "title": "人智与图识学习 · L00-S1 自测（真实坏例的只读副本）",
-      "origin": "/Users/a18760/Desktop/人智与图识学习工作区/book/_static/labs/",
+      "id": "renzhi-foundation",
+      "title": "人智与图识 · L00 基础自测（8 个课时 × 2 条渲染路径 = 16 个真实产物）",
+      "origin": "/Users/a18760/Desktop/人智与图识学习工作区",
       "markup": "backtick",
+      "render": "runtime",
+      "render_note": "产物是**运行时**用 JS 从内联 JSON 生成 DOM 的：静态 HTML 里既没有可见文本、也没有类名。所以「扫静态文本里的原始标记」这类判据在这里会**空过=假绿**——必须判「渲染路径有没有实现该能力」。",
       "data": "fixtures/renzhi/foundation-index.json",
+      "capability_refs": {
+        "markdown-code": {
+          "locate_by_role": {
+            "fragment": {
+              "path": "scripts/build-lab-fragments.py",
+              "lines": "505-515",
+              "what": "片段渲染路径：把 q.text 原样塞进 <div class=\"lab-text\">，没有走 md()（见 :514）"
+            },
+            "standalone": {
+              "path": "scripts/build-lab-fragments.py",
+              "lines": "765-772",
+              "what": "独立页渲染路径：同一脚本的另一条分支"
+            }
+          },
+          "reference": {
+            "path": "book/_static/labs/lab-L00-S1.html",
+            "lines": "703-706",
+            "what": "独立页里的 md() 实现（/`([^`]+)`/ → <code>），可直接照搬"
+          },
+          "fix_hint": "把 md() 接进片段渲染路径；同时把 FRAGMENT_CSS（scripts/build-lab-fragments.py:74）注入片段产物——现在它只被注入独立页（:767），这是「选项粘连」那一半的根因。改完重跑生成器。",
+          "generalize": "同一份数据存在多条渲染路径时，任一能力只在其中一条实现 → 必然分叉。同类还有：样式前缀、类名覆盖、判题入口、语言标记。"
+        },
+        "quiz-entry": {
+          "locate_by_role": {
+            "fragment": {
+              "path": "scripts/build-lab-fragments.py",
+              "lines": "755-759",
+              "what": "片段产物的写出处"
+            },
+            "standalone": {
+              "path": "scripts/build-lab-fragments.py",
+              "lines": "765-772",
+              "what": "独立页产物的写出处"
+            }
+          },
+          "reference": {
+            "path": "book/_static/labs/lab-L00-S1.html",
+            "lines": "1-60",
+            "what": "独立页把判题内核内联在页面里，片段同样内联"
+          },
+          "fix_hint": "令片段路径也内联判题内核（片段当前已内联，可作对照）。",
+          "generalize": "任何「可交互产物」都必须自带判题入口，否则页面能看不能判。"
+        }
+      },
       "products": [
         {
-          "id": "fragment",
+          "id": "frag-L00-S1",
           "path": "fixtures/renzhi/frag-L00-S1.html",
+          "pair": "L00-S1",
+          "role": "fragment",
           "expect": "fail",
-          "note": "注入正文的片段：没有 md() 转换、<style> 块 0 个 → 反引号字面显示、选项按 inline 挤成一行。这是真实截图里的坏例。"
+          "note": "注入正文的片段：<style> 块 0 个、无 md() → 反引号字面显示、选项按 inline 挤成一行"
         },
         {
-          "id": "standalone",
+          "id": "lab-L00-S1",
           "path": "fixtures/renzhi/lab-L00-S1.html",
+          "pair": "L00-S1",
+          "role": "standalone",
           "expect": "pass",
-          "note": "同一份数据的独立小页：有 md() 与 2 个 <style> 块 → 渲染正常。"
+          "note": "同数据的独立小页：2 个 <style> 块 + md() → 渲染正常"
+        },
+        {
+          "id": "frag-L00-S2",
+          "path": "fixtures/renzhi/frag-L00-S2.html",
+          "pair": "L00-S2",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S2",
+          "path": "fixtures/renzhi/lab-L00-S2.html",
+          "pair": "L00-S2",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S3",
+          "path": "fixtures/renzhi/frag-L00-S3.html",
+          "pair": "L00-S3",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S3",
+          "path": "fixtures/renzhi/lab-L00-S3.html",
+          "pair": "L00-S3",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S4",
+          "path": "fixtures/renzhi/frag-L00-S4.html",
+          "pair": "L00-S4",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S4",
+          "path": "fixtures/renzhi/lab-L00-S4.html",
+          "pair": "L00-S4",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S5",
+          "path": "fixtures/renzhi/frag-L00-S5.html",
+          "pair": "L00-S5",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S5",
+          "path": "fixtures/renzhi/lab-L00-S5.html",
+          "pair": "L00-S5",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S6",
+          "path": "fixtures/renzhi/frag-L00-S6.html",
+          "pair": "L00-S6",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S6",
+          "path": "fixtures/renzhi/lab-L00-S6.html",
+          "pair": "L00-S6",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S7",
+          "path": "fixtures/renzhi/frag-L00-S7.html",
+          "pair": "L00-S7",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S7",
+          "path": "fixtures/renzhi/lab-L00-S7.html",
+          "pair": "L00-S7",
+          "role": "standalone",
+          "expect": "pass"
+        },
+        {
+          "id": "frag-L00-S8",
+          "path": "fixtures/renzhi/frag-L00-S8.html",
+          "pair": "L00-S8",
+          "role": "fragment",
+          "expect": "fail"
+        },
+        {
+          "id": "lab-L00-S8",
+          "path": "fixtures/renzhi/lab-L00-S8.html",
+          "pair": "L00-S8",
+          "role": "standalone",
+          "expect": "pass"
         }
       ]
     }
@@ -33,7 +181,7 @@
       "title": "渲染能力（反引号转换 / 判题入口）",
       "severity": "gate",
       "fn": "checks_render_capability:run",
-      "note": "同一份数据的两条渲染路径漂移过：一条有 Markdown 转换、一条没有。判据是「按数据要求，每条路径都必须具备必需能力」。"
+      "note": "同一份数据的两条渲染路径漂移过：一条有 Markdown 转换、一条没有。判据是「按数据要求，每条路径都必须具备必需能力」。失败时同时给出 定位 / 参照 / 修法 / 泛化 —— 让接手者能自己修，而不是只收到一个 fail。"
     }
   ],
   "delegates": []
