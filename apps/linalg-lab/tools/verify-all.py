@@ -78,6 +78,13 @@ def last_meaningful_line(text):
 
 def main():
     argv = set(sys.argv[1:])
+
+    # 只报"一共有多少项检查"，供交付闸门核对材料（申报书/PPT/海报）里的数字是否过期。
+    # 不跑任何检查，所以很快。由来：项数从 19 变 20 时材料里有 11 个文件写着旧数字，
+    # 全靠人肉同步——"同步漏一处"正是本项目最典型的文档缺陷。
+    if '--count' in argv:
+        print(len(CHECKS))
+        return 0
     want_browser = bool(argv & {'--with-browser', '--all'})
     want_adapter = bool(argv & {'--with-adapter', '--all'})
 
