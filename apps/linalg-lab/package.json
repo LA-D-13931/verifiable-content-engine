@@ -5,5 +5,9 @@
   "description": "线性代数交互实验台（原型）",
   "devDependencies": {
     "puppeteer-core": "^25.11.0"
+  },
+  "scripts": {
+    "verify": "python3 tools/verify-all.py",
+    "verify:all": "python3 tools/verify-all.py --all"
   }
 }

@@ -478,7 +478,11 @@ def check_theme_tokens(problems, notes):
     r = subprocess.run([sys.executable, gen, '--check'],
                        capture_output=True, text=True, cwd=SITE)
     if r.returncode != 0:
-        out = (r.stdout or '').strip().split('\n')
+        # ⚠️ 必须连 stderr 一起取：gen-themes.py 用 SystemExit 报「找不到讲义站 token」，
+        # 那句话只在 stderr。只读 stdout 会把它吞掉，于是 verify-all.py 无法把它归入
+        # 「环境不足」—— 独立副本上就会显示成**红失败**（而它其实是缺外部前置条件）。
+        out = ((r.stdout or '') + (r.stderr or '')).strip().split('\n')
+        out = [x for x in out if x.strip()]
         problems.append('主题 token 需要重新生成：%s —— 运行 python3 tools/gen-themes.py'
                         % (out[-1] if out else '未知原因'))
 
