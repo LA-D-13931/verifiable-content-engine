@@ -85,6 +85,24 @@ def main():
     if '--count' in argv:
         print(len(CHECKS))
         return 0
+
+    # 材料里会写"自检 N 项 / 引擎本体 N 行 / 工具 N 行"——这些数字最容易过期，
+    # 所以由引擎自己报出来（口径写在这里，别处不许再各算一套），供交付闸门核对。
+    # 口径：引擎本体**不含 fixtures/**（夹具是从别的项目复制来的产物，不是引擎代码）。
+    if '--stats' in argv:
+        import glob as _glob
+        import json as _json
+        # 用 paths.py 里已有的常量，别自己再推一遍路径（我第一次就推错了一层，返回 0 行）
+        eng = [f for f in _glob.glob(os.path.join(ENGINE, '**', '*.py'), recursive=True)
+               + _glob.glob(os.path.join(ENGINE, '**', '*.js'), recursive=True)
+               if os.sep + 'fixtures' + os.sep not in f]
+        eng_lines = sum(sum(1 for _ in open(f, encoding='utf-8', errors='replace')) for f in eng)
+        tools = (_glob.glob(os.path.join(HERE, '*.py')) + _glob.glob(os.path.join(HERE, '*.mjs'))
+                 + _glob.glob(os.path.join(HERE, '*.js')))
+        tool_lines = sum(sum(1 for _ in open(f, encoding='utf-8', errors='replace')) for f in tools)
+        print(_json.dumps({'checks': len(CHECKS), 'engine_lines': eng_lines,
+                           'tool_lines': tool_lines, 'tool_scripts': len(tools)}, ensure_ascii=False))
+        return 0
     want_browser = bool(argv & {'--with-browser', '--all'})
     want_adapter = bool(argv & {'--with-adapter', '--all'})
 
