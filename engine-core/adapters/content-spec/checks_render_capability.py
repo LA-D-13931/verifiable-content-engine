@@ -1,4 +1,6 @@
 #!/usr/bin/env python3
+
+from common import resolve, triple
 # -*- coding: utf-8 -*-
 """渲染能力检查：产物是否具备「其数据所要求」的渲染能力。
 
@@ -69,8 +71,8 @@ def _advice_for(cap, source, product):
 
 def run(product, source, base):
     """对**一个产物**做检查：数据要求的能力，它是否都具备。"""
-    data_path = os.path.join(base, source['data'])
-    prod_path = os.path.join(base, product['path'])
+    data_path = resolve({'path': source['data']}, base)
+    prod_path = resolve(product, base)
     if not os.path.isfile(data_path):
         return {'pass': False, 'reason': '找不到数据源 %s' % source['data'], 'certificate': None}
     if not os.path.isfile(prod_path):

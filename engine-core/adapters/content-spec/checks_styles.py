@@ -11,7 +11,7 @@ import json
 import os
 import re
 
-from common import triple
+from common import resolve, triple
 
 
 def _read(path):
@@ -33,7 +33,7 @@ def style_coverage(artifact, source, base):
     这条检查返回「不适用」而不是「通过」——那种情况下静态扫类名是在**空集上通过**，
     也就是假绿。真实坏例正是如此：片段 HTML 去掉 `<script>` 后不含任何类名与文本。
     """
-    apath = os.path.join(base, artifact['path'])
+    apath = resolve(artifact, base)
     if not os.path.isfile(apath):
         return triple(False, '找不到产物 %s' % artifact['path'])
     html = _read(apath)
@@ -77,7 +77,7 @@ def undefined_style_token(artifact, source, base):
     注意范围：扫的是产物**全文**（含 `<script>`）——因为坏例里那句
     `var(--lab-no)` 正是由内联脚本在运行时拼进 HTML 的，只看静态标记会漏掉。
     """
-    apath = os.path.join(base, artifact['path'])
+    apath = resolve(artifact, base)
     if not os.path.isfile(apath):
         return triple(False, '找不到产物 %s' % artifact['path'])
     html = _read(apath)
@@ -129,7 +129,7 @@ def declared_value_vs_actual(artifact, source, base):
 
     判据：`declared_regex` 从渲染器源码里取声明值；`actual_key` 从数据文件里取实际值。
     """
-    spath = os.path.join(base, artifact['path'])
+    spath = resolve(artifact, base)
     dpath = os.path.join(base, source.get('data', ''))
     if not os.path.isfile(spath) or not os.path.isfile(dpath):
         return triple(False, '找不到渲染器源码或数据文件')

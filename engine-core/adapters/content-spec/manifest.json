@@ -227,7 +227,131 @@
         "STANDALONE_JS",
         "FRAGMENT_JS"
       ],
-      "capability_units_note": "**能力可比**的单元；与 render_units 不同——STANDALONE_TEMPLATE 是 HTML 模板，与 JS 单元不可比"
+      "capability_units_note": "**能力可比**的单元；与 render_units 不同——STANDALONE_TEMPLATE 是 HTML 模板，与 JS 单元不可比",
+      "identical_blocks": [
+        {
+          "name": "header-nav",
+          "regex": "<nav\\b[^>]*\\bclass=\"[^\"]*\\bheader-nav\\b[^\"]*\"[^>]*>.*?</nav>"
+        },
+        {
+          "name": "site-footer",
+          "regex": "<footer\\b[^>]*\\bclass=\"[^\"]*\\bsite-footer\\b[^\"]*\"[^>]*>.*?</footer>"
+        }
+      ]
+    },
+    {
+      "id": "gaoshu-site",
+      "title": "高等数学学习站（静态站点快照：19 章 + 根页面）",
+      "origin": "**跨项目夹具**：与静态内容适配器用同一个快照，位于审计工作区而不属于引擎仓库；不在位时检查报「环境不足」",
+      "artifacts": [
+        {
+          "id": "snapshot",
+          "kind": "site",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot",
+          "what": "章节页静态快照；导航与页脚由同一数据源生成（这是那站自己修过的根因）"
+        }
+      ],
+      "pages_glob": "chapters/ch[0-9]*.html",
+      "no_english_pages": [
+        "index.html",
+        "404.html"
+      ],
+      "bi_container_class": "bi",
+      "zh_marker": "class=\"zh\"",
+      "en_marker": "class=\"en\"",
+      "chinese_only_classes": [
+        "warn-box",
+        "exam-box",
+        "q-review"
+      ],
+      "identical_blocks": [
+        {
+          "name": "header-nav",
+          "regex": "<nav\\b[^>]*\\bclass=\"[^\"]*\\bheader-nav\\b[^\"]*\"[^>]*>.*?</nav>"
+        },
+        {
+          "name": "site-footer",
+          "regex": "<footer\\b[^>]*\\bclass=\"[^\"]*\\bsite-footer\\b[^\"]*\"[^>]*>.*?</footer>"
+        }
+      ],
+      "note": "内容即 HTML：题目、双语对照、编号全在页面里，没有 JSON 内容源",
+      "pages_glob_note": "**只取高数站的章节页**：同一目录下还有 6 个线代站页面（la*）与 1 个补充页（supp1），两者的 header-nav href 不同（../index.html vs ../linear-algebra.html）——混在一个页面集里会让\"逐字节一致\"永久假红。",
+      "chinese_only_note": "`example` **不再列入**：整站 1311 个 .example 里有 110 个含英文段——它是\"中英皆可\"的块，不是纯中文块。这条修正是实测逼出来的：只看夹具那一页（99 个全无英文）会得出相反结论。"
+    },
+    {
+      "id": "gaoshu-lang-mutant",
+      "title": "突变体源：语言策略（ch1 里删掉一个英文段）",
+      "origin": "**声明式突变**：从真实 ch1 的一个 .bi 容器里删掉最后一个英文段，用来反证 lang_policy",
+      "artifacts": [
+        {
+          "id": "mutant-lang",
+          "kind": "site",
+          "path": "fixtures/gaoshu-mutants",
+          "what": "两页一组的对照集：一页原样、一页带语言突变"
+        }
+      ],
+      "pages": [
+        "ch1.html",
+        "ch1.lang-mutant.html"
+      ],
+      "no_english_pages": [],
+      "bi_container_class": "bi",
+      "zh_marker": "class=\"zh\"",
+      "en_marker": "class=\"en\"",
+      "chinese_only_classes": [
+        "warn-box",
+        "exam-box",
+        "example",
+        "q-review"
+      ],
+      "identical_blocks": [
+        {
+          "name": "header-nav",
+          "regex": "<nav\\b[^>]*\\bclass=\"[^\"]*\\bheader-nav\\b[^\"]*\"[^>]*>.*?</nav>"
+        },
+        {
+          "name": "site-footer",
+          "regex": "<footer\\b[^>]*\\bclass=\"[^\"]*\\bsite-footer\\b[^\"]*\"[^>]*>.*?</footer>"
+        }
+      ]
+    },
+    {
+      "id": "gaoshu-nav-mutant",
+      "title": "突变体源：单一数据源（某页导航被单独改动）",
+      "origin": "**声明式突变**：在真实 ch1 的 header-nav 上插入一个属性，模拟\"这页导航被单独改过\"",
+      "artifacts": [
+        {
+          "id": "mutant-nav",
+          "kind": "site",
+          "path": "fixtures/gaoshu-mutants",
+          "what": "两页一组的对照集：一页原样、一页导航被改"
+        }
+      ],
+      "pages": [
+        "ch1.html",
+        "ch1.nav-mutant.html"
+      ],
+      "no_english_pages": [],
+      "bi_container_class": "bi",
+      "zh_marker": "class=\"zh\"",
+      "en_marker": "class=\"en\"",
+      "chinese_only_classes": [
+        "warn-box",
+        "exam-box",
+        "example",
+        "q-review"
+      ],
+      "identical_blocks": [
+        {
+          "name": "header-nav",
+          "regex": "<nav\\b[^>]*\\bclass=\"[^\"]*\\bheader-nav\\b[^\"]*\"[^>]*>.*?</nav>"
+        },
+        {
+          "name": "site-footer",
+          "regex": "<footer\\b[^>]*\\bclass=\"[^\"]*\\bsite-footer\\b[^\"]*\"[^>]*>.*?</footer>"
+        }
+      ]
     }
   ],
   "checks": [
@@ -286,6 +410,20 @@
       "applies_to": "source",
       "severity": "gate",
       "fn": "checks_source:capability_matrix"
+    },
+    {
+      "id": "lang-policy",
+      "title": "语言策略（双语容器段数 / 纯中文块 / 无英文页）",
+      "applies_to": "site",
+      "severity": "gate",
+      "fn": "checks_site:lang_policy"
+    },
+    {
+      "id": "single-source",
+      "title": "单一数据源（声明为一致的块必须逐字节相同）",
+      "applies_to": "site",
+      "severity": "gate",
+      "fn": "checks_site:single_source"
     }
   ],
   "delegates": [],
@@ -343,6 +481,15 @@
       "found_by": "盲测",
       "needed_check": "两条渲染路径的能力矩阵（哪些能力有/无）必须显式声明并比对，而不是靠人来发现",
       "check_id": "capability-matrix"
+    },
+    {
+      "id": "footer-wording-drift",
+      "status": "未修（在**高数站**里，本域只报告不代改）",
+      "what": "高数站 12 个章节页里，页脚有 2 个版本：ch1.html 写「中英**对照**」，其余 11 页写「中英**逐行对照**」——同一处文本出现两种措辞，说明至少有一页没有被同一数据源重新生成过",
+      "evidence": "01_活工程/线代_两站对照/snapshot/chapters/ch1.html vs ch10.html（site-footer 块 sha256 前 8 位 008165xx vs b81a5cxx）",
+      "found_by": "**content-spec 域在真实站点上的首跑**（不是突变体、不是我先验知识）",
+      "check_id": "single-source",
+      "note": "这正是那站自己台账里\"导航被每页各写一份\"的同类残留：改成单一数据源之后，仍有一页没跟上。判据是\"声明为必须逐字节相同的块在全部页面一致\"。"
     }
   ],
   "expectations": {
@@ -415,7 +562,18 @@
     },
     "capability-matrix": {
       "renderer": "fail"
+    },
+    "lang-policy": {
+      "snapshot": "pass",
+      "mutant-lang": "fail",
+      "mutant-nav": "pass"
+    },
+    "single-source": {
+      "snapshot": "fail",
+      "mutant-lang": "pass",
+      "mutant-nav": "fail"
     }
   },
-  "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。"
+  "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
+  "sources_note": "源 2 与两个突变体源都是**站点级**（输入是一组页面）：真站快照来自工作区，突变体自足于 fixtures/。这样\"检查能不能抓\"就有真实站点 + 声明式突变两重反证。"
 }

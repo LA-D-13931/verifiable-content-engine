@@ -16,7 +16,7 @@ import json
 import os
 import re
 
-from common import triple
+from common import resolve, triple
 
 
 
@@ -33,7 +33,7 @@ def _collect(obj, out):
 
 
 def answer_key(artifact, source, base):
-    path = os.path.join(base, artifact['path'])
+    path = resolve(artifact, base)
     if not os.path.isfile(path):
         return triple(False, '找不到数据文件 %s' % artifact['path'])
     try:

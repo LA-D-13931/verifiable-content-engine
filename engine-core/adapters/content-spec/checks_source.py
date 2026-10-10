@@ -10,7 +10,7 @@
 import os
 import re
 
-from common import triple
+from common import resolve, triple
 
 
 def _read(path):
@@ -41,7 +41,7 @@ def field_coverage(artifact, source, base):
     判据形状（不猜）：裸插值写作 `+ <字段> +`；走过转换的写作 `md(<字段>)`。
     声明在 manifest 的 `text_fields`。
     """
-    path = os.path.join(base, artifact['path'])
+    path = resolve(artifact, base)
     if not os.path.isfile(path):
         return triple(False, '找不到渲染器源码 %s' % artifact['path'])
     src = _read(path)
@@ -87,7 +87,7 @@ def capability_matrix(artifact, source, base):
     （能力探针是**粗粒度**的：例如"HTML 转义"只要单元里出现过转义调用就算有，
       精确到字段的判定由 field-coverage 负责。）
     """
-    path = os.path.join(base, artifact['path'])
+    path = resolve(artifact, base)
     if not os.path.isfile(path):
         return triple(False, '找不到渲染器源码 %s' % artifact['path'])
     src = _read(path)
@@ -153,7 +153,7 @@ def selfcheck_path_coverage(artifact, source, base):
     判据：模块级的渲染单元标识符（`*_TEMPLATE` / `*_JS` / `*_HTML`）
     必须都出现在自检的 `re.findall(..., <单元>)` 里。
     """
-    path = os.path.join(base, artifact['path'])
+    path = resolve(artifact, base)
     if not os.path.isfile(path):
         return triple(False, '找不到渲染器源码 %s' % artifact['path'])
     src = _read(path)
