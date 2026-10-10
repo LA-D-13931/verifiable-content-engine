@@ -196,6 +196,12 @@
           "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S1.forbidden-mutant.html",
           "what": "**突变体**：注入 3 条禁止模式 + 1 处同作用域重复选择器，用来反证纪律类检查"
+        },
+        {
+          "id": "frag-L00-S1.orphan-class",
+          "kind": "product",
+          "path": "fixtures/renzhi/frag-L00-S1.orphan-class.html",
+          "what": "**突变体**：静态标记里的 orphan-xyz 类名没有任何样式规则，用来反证类名覆盖"
         }
       ],
       "text_fields": [
@@ -495,6 +501,13 @@
           "path": "fixtures/gaoshu-mutants/ch6.volume-mutant.html",
           "baseline_from": "page-ch6.html",
           "what": "**突变体**：从真实 ch6 删掉 13 个散文段落（可见文本 −3252 字，阈值 949），测验块原样保留——所以它只证伪\"体量回退\"，不该触发\"编号契约\""
+        },
+        {
+          "id": "ch6.numbering-mutant",
+          "kind": "product",
+          "path": "fixtures/gaoshu-mutants/ch6.numbering-mutant.html",
+          "baseline_from": "page-ch6.html",
+          "what": "**突变体**：把 ch6 的 ch6-2 改成 ch6-9 → 编号跳号，用来反证编号契约"
         }
       ],
       "forbidden_patterns": [
@@ -801,6 +814,7 @@
     "render-capability": {
       "frag-L00-S1": "fail",
       "frag-L00-S1.forbidden-mutant": "fail",
+      "frag-L00-S1.orphan-class": "fail",
       "frag-L00-S2": "fail",
       "frag-L00-S3": "fail",
       "frag-L00-S4": "fail",
@@ -820,6 +834,7 @@
     "undefined-style-token": {
       "frag-L00-S1": "fail",
       "frag-L00-S1.forbidden-mutant": "fail",
+      "frag-L00-S1.orphan-class": "fail",
       "frag-L00-S2": "fail",
       "frag-L00-S3": "fail",
       "frag-L00-S4": "fail",
@@ -852,6 +867,7 @@
     "style-coverage": {
       "frag-L00-S1": "skip",
       "frag-L00-S1.forbidden-mutant": "skip",
+      "frag-L00-S1.orphan-class": "fail",
       "frag-L00-S2": "skip",
       "frag-L00-S3": "skip",
       "frag-L00-S4": "skip",
@@ -882,9 +898,11 @@
       "mutant-nav": "fail"
     },
     "forbidden-patterns": {
+      "ch6.numbering-mutant": "pass",
       "ch6.volume-mutant": "pass",
       "frag-L00-S1": "pass",
       "frag-L00-S1.forbidden-mutant": "fail",
+      "frag-L00-S1.orphan-class": "pass",
       "frag-L00-S2": "pass",
       "frag-L00-S3": "pass",
       "frag-L00-S4": "pass",
@@ -914,9 +932,11 @@
       "page-ch9.html": "pass"
     },
     "duplicate-selector": {
+      "ch6.numbering-mutant": "skip",
       "ch6.volume-mutant": "skip",
       "frag-L00-S1": "skip",
       "frag-L00-S1.forbidden-mutant": "fail",
+      "frag-L00-S1.orphan-class": "pass",
       "frag-L00-S2": "skip",
       "frag-L00-S3": "skip",
       "frag-L00-S4": "skip",
@@ -946,6 +966,7 @@
       "page-ch9.html": "skip"
     },
     "numbering-contract": {
+      "ch6.numbering-mutant": "fail",
       "ch6.volume-mutant": "pass",
       "page-ch1.html": "pass",
       "page-ch10.html": "pass",
@@ -961,9 +982,11 @@
       "page-ch9.html": "pass"
     },
     "content-volume-regression": {
+      "ch6.numbering-mutant": "pass",
       "ch6.volume-mutant": "fail",
       "frag-L00-S1": "pass",
       "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S1.orphan-class": "skip",
       "frag-L00-S2": "pass",
       "frag-L00-S3": "pass",
       "frag-L00-S4": "pass",

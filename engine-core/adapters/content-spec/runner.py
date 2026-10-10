@@ -148,6 +148,14 @@ def manifest_contract_problems(m):
         ev = c.get('evidence')
         if ev not in EVIDENCE_ENUM:
             bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
+    # C2：**未被证伪的检查不许进套件**——语料里必须至少有一个"它应当判红"的例子。
+    # 依据是台账 M5（检测器没校准就用来判断：假阳性 21 处、同一个正则陷阱犯 3 次）。
+    # 一条只会在好内容上通过的检查，无法区分"它没发现问题"和"它根本不看"。
+    exp = m.get('expectations') or {}
+    for c in m['checks']:
+        if not any(v == 'fail' for v in (exp.get(c['id']) or {}).values()):
+            bad.append('检查 %s 在语料里**没有反例**（没有期望为 fail 的产物）：未证伪的检查不许进套件'
+                       % c['id'])
     return bad
 
 
@@ -169,7 +177,7 @@ def main():
     m, results = run_all(only_source, only_check)
     problems = manifest_contract_problems(m)
     if problems:
-        print('清单契约不成立（C1）：')
+        print('清单契约不成立（C1 证据类型 / C2 必须能被反证）：')
         for x in problems:
             print('  ✗ %s' % x)
         return 1
