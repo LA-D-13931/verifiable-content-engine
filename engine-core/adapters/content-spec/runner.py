@@ -162,6 +162,8 @@ def manifest_contract_problems(m):
     # 一条只会在好内容上通过的检查，无法区分"它没发现问题"和"它根本不看"。
     exp = m.get('expectations') or {}
     for c in m['checks']:
+        if c.get('evidence') == 'human':
+            continue          # human 类不给机器判定，谈不上"被证伪"；改由 how_to_check 兜底（见 checks_human）
         if not any(v == 'fail' for v in (exp.get(c['id']) or {}).values()):
             bad.append('检查 %s 在语料里**没有反例**（没有期望为 fail 的产物）：未证伪的检查不许进套件'
                        % c['id'])
@@ -321,6 +323,9 @@ def main():
                 print('   - 缺期望：%s' % r['label'])
             return 1
         if not fails:
+            human = [r for r in results if r.get('evidence') == 'human']
+            if human and not quiet:
+                print('  ⚠ 另有 %d 条**需人工确认**（human 证据：机器不签字，不计入全绿）' % len(human))
             nf = sum(1 for r in results if r['expect'] == 'fail')
             np_ = sum(1 for r in results if r['expect'] == 'pass')
             ns = sum(1 for r in results if r['expect'] == 'skip')

@@ -419,7 +419,24 @@
       ],
       "note": "内容即 HTML：题目、双语对照、编号全在页面里，没有 JSON 内容源",
       "pages_glob_note": "**只取高数站的章节页**：同一目录下还有 6 个线代站页面（la*）与 1 个补充页（supp1），两者的 header-nav href 不同（../index.html vs ../linear-algebra.html）——混在一个页面集里会让\"逐字节一致\"永久假红。",
-      "chinese_only_note": "`example` **不再列入**：整站 1311 个 .example 里有 110 个含英文段——它是\"中英皆可\"的块，不是纯中文块。这条修正是实测逼出来的：只看夹具那一页（99 个全无英文）会得出相反结论。"
+      "chinese_only_note": "`example` **不再列入**：整站 1311 个 .example 里有 110 个含英文段——它是\"中英皆可\"的块，不是纯中文块。这条修正是实测逼出来的：只看夹具那一页（99 个全无英文）会得出相反结论。",
+      "human_review": [
+        {
+          "id": "figure-readability",
+          "what": "图示是否\"看得懂\"（台账里那堵撞了三次的墙）",
+          "how_to_check": "打开含图的页，遮住图注问自己\"这张图说明了什么\"；答不出即为不可读。（本站现已全站不配图；此项保留给将来重新引入图解时）"
+        },
+        {
+          "id": "bilingual-weight",
+          "what": "中英权重是否符合要求（除概念扩展、错/例题讲解、使用说明外应当相同）",
+          "how_to_check": "任选一节，逐段比较中英信息量：中文有而英文无（或反之）的段落数应为 0（声明豁免的类除外）"
+        },
+        {
+          "id": "narrow-screen-readability",
+          "what": "窄屏（320px）下公式与长行是否仍可读",
+          "how_to_check": "把窗口缩到 320px，检查有没有横向滚动条、公式是否被截断；（渲染量测能给出溢出 px，但\"读起来难不难受\"仍需人判）"
+        }
+      ]
     },
     {
       "id": "gaoshu-lang-mutant",
@@ -880,6 +897,17 @@
         "gaoshu-pages"
       ],
       "fn": "checks_text:dup_block"
+    },
+    {
+      "id": "human-review",
+      "title": "需人复核项（机器不签字）",
+      "applies_to": "site",
+      "severity": "advisory",
+      "evidence": "human",
+      "sources": [
+        "gaoshu-site"
+      ],
+      "fn": "checks_human:human_review"
     }
   ],
   "delegates": [
@@ -1263,6 +1291,9 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass"
+    },
+    "human-review": {
+      "snapshot": "skip"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
@@ -1276,7 +1307,7 @@
     ],
     "rule": "**每条检查必须声明证据类型**，否则门禁拒绝运行（C1）。",
     "why": "台账 M4：对自己不擅长的东西下结论（图像类判断不可靠仍给结论）。声明证据类型，就是把\"这个检查凭什么敢下结论\"写在明面上。",
-    "human": "`human` 类检查**不计入\"全绿\"**——它只能报\"需人复核\"，不能替人签字。",
+    "human": "**豁免 C2**（它不给机器判定，谈不上被证伪）；作为交换，每条人工项必须声明 how_to_check（复核判据），否则判红。",
     "render": "需要浏览器量测的判据（间距/溢出/点击目标/对比度/锚点/高亮）属于这一类，尚未实现。"
   }
 }
