@@ -286,6 +286,17 @@
           "resolve": "workspace",
           "path": "01_活工程/线代_两站对照/snapshot",
           "what": "章节页静态快照；导航与页脚由同一数据源生成（这是那站自己修过的根因）"
+        },
+        {
+          "id": "delegate-numbering",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-numbering.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 60,
+          "what": "**首个真实委托**：站点自有的编号一致性检查器（中英两侧编号一一对应、Property 残留为 0）",
+          "why": "站点特有口径 + 已有成熟实现 → Q13 的委托条件成立"
         }
       ],
       "pages_glob": "chapters/ch[0-9]*.html",
@@ -527,6 +538,44 @@
         "max_drop_chars": 300,
         "note": "与基线相比：可见文本量下降超过 max(300 字, 1%) 即报。基线由 runner.py --baseline 显式重算。"
       }
+    },
+    {
+      "id": "delegates-selftest",
+      "title": "委托机制的自检夹具",
+      "origin": "**机制夹具**，不是真实站点：用来反证委托的四种走向",
+      "artifacts": [
+        {
+          "id": "delegate-ok",
+          "kind": "delegate",
+          "path": "fixtures/delegates/ok.py",
+          "read_only": true,
+          "timeout": 30,
+          "what": "总是退出 0 → 判定应通过"
+        },
+        {
+          "id": "delegate-bad",
+          "kind": "delegate",
+          "path": "fixtures/delegates/bad.py",
+          "read_only": true,
+          "timeout": 30,
+          "what": "总是退出 1 → 判定应失败（反证用）"
+        },
+        {
+          "id": "delegate-unreadonly",
+          "kind": "delegate",
+          "path": "fixtures/delegates/ok.py",
+          "timeout": 30,
+          "what": "**未声明 read_only**：检查必须拒绝执行（守卫自检）"
+        },
+        {
+          "id": "delegate-missing",
+          "kind": "delegate",
+          "path": "fixtures/delegates/不存在.py",
+          "read_only": true,
+          "timeout": 30,
+          "what": "脚本不在位 → 三态：不适用"
+        }
+      ]
     }
   ],
   "checks": [
@@ -538,28 +587,32 @@
       "fn": "checks_render_capability:run",
       "sources": [
         "renzhi-foundation"
-      ]
+      ],
+      "evidence": "structural"
     },
     {
       "id": "field-coverage",
       "title": "字段覆盖（每个声明的文本字段都要走转换）",
       "applies_to": "source",
       "severity": "gate",
-      "fn": "checks_source:field_coverage"
+      "fn": "checks_source:field_coverage",
+      "evidence": "structural"
     },
     {
       "id": "selfcheck-path-coverage",
       "title": "自检覆盖面（每条渲染路径都要进自检）",
       "applies_to": "source",
       "severity": "advisory",
-      "fn": "checks_source:selfcheck_path_coverage"
+      "fn": "checks_source:selfcheck_path_coverage",
+      "evidence": "structural"
     },
     {
       "id": "declared-value-vs-actual",
       "title": "声明取值 vs 语料实际取值",
       "applies_to": "source",
       "severity": "gate",
-      "fn": "checks_styles:declared_value_vs_actual"
+      "fn": "checks_styles:declared_value_vs_actual",
+      "evidence": "structural"
     },
     {
       "id": "undefined-style-token",
@@ -569,14 +622,16 @@
       "fn": "checks_styles:undefined_style_token",
       "sources": [
         "renzhi-foundation"
-      ]
+      ],
+      "evidence": "structural"
     },
     {
       "id": "answer-key",
       "title": "答案键 ↔ 解析一致",
       "applies_to": "data",
       "severity": "gate",
-      "fn": "checks_data:answer_key"
+      "fn": "checks_data:answer_key",
+      "evidence": "structural"
     },
     {
       "id": "style-coverage",
@@ -586,42 +641,48 @@
       "fn": "checks_styles:style_coverage",
       "sources": [
         "renzhi-foundation"
-      ]
+      ],
+      "evidence": "structural"
     },
     {
       "id": "capability-matrix",
       "title": "渲染能力矩阵（未声明的分叉）",
       "applies_to": "source",
       "severity": "gate",
-      "fn": "checks_source:capability_matrix"
+      "fn": "checks_source:capability_matrix",
+      "evidence": "structural"
     },
     {
       "id": "lang-policy",
       "title": "语言策略（双语容器段数 / 纯中文块 / 无英文页）",
       "applies_to": "site",
       "severity": "gate",
-      "fn": "checks_site:lang_policy"
+      "fn": "checks_site:lang_policy",
+      "evidence": "structural"
     },
     {
       "id": "single-source",
       "title": "单一数据源（声明为一致的块必须逐字节相同）",
       "applies_to": "site",
       "severity": "gate",
-      "fn": "checks_site:single_source"
+      "fn": "checks_site:single_source",
+      "evidence": "structural"
     },
     {
       "id": "forbidden-patterns",
       "title": "声明的禁止模式",
       "applies_to": "product",
       "severity": "gate",
-      "fn": "checks_forbidden:forbidden_patterns"
+      "fn": "checks_forbidden:forbidden_patterns",
+      "evidence": "structural"
     },
     {
       "id": "duplicate-selector",
       "title": "同作用域重复选择器 / 色值合法性",
       "applies_to": "product",
       "severity": "gate",
-      "fn": "checks_forbidden:duplicate_selector"
+      "fn": "checks_forbidden:duplicate_selector",
+      "evidence": "structural"
     },
     {
       "id": "content-volume-regression",
@@ -632,7 +693,8 @@
         "gaoshu-pages",
         "renzhi-foundation"
       ],
-      "fn": "checks_regression:content_volume_regression"
+      "fn": "checks_regression:content_volume_regression",
+      "evidence": "structural"
     },
     {
       "id": "numbering-contract",
@@ -642,10 +704,26 @@
       "sources": [
         "gaoshu-pages"
       ],
-      "fn": "checks_numbering:numbering_contract"
+      "fn": "checks_numbering:numbering_contract",
+      "evidence": "structural"
+    },
+    {
+      "id": "delegate",
+      "title": "委托（站点自有脚本，退出码即结论）",
+      "applies_to": "delegate",
+      "severity": "gate",
+      "fn": "checks_delegate:run_delegate",
+      "evidence": "external"
     }
   ],
-  "delegates": [],
+  "delegates": [
+    {
+      "policy": "通用且需要证书的判据 → 本域自研；**站点特有、且已有成熟实现** → 委托给站点脚本。",
+      "contract": "退出码即结论；必须声明 read_only 与 timeout；结论进入同一三元组契约。",
+      "why": "站点对自己的口径更熟，重写一套它的规矩只会分叉（这正是台账 M1 的病）。",
+      "first_use_case": "高数站 tools/check-numbering.py（中英编号一一对应）"
+    }
+  ],
   "discovered_defects": [
     {
       "id": "frag-field-coverage",
@@ -913,8 +991,27 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass"
+    },
+    "delegate": {
+      "delegate-ok": "pass",
+      "delegate-bad": "fail",
+      "delegate-unreadonly": "fail",
+      "delegate-missing": "skip",
+      "delegate-numbering": "pass"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
-  "sources_note": "源 2 与两个突变体源都是**站点级**（输入是一组页面）：真站快照来自工作区，突变体自足于 fixtures/。这样\"检查能不能抓\"就有真实站点 + 声明式突变两重反证。"
+  "sources_note": "源 2 与两个突变体源都是**站点级**（输入是一组页面）：真站快照来自工作区，突变体自足于 fixtures/。这样\"检查能不能抓\"就有真实站点 + 声明式突变两重反证。",
+  "evidence_policy": {
+    "enum": [
+      "structural",
+      "render",
+      "human",
+      "external"
+    ],
+    "rule": "**每条检查必须声明证据类型**，否则门禁拒绝运行（C1）。",
+    "why": "台账 M4：对自己不擅长的东西下结论（图像类判断不可靠仍给结论）。声明证据类型，就是把\"这个检查凭什么敢下结论\"写在明面上。",
+    "human": "`human` 类检查**不计入\"全绿\"**——它只能报\"需人复核\"，不能替人签字。",
+    "render": "需要浏览器量测的判据（间距/溢出/点击目标/对比度/锚点/高亮）属于这一类，尚未实现。"
+  }
 }

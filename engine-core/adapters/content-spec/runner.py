@@ -133,6 +133,29 @@ def print_advice(r):
               % os.path.relpath(os.path.abspath(__file__), os.getcwd()))
 
 
+EVIDENCE_ENUM = ('structural', 'render', 'human', 'external')
+
+
+def manifest_contract_problems(m):
+    """C1：清单本身的契约。
+
+    机制不用声明，**判据必须声明**——每条检查都要说清它凭什么敢下结论
+    （structural 静态结构 / render 渲染量测 / human 需人眼 / external 委托外部脚本）。
+    缺声明 = 拒绝运行：这样"这检查到底在测什么"不会变成一个没人回答的问题。
+    """
+    bad = []
+    for c in m['checks']:
+        ev = c.get('evidence')
+        if ev not in EVIDENCE_ENUM:
+            bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
+    return bad
+
+
+def evidence_summary(m):
+    import collections as _c
+    return dict(_c.Counter(c['evidence'] for c in m['checks']))
+
+
 def main():
     argv = sys.argv[1:]
     mode = 'report' if '--report' in argv else ('discover' if '--discover' in argv else 'selftest')
@@ -144,11 +167,20 @@ def main():
         return write_baseline(only_source)
 
     m, results = run_all(only_source, only_check)
+    problems = manifest_contract_problems(m)
+    if problems:
+        print('清单契约不成立（C1）：')
+        for x in problems:
+            print('  ✗ %s' % x)
+        return 1
     if not quiet:
         print('=== %s ===' % m['title'])
         print('来源 %d ｜ 检查 %d ｜ 产物 %d ｜ 判定 %d 条 ｜ 模式 %s'
               % (len(m['sources']), len(m['checks']),
                  sum(len(s['artifacts']) for s in m['sources']), len(results), mode))
+        ev = evidence_summary(m)
+        print('证据类型：' + ' ｜ '.join('%s %d' % (k, v) for k, v in sorted(ev.items()))
+              + '（human 类不计入全绿）')
         print('')
 
     if mode == 'discover':
