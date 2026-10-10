@@ -92,6 +92,17 @@ def run_delegate(artifact, source, base):
             'stdout_tail': out_tail, 'stderr_tail': err_tail}
     if p.returncode == 0:
         return triple(True, '', cert)
+    # 工具故障 ≠ 内容缺陷：脚本自己没跑起来（解释器/依赖/语法问题）时，
+    # 报「环境不足」而不是判红内容。判据看**合并输出**：
+    # 实测 check-missing-math 的结论在 stdout、check-chart-visual 的崩溃**也在 stdout**
+    # （"渲染失败：Node.js v24.17.0"）——只看 stderr 会漏。
+    CRASH_SIGNS = ('Traceback (most recent call last)', 'Node.js v', 'Cannot find module',
+                   'ModuleNotFoundError', 'command not found', 'SyntaxError')
+    both = (p.stdout or '') + '\n' + (p.stderr or '')
+    if any(sign in both for sign in CRASH_SIGNS):
+        return triple(None, '环境不足：委托脚本自己没跑起来（不是内容问题）——%s'
+                      % ((p.stderr or p.stdout or '').strip().split('\n')[-1][:120] or '见证书'),
+                      cert)
     return triple(False, '委托脚本判定不通过（退出码 %d）：%s'
                   % (p.returncode, (out_tail or err_tail or ['（无输出）'])[-1][:120]),
                   cert,

@@ -369,6 +369,29 @@
           "timeout": 60,
           "what": "文段风格统计（实测退出码 0）",
           "why": "站点自有口径 + 已有成熟实现 → Q13 委托条件成立；结论进同一契约"
+        },
+        {
+          "id": "delegate-figure",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-figure.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 120,
+          "what": "图形审查（台账 #16：AI 对图像判断不可靠 → 交给专门的图形检查工具）（实测退出码 0）",
+          "why": "图形类判断 AI 不可靠（台账失败模式 M4）→ 委托专门的检查工具"
+        },
+        {
+          "id": "delegate-chart-visual",
+          "kind": "delegate",
+          "resolve": "workspace",
+          "path": "01_活工程/线代_两站对照/snapshot/tools/check-chart-visual.py",
+          "cwd": "01_活工程/线代_两站对照/snapshot",
+          "read_only": true,
+          "timeout": 120,
+          "what": "图表视觉检查（同上，图形类归委托）（实测退出码 1）",
+          "why": "图形类判断 AI 不可靠（台账失败模式 M4）→ 委托专门的检查工具",
+          "expect_note": "实测**退出码 1 是因为它自己崩了**（stderr: 渲染失败：Node.js v24.17.0），不是内容缺陷 —— 检查判「环境不足」。补依赖或换渲染环境后应重新实测并改期望。"
         }
       ],
       "pages_glob": "chapters/ch[0-9]*.html",
@@ -686,6 +709,14 @@
           "read_only": true,
           "timeout": 30,
           "what": "脚本不在位 → 三态：不适用"
+        },
+        {
+          "id": "delegate-crash",
+          "kind": "delegate",
+          "path": "fixtures/delegates/crash.py",
+          "read_only": true,
+          "timeout": 30,
+          "what": "脚本自己崩（stderr 有崩栈）→ 必须判「环境不足」，不许当内容缺陷"
         }
       ]
     }
@@ -1166,7 +1197,10 @@
     },
     "delegate": {
       "delegate-bad": "fail",
+      "delegate-chart-visual": "skip",
+      "delegate-crash": "skip",
       "delegate-example-order": "pass",
+      "delegate-figure": "pass",
       "delegate-latex": "pass",
       "delegate-missing": "skip",
       "delegate-missing-math": "fail",
