@@ -51,6 +51,41 @@ def load_check(fn_ref):
     return getattr(__import__(mod_name), fn_name)
 
 
+def write_baseline(only_source=None):
+    """重算基线（`--baseline`）：把每个产物当前的体量计数写进 baseline.json。
+
+    **必须显式**：基线是"上次的测量"，回归检查靠它判断"少了没有"。
+    顺手改基线等于把回归检查关掉——所以只有这条命令会写它，且它打印改了哪些产物。
+    声明 `baseline_from` 的产物**跳过**：它的基线应当继承自另一个产物
+    （突变体就是这样：基线 = "未突变前那一份"的计数）。
+    """
+    from common import resolve
+    from checks_regression import metrics
+    m = load_manifest()
+    out, skipped = {}, []
+    for src in m['sources']:
+        if only_source and src['id'] != only_source:
+            continue
+        for art in src['artifacts']:
+            if art.get('kind', 'product') != 'product':
+                continue
+            if art.get('baseline_from'):
+                skipped.append(art['id'])
+                continue
+            p = resolve(art, BASE)
+            if os.path.isfile(p):
+                with open(p, encoding='utf-8', errors='replace') as f:
+                    out[art['id']] = metrics(f.read())
+    path = os.path.join(BASE, 'baseline.json')
+    with open(path, 'w', encoding='utf-8') as f:
+        json.dump({'note': '由 runner.py --baseline 生成；手改它等于关掉回归检查',
+                   'artifacts': out}, f, ensure_ascii=False, indent=2, sort_keys=True)
+    print('基线已重算：%d 个产物 → %s' % (len(out), path))
+    if skipped:
+        print('  （跳过继承基线的产物 %d 个：%s）' % (len(skipped), '、'.join(skipped[:4])))
+    return 0
+
+
 def run_all(only_source=None, only_check=None):
     m = load_manifest()
     out = []
@@ -104,6 +139,9 @@ def main():
     quiet = '--quiet' in argv
     only_source = argv[argv.index('--source') + 1] if '--source' in argv else None
     only_check = argv[argv.index('--check') + 1] if '--check' in argv else None
+
+    if '--baseline' in argv:
+        return write_baseline(only_source)
 
     m, results = run_all(only_source, only_check)
     if not quiet:

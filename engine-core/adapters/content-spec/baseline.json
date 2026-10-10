@@ -1,0 +1,150 @@
+{
+  "artifacts": {
+    "frag-L00-S1": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S1.forbidden-mutant": {
+      "elements": 30,
+      "paragraphs": 1,
+      "text_chars": 8
+    },
+    "frag-L00-S2": {
+      "elements": 28,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S3": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S4": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S5": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S6": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S7": {
+      "elements": 28,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "frag-L00-S8": {
+      "elements": 26,
+      "paragraphs": 0,
+      "text_chars": 0
+    },
+    "lab-L00-S1": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S2": {
+      "elements": 62,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S3": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S4": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S5": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S6": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S7": {
+      "elements": 62,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "lab-L00-S8": {
+      "elements": 60,
+      "paragraphs": 0,
+      "text_chars": 35
+    },
+    "page-ch1.html": {
+      "elements": 5139,
+      "paragraphs": 1918,
+      "text_chars": 256439
+    },
+    "page-ch10.html": {
+      "elements": 2394,
+      "paragraphs": 934,
+      "text_chars": 129936
+    },
+    "page-ch11.html": {
+      "elements": 3246,
+      "paragraphs": 1259,
+      "text_chars": 195578
+    },
+    "page-ch12.html": {
+      "elements": 3556,
+      "paragraphs": 1330,
+      "text_chars": 170530
+    },
+    "page-ch2.html": {
+      "elements": 2300,
+      "paragraphs": 870,
+      "text_chars": 103201
+    },
+    "page-ch3.html": {
+      "elements": 3861,
+      "paragraphs": 1296,
+      "text_chars": 187572
+    },
+    "page-ch4.html": {
+      "elements": 2604,
+      "paragraphs": 1061,
+      "text_chars": 140000
+    },
+    "page-ch5.html": {
+      "elements": 2680,
+      "paragraphs": 1080,
+      "text_chars": 165747
+    },
+    "page-ch6.html": {
+      "elements": 1516,
+      "paragraphs": 567,
+      "text_chars": 94918
+    },
+    "page-ch7.html": {
+      "elements": 3590,
+      "paragraphs": 1344,
+      "text_chars": 214466
+    },
+    "page-ch8.html": {
+      "elements": 3032,
+      "paragraphs": 1079,
+      "text_chars": 122863
+    },
+    "page-ch9.html": {
+      "elements": 4834,
+      "paragraphs": 1877,
+      "text_chars": 252316
+    }
+  },
+  "note": "由 runner.py --baseline 生成；手改它等于关掉回归检查"
+}

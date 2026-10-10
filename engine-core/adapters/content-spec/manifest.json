@@ -268,7 +268,12 @@
         }
       ],
       "allowed_duplicates": [],
-      "allowed_duplicates_note": "声明为\"有意如此\"的重复选择器；空数组表示任何同作用域重复都报。判据不猜意图：有意级联就写在这里并说明理由。"
+      "allowed_duplicates_note": "声明为\"有意如此\"的重复选择器；空数组表示任何同作用域重复都报。判据不猜意图：有意级联就写在这里并说明理由。",
+      "volume_baseline": {
+        "max_drop_pct": 1.0,
+        "max_drop_chars": 300,
+        "note": "与基线相比：可见文本量下降超过 max(300 字, 1%) 即报。基线由 runner.py --baseline 显式重算。"
+      }
     },
     {
       "id": "gaoshu-site",
@@ -472,6 +477,13 @@
           "resolve": "workspace",
           "path": "01_活工程/线代_两站对照/snapshot/chapters/ch9.html",
           "what": "高数站章节页（真实站点，按页做纪律检查）"
+        },
+        {
+          "id": "ch6.volume-mutant",
+          "kind": "product",
+          "path": "fixtures/gaoshu-mutants/ch6.volume-mutant.html",
+          "baseline_from": "page-ch6.html",
+          "what": "**突变体**：从真实 ch6 删掉 13 个散文段落（可见文本 −3252 字，阈值 949），测验块原样保留——所以它只证伪\"体量回退\"，不该触发\"编号契约\""
         }
       ],
       "forbidden_patterns": [
@@ -498,7 +510,23 @@
         }
       ],
       "allowed_duplicates": [],
-      "duplicate_selector_gap": "**已知覆盖缺口**：这 12 个页面的样式在**外部 CSS** 里（页面只有 <link>，没有内联 <style>），所以 `duplicate-selector` 在这里报「不适用」——这是诚实的，但也意味着该站未被这项检查覆盖。补齐方式：给本来源声明 `style_sources`（站点 CSS 相对路径），并让检查支持 workspace 解析，再把外部样式表也纳入重复选择器统计。已记入 失败模式台账.md 的未做清单。"
+      "duplicate_selector_gap": "**已知覆盖缺口**：这 12 个页面的样式在**外部 CSS** 里（页面只有 <link>，没有内联 <style>），所以 `duplicate-selector` 在这里报「不适用」——这是诚实的，但也意味着该站未被这项检查覆盖。补齐方式：给本来源声明 `style_sources`（站点 CSS 相对路径），并让检查支持 workspace 解析，再把外部样式表也纳入重复选择器统计。已记入 失败模式台账.md 的未做清单。",
+      "numbering": {
+        "claim_pattern": "data-quiz-id=\"([^\"]+)\"",
+        "shape": "^(ch\\d+)-(\\d+)$",
+        "prefix_from_file": "^(ch\\d+)\\.html$",
+        "require_continuous": true,
+        "note": "每个测验块的编号必须唯一、页内从 1 连续、且章号与所在文件一致。参照实现：本站 tools/check-numbering.py（委托机制的首个候选）。",
+        "shape_exceptions": [
+          "-final$"
+        ],
+        "shape_exceptions_note": "合法例外：`ch1-final` 是章末总测，不是\"题号\"序列的一部分。判据不猜意图——例外必须**声明**，未声明的形状异常仍然报。"
+      },
+      "volume_baseline": {
+        "max_drop_pct": 1.0,
+        "max_drop_chars": 300,
+        "note": "与基线相比：可见文本量下降超过 max(300 字, 1%) 即报。基线由 runner.py --baseline 显式重算。"
+      }
     }
   ],
   "checks": [
@@ -594,6 +622,27 @@
       "applies_to": "product",
       "severity": "gate",
       "fn": "checks_forbidden:duplicate_selector"
+    },
+    {
+      "id": "content-volume-regression",
+      "title": "体量回退对照（与基线比）",
+      "applies_to": "product",
+      "severity": "gate",
+      "sources": [
+        "gaoshu-pages",
+        "renzhi-foundation"
+      ],
+      "fn": "checks_regression:content_volume_regression"
+    },
+    {
+      "id": "numbering-contract",
+      "title": "编号契约（唯一/连续/前缀一致）",
+      "applies_to": "product",
+      "severity": "gate",
+      "sources": [
+        "gaoshu-pages"
+      ],
+      "fn": "checks_numbering:numbering_contract"
     }
   ],
   "delegates": [],
@@ -755,6 +804,7 @@
       "mutant-nav": "fail"
     },
     "forbidden-patterns": {
+      "ch6.volume-mutant": "pass",
       "frag-L00-S1": "pass",
       "frag-L00-S1.forbidden-mutant": "fail",
       "frag-L00-S2": "pass",
@@ -786,6 +836,7 @@
       "page-ch9.html": "pass"
     },
     "duplicate-selector": {
+      "ch6.volume-mutant": "skip",
       "frag-L00-S1": "skip",
       "frag-L00-S1.forbidden-mutant": "fail",
       "frag-L00-S2": "skip",
@@ -815,6 +866,53 @@
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
       "page-ch9.html": "skip"
+    },
+    "numbering-contract": {
+      "ch6.volume-mutant": "pass",
+      "page-ch1.html": "pass",
+      "page-ch10.html": "pass",
+      "page-ch11.html": "pass",
+      "page-ch12.html": "pass",
+      "page-ch2.html": "pass",
+      "page-ch3.html": "pass",
+      "page-ch4.html": "pass",
+      "page-ch5.html": "pass",
+      "page-ch6.html": "pass",
+      "page-ch7.html": "pass",
+      "page-ch8.html": "pass",
+      "page-ch9.html": "pass"
+    },
+    "content-volume-regression": {
+      "ch6.volume-mutant": "fail",
+      "frag-L00-S1": "pass",
+      "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S2": "pass",
+      "frag-L00-S3": "pass",
+      "frag-L00-S4": "pass",
+      "frag-L00-S5": "pass",
+      "frag-L00-S6": "pass",
+      "frag-L00-S7": "pass",
+      "frag-L00-S8": "pass",
+      "lab-L00-S1": "pass",
+      "lab-L00-S2": "pass",
+      "lab-L00-S3": "pass",
+      "lab-L00-S4": "pass",
+      "lab-L00-S5": "pass",
+      "lab-L00-S6": "pass",
+      "lab-L00-S7": "pass",
+      "lab-L00-S8": "pass",
+      "page-ch1.html": "pass",
+      "page-ch10.html": "pass",
+      "page-ch11.html": "pass",
+      "page-ch12.html": "pass",
+      "page-ch2.html": "pass",
+      "page-ch3.html": "pass",
+      "page-ch4.html": "pass",
+      "page-ch5.html": "pass",
+      "page-ch6.html": "pass",
+      "page-ch7.html": "pass",
+      "page-ch8.html": "pass",
+      "page-ch9.html": "pass"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
