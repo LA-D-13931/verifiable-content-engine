@@ -69,6 +69,7 @@
 | 加一个**学科**判题类型 | 插件 `judge.js`，并补 `DIAGNOSE` 表 | `verify-diagnostics.mjs`、`verify-diagnosis-accuracy.mjs` |
 | 加一个**科目** | `engine-core/API_如何新增科目.md` | `verify-plugin-api.mjs` |
 | 加一项**站点内容检查** | `adapters/static-content/checks.py` 的 `CHECKS` 表 | `verify-all.py` |
+| 加一条**内容规范检查**（第三个域） | `adapters/content-spec/`：往 `manifest.json` 的 `checks` 加一条，写 `checks_*.py`；**每个产物在 manifest 里要声明 `expect`**（坏例 fail／好例 pass） | `.../content-spec/runner.py --selftest`（它反证检查器本身，不是验证内容好不好） |
 | 改**数学** | `mat.py` **与** `mat.js` 同时改 | `audit-matrix-exact.mjs`、`gen-mat-vectors.py` |
 | 改**内容** | `labs.json`（声明式，**别塞可执行代码**） | `check-lab.py` |
 | 查**判据是否恒真** | — | `audit-tautology.mjs` |

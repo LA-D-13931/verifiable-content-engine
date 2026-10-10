@@ -1,0 +1,40 @@
+{
+  "name": "content-spec",
+  "kind": "adapter",
+  "title": "内容规范域",
+  "evidence": "structural",
+  "note": "第三个域：内容与呈现层的规范检查。检查分两处——跨站通用且需要证书的规则在本目录自研；站点特有且已有成熟实现的走 delegates 委托。详见 ../../API_如何新增科目.md 与仓库根 AGENTS.md。",
+  "sources": [
+    {
+      "id": "renzhi-l00s1",
+      "title": "人智与图识学习 · L00-S1 自测（真实坏例的只读副本）",
+      "origin": "/Users/a18760/Desktop/人智与图识学习工作区/book/_static/labs/",
+      "markup": "backtick",
+      "data": "fixtures/renzhi/foundation-index.json",
+      "products": [
+        {
+          "id": "fragment",
+          "path": "fixtures/renzhi/frag-L00-S1.html",
+          "expect": "fail",
+          "note": "注入正文的片段：没有 md() 转换、<style> 块 0 个 → 反引号字面显示、选项按 inline 挤成一行。这是真实截图里的坏例。"
+        },
+        {
+          "id": "standalone",
+          "path": "fixtures/renzhi/lab-L00-S1.html",
+          "expect": "pass",
+          "note": "同一份数据的独立小页：有 md() 与 2 个 <style> 块 → 渲染正常。"
+        }
+      ]
+    }
+  ],
+  "checks": [
+    {
+      "id": "render-capability",
+      "title": "渲染能力（反引号转换 / 判题入口）",
+      "severity": "gate",
+      "fn": "checks_render_capability:run",
+      "note": "同一份数据的两条渲染路径漂移过：一条有 Markdown 转换、一条没有。判据是「按数据要求，每条路径都必须具备必需能力」。"
+    }
+  ],
+  "delegates": []
+}
