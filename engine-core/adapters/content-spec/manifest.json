@@ -58,151 +58,208 @@
           "generalize": "任何「可交互产物」都必须自带判题入口，否则页面能看不能判。"
         }
       },
-      "products": [
+      "artifacts": [
+        {
+          "id": "renderer",
+          "kind": "source",
+          "path": "fixtures/renzhi/build-lab-fragments.py",
+          "what": "生成两条渲染路径的同一个脚本——缺陷的源头；也是样式与枚举的声明处"
+        },
         {
           "id": "frag-L00-S1",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S1.html",
-          "pair": "L00-S1",
           "role": "fragment",
-          "expect": "fail",
+          "pair": "L00-S1",
           "note": "注入正文的片段：<style> 块 0 个、无 md() → 反引号字面显示、选项按 inline 挤成一行"
         },
         {
           "id": "lab-L00-S1",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S1.html",
-          "pair": "L00-S1",
           "role": "standalone",
-          "expect": "pass",
+          "pair": "L00-S1",
           "note": "同数据的独立小页：2 个 <style> 块 + md() → 渲染正常"
         },
         {
           "id": "frag-L00-S2",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S2.html",
-          "pair": "L00-S2",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S2"
         },
         {
           "id": "lab-L00-S2",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S2.html",
-          "pair": "L00-S2",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S2"
         },
         {
           "id": "frag-L00-S3",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S3.html",
-          "pair": "L00-S3",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S3"
         },
         {
           "id": "lab-L00-S3",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S3.html",
-          "pair": "L00-S3",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S3"
         },
         {
           "id": "frag-L00-S4",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S4.html",
-          "pair": "L00-S4",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S4"
         },
         {
           "id": "lab-L00-S4",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S4.html",
-          "pair": "L00-S4",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S4"
         },
         {
           "id": "frag-L00-S5",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S5.html",
-          "pair": "L00-S5",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S5"
         },
         {
           "id": "lab-L00-S5",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S5.html",
-          "pair": "L00-S5",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S5"
         },
         {
           "id": "frag-L00-S6",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S6.html",
-          "pair": "L00-S6",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S6"
         },
         {
           "id": "lab-L00-S6",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S6.html",
-          "pair": "L00-S6",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S6"
         },
         {
           "id": "frag-L00-S7",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S7.html",
-          "pair": "L00-S7",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S7"
         },
         {
           "id": "lab-L00-S7",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S7.html",
-          "pair": "L00-S7",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S7"
         },
         {
           "id": "frag-L00-S8",
+          "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S8.html",
-          "pair": "L00-S8",
           "role": "fragment",
-          "expect": "fail"
+          "pair": "L00-S8"
         },
         {
           "id": "lab-L00-S8",
+          "kind": "product",
           "path": "fixtures/renzhi/lab-L00-S8.html",
-          "pair": "L00-S8",
           "role": "standalone",
-          "expect": "pass"
+          "pair": "L00-S8"
         }
-      ]
+      ],
+      "text_fields": [
+        "q.text",
+        "o",
+        "e"
+      ],
+      "enum_checks": [
+        {
+          "name": "难度档",
+          "declared_regex": "\\.df\\.([\\u4e00-\\u9fff]+)",
+          "actual_key": "difficulty"
+        }
+      ],
+      "style_sources": [
+        "fixtures/renzhi/build-lab-fragments.py"
+      ],
+      "render_units": [
+        "STANDALONE_TEMPLATE",
+        "STANDALONE_JS",
+        "FRAGMENT_JS"
+      ],
+      "render_units_note": "渲染路径=会产出页面的单元；REGISTRY_JS / NN_JUDGE_JS 是被内联的依赖，不算"
     }
   ],
   "checks": [
     {
       "id": "render-capability",
       "title": "渲染能力（反引号转换 / 判题入口）",
+      "applies_to": "product",
       "severity": "gate",
-      "fn": "checks_render_capability:run",
-      "note": "同一份数据的两条渲染路径漂移过：一条有 Markdown 转换、一条没有。判据是「按数据要求，每条路径都必须具备必需能力」。失败时同时给出 定位 / 参照 / 修法 / 泛化 —— 让接手者能自己修，而不是只收到一个 fail。"
+      "fn": "checks_render_capability:run"
+    },
+    {
+      "id": "field-coverage",
+      "title": "字段覆盖（每个声明的文本字段都要走转换）",
+      "applies_to": "source",
+      "severity": "gate",
+      "fn": "checks_source:field_coverage"
+    },
+    {
+      "id": "selfcheck-path-coverage",
+      "title": "自检覆盖面（每条渲染路径都要进自检）",
+      "applies_to": "source",
+      "severity": "advisory",
+      "fn": "checks_source:selfcheck_path_coverage"
+    },
+    {
+      "id": "declared-value-vs-actual",
+      "title": "声明取值 vs 语料实际取值",
+      "applies_to": "source",
+      "severity": "gate",
+      "fn": "checks_styles:declared_value_vs_actual"
+    },
+    {
+      "id": "undefined-style-token",
+      "title": "用了但未定义的样式变量",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_styles:undefined_style_token"
     }
   ],
   "delegates": [],
   "discovered_defects": [
     {
       "id": "frag-field-coverage",
-      "status": "未修",
+      "status": "已有检查覆盖（field-coverage）",
       "what": "片段渲染器里**按字段**的能力覆盖不全：:514 题干、:508 选项、:533 解析三处都绕过 md()；独立页对应 :224/:217/:249 都走了",
       "evidence": "scripts/build-lab-fragments.py:508,514,533 vs 217,224,249",
       "scale": "46 条解析、28 个选项、21 个题干含反引号",
       "found_by": "盲测（Q21 验收）",
-      "needed_check": "能力覆盖要按**字段**判定，不能只按文件判定"
+      "needed_check": "能力覆盖要按**字段**判定，不能只按文件判定",
+      "check_id": "field-coverage"
     },
     {
       "id": "selfcheck-single-path",
-      "status": "未修",
+      "status": "已有检查覆盖（selfcheck-path-coverage）",
       "what": "按钮名自检只喂独立页模板/脚本，片段自己的 data-act 分支完全未被覆盖；且两条路径的分支已经分叉（片段有 review、独立页有 correct）",
       "evidence": "scripts/build-lab-fragments.py:791-792（只用 STANDALONE_TEMPLATE / STANDALONE_JS）",
       "found_by": "盲测",
-      "needed_check": "自检必须覆盖全部渲染路径：任一路径独有的动作/分支都要进检查面"
+      "needed_check": "自检必须覆盖全部渲染路径：任一路径独有的动作/分支都要进检查面",
+      "check_id": "selfcheck-path-coverage"
     },
     {
       "id": "escape-asymmetry",
@@ -214,19 +271,21 @@
     },
     {
       "id": "declared-value-mismatch",
-      "status": "未修",
+      "status": "已有检查覆盖（declared-value-vs-actual）",
       "what": "FRAGMENT_CSS 声明 .df.考研，而语料实际取值是「综合」→ 第三档没有配色；项目自己的决策记录已记此不一致",
       "evidence": "scripts/build-lab-fragments.py:112 vs content/tasks/foundation-index.json",
       "found_by": "盲测",
-      "needed_check": "声明与取值比对：CSS/枚举里的取值集合 必须等于 语料里实际出现的取值集合"
+      "needed_check": "声明与取值比对：CSS/枚举里的取值集合 必须等于 语料里实际出现的取值集合",
+      "check_id": "declared-value-vs-actual"
     },
     {
       "id": "undefined-css-var",
-      "status": "未修",
+      "status": "已有检查覆盖（undefined-style-token）",
       "what": "用了 var(--lab-no) 但该变量全项目无定义 → 判定失败时 ✗ 不上色（var() 无回退值）",
       "evidence": "scripts/build-lab-fragments.py:595",
       "found_by": "盲测",
-      "needed_check": "用到的 CSS 变量/类名必须能在声明的样式来源里找到定义"
+      "needed_check": "用到的 CSS 变量/类名必须能在声明的样式来源里找到定义",
+      "check_id": "undefined-style-token"
     },
     {
       "id": "render-path-capability-matrix",
@@ -236,5 +295,53 @@
       "found_by": "盲测",
       "needed_check": "两条渲染路径的能力矩阵（哪些能力有/无）必须显式声明并比对，而不是靠人来发现"
     }
-  ]
+  ],
+  "expectations": {
+    "render-capability": {
+      "frag-L00-S1": "fail",
+      "frag-L00-S2": "fail",
+      "frag-L00-S3": "fail",
+      "frag-L00-S4": "fail",
+      "frag-L00-S5": "fail",
+      "frag-L00-S6": "fail",
+      "frag-L00-S7": "fail",
+      "frag-L00-S8": "fail",
+      "lab-L00-S1": "pass",
+      "lab-L00-S2": "pass",
+      "lab-L00-S3": "pass",
+      "lab-L00-S4": "pass",
+      "lab-L00-S5": "pass",
+      "lab-L00-S6": "pass",
+      "lab-L00-S7": "pass",
+      "lab-L00-S8": "pass"
+    },
+    "undefined-style-token": {
+      "frag-L00-S1": "fail",
+      "frag-L00-S2": "fail",
+      "frag-L00-S3": "fail",
+      "frag-L00-S4": "fail",
+      "frag-L00-S5": "fail",
+      "frag-L00-S6": "fail",
+      "frag-L00-S7": "fail",
+      "frag-L00-S8": "fail",
+      "lab-L00-S1": "pass",
+      "lab-L00-S2": "pass",
+      "lab-L00-S3": "pass",
+      "lab-L00-S4": "pass",
+      "lab-L00-S5": "pass",
+      "lab-L00-S6": "pass",
+      "lab-L00-S7": "pass",
+      "lab-L00-S8": "pass"
+    },
+    "field-coverage": {
+      "renderer": "fail"
+    },
+    "selfcheck-path-coverage": {
+      "renderer": "fail"
+    },
+    "declared-value-vs-actual": {
+      "renderer": "fail"
+    }
+  },
+  "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。"
 }
