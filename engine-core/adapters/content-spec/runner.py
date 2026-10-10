@@ -60,6 +60,11 @@ def run_all(only_source=None, only_check=None):
         for chk in m['checks']:
             if only_check and chk['id'] != only_check:
                 continue
+            # 检查可声明只适用于哪些来源（`sources` 缺省 = 全部）。
+            # 需要这个字段是因为"产物级"不等于"所有产物"：人智站的两个页面模板与
+            # 高数站的章节页虽然都是产物，但前者才有渲染器源码/数据源/样式来源这些声明。
+            if chk.get('sources') and src['id'] not in chk['sources']:
+                continue
             want = chk.get('applies_to') or 'product'
             arts = [a for a in src['artifacts'] if a.get('kind', 'product') == want]
             fn = load_check(chk['fn'])

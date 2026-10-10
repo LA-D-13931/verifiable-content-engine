@@ -71,6 +71,10 @@ def _advice_for(cap, source, product):
 
 def run(product, source, base):
     """对**一个产物**做检查：数据要求的能力，它是否都具备。"""
+    if 'data' not in source:
+        # 缺声明 ≠ 内容有问题：报「不适用」，不崩、也不算通过（三态纪律）
+        return {'pass': None, 'reason': '本来源未声明数据源（data），渲染能力检查不适用',
+                'certificate': {'declared_data': None}}
     data_path = resolve({'path': source['data']}, base)
     prod_path = resolve(product, base)
     if not os.path.isfile(data_path):
