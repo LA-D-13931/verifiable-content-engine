@@ -54,6 +54,7 @@ CHECKS = [
     ('引擎', '插件 API 边界', ['node', 'tools/verify-plugin-api.mjs'], None),
     ('引擎', '引擎层边界（学科概念不得进引擎层）', ['node', 'tools/verify-boundary.mjs'], None),
     ('引擎', '零第三方依赖（引擎本体只用标准库）', ['node', 'tools/verify-no-deps.mjs'], None),
+    ('文档', '材料互引不得用行号（改用锚点）', [PY, 'tools/check-anchor-refs.py'], None),
     ('引擎', '逐类型信息量审计', ['node', 'tools/audit-coverage.mjs'], None),
     ('引擎', '判据区分力审计（抓恒真判据）', ['node', 'tools/audit-tautology.mjs'], None),
     ('浏览器', '冒烟（控制台无错误）', ['node', 'tools/smoke.mjs'], 'browser'),
