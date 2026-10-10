@@ -210,11 +210,18 @@ def main():
     # D-2：**兼容层（文案判据）命中数必须出现在汇总里**——它是待迁移的债务：
     # 说明结构化信号（退出码 2）没被走到，而"靠 Node.js vX.Y.Z 这种串认环境"是不稳定的。
     compat_hits = [(g, n) for g, n, ok, d, k in rows if k == 'environment' and '文案判据' in d]
+    # 第九轮 §1 要求 2：**「本次未比较 / 未独立验证」必须出现在汇总里**。
+    # 判据：子进程按约定打印 `NOT-COMPARED: <原因>`（机器可读的一行协议，由我们自己的脚本输出），
+    # 聚合层据此计数——它不是"文案猜环境"，而是一条**声明式协议行**（写在 check-figure-sync.py 的 docstring 里）。
+    not_compared = [(g, n) for g, n, ok, d, k in rows if 'NOT-COMPARED:' in (d or '')]
     hard_fail = [(g, n, d) for g, n, ok, d, k in rows if k == 'fail']
     env_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'environment']
     unselected = [(g, n, d) for g, n, ok, d, k in rows if k == 'not_selected']
     print('')
     print('  图例：✓ 通过 ｜ ✗ 失败 ｜ · 未选择（我没要求跑）｜ – 环境不足（要跑了跑不成）')
+    if not_compared:
+        print('  本次未比较 / 未独立验证：%d 项%s（不适用 ≠ 通过：它们这次没有比过任何东西）'
+              % (len(not_compared), ''.join(' ｜ ' + n for _, n in not_compared)))
     print('  环境判据来源：声明式（子进程退出码 2）%d 项 ｜ 兼容层（文案匹配）%d 项%s'
           % (len([1 for g, n, ok, d, k in rows if k == 'environment' and '声明式' in d]),
              len(compat_hits),
