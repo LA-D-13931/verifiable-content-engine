@@ -526,6 +526,13 @@
           "path": "fixtures/gaoshu-mutants/ch6.overflow-mutant.html",
           "baseline_from": "page-ch6.html",
           "what": "**突变体**：注入固定 2000px 宽块 → 真实浏览器里必然横向溢出，用来反证渲染量测"
+        },
+        {
+          "id": "ch6.dup-mutant",
+          "kind": "product",
+          "path": "fixtures/gaoshu-mutants/ch6.dup-mutant.html",
+          "baseline_from": "page-ch6.html",
+          "what": "**突变体**：把一段散文原样复制到附近 → 邻近重复，用来反证 dup-block"
         }
       ],
       "forbidden_patterns": [
@@ -581,7 +588,13 @@
         "page-ch6.html",
         "page-ch2.html",
         "ch6.overflow-mutant"
-      ]
+      ],
+      "dup_block": {
+        "min_chars": 60,
+        "window_chars": 20000,
+        "allowed_repeats": [],
+        "note": "四条条件：只认散文（含中文、无 $ 与 \\）、≥60 字、20000 字符内邻近、样板可在 allowed_repeats 声明。旧判据在真实站点上报 325 处\"重复\"，逐条看全是公式段——故判据被重设计。"
+      }
     },
     {
       "id": "delegates-selftest",
@@ -770,6 +783,17 @@
         "renzhi-foundation"
       ],
       "fn": "checks_render:render_measure"
+    },
+    {
+      "id": "dup-block",
+      "title": "邻近重复段落（散文）",
+      "applies_to": "product",
+      "severity": "gate",
+      "evidence": "structural",
+      "sources": [
+        "gaoshu-pages"
+      ],
+      "fn": "checks_text:dup_block"
     }
   ],
   "delegates": [
@@ -950,6 +974,7 @@
       "mutant-nav": "fail"
     },
     "forbidden-patterns": {
+      "ch6.dup-mutant": "pass",
       "ch6.numbering-mutant": "pass",
       "ch6.overflow-mutant": "pass",
       "ch6.volume-mutant": "pass",
@@ -985,6 +1010,7 @@
       "page-ch9.html": "pass"
     },
     "duplicate-selector": {
+      "ch6.dup-mutant": "skip",
       "ch6.numbering-mutant": "skip",
       "ch6.overflow-mutant": "skip",
       "ch6.volume-mutant": "skip",
@@ -1020,6 +1046,7 @@
       "page-ch9.html": "skip"
     },
     "numbering-contract": {
+      "ch6.dup-mutant": "pass",
       "ch6.numbering-mutant": "fail",
       "ch6.overflow-mutant": "pass",
       "ch6.volume-mutant": "pass",
@@ -1037,6 +1064,7 @@
       "page-ch9.html": "pass"
     },
     "content-volume-regression": {
+      "ch6.dup-mutant": "pass",
       "ch6.numbering-mutant": "pass",
       "ch6.overflow-mutant": "pass",
       "ch6.volume-mutant": "fail",
@@ -1079,6 +1107,7 @@
       "delegate-numbering": "pass"
     },
     "render-measure": {
+      "ch6.dup-mutant": "skip",
       "ch6.numbering-mutant": "skip",
       "ch6.overflow-mutant": "fail",
       "ch6.volume-mutant": "skip",
@@ -1112,6 +1141,24 @@
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
       "page-ch9.html": "skip"
+    },
+    "dup-block": {
+      "ch6.dup-mutant": "fail",
+      "ch6.numbering-mutant": "pass",
+      "ch6.overflow-mutant": "pass",
+      "ch6.volume-mutant": "pass",
+      "page-ch1.html": "pass",
+      "page-ch10.html": "pass",
+      "page-ch11.html": "pass",
+      "page-ch12.html": "pass",
+      "page-ch2.html": "pass",
+      "page-ch3.html": "pass",
+      "page-ch4.html": "pass",
+      "page-ch5.html": "pass",
+      "page-ch6.html": "pass",
+      "page-ch7.html": "pass",
+      "page-ch8.html": "pass",
+      "page-ch9.html": "pass"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
