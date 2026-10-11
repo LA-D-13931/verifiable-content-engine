@@ -373,29 +373,29 @@ def dump_certificates(results, out_dir):
     return n
 
 
-def skip_is_qualified(chk, art, m, r=None):
-    """**skip 必须"有据"**（第六十二轮）：`skip` 被当成两种意思 ✗ ——
-    ① "确认不适用" ✓；② "占位/还没定" ✗。selftest 只抓"期望 vs 实际不符" ⇒ ② 类永远抓不到 ✗。
+def skip_is_qualified(chk, art, m, r=None, actual=None):
+    """**skip 必须有据**（第六十二轮立，第六十三轮修补洞 ✗）—— 判据是**三段式** ✓。
 
-    定性判据（**两条之一**即可 ✓）：
-    - **引擎自己的判定语是"不适用"** ✓（第六十二轮改定：这比查 `applies_to` 可靠 ✓ ——
-      `applies_to` 只说明"这类检查评哪类产物"✗，**不能说明"这一条为什么不适用"** ✓）；
-      这正是审计方举的好例：`frag-L00-S1 · style-coverage` 的实际判定自带理由
-      「静态标记里没有类名，静态检查会在空集上通过（假绿）」✓；
-    - 或该条期望写成 `{"verdict": "skip", "why": "…"}` ✓（兼容显式说明 ✓）。
+    ## 第六十二轮那个洞（审计方指出的 ✓）
+    我上一版收敛成 `return bool(reason.strip())` ✗ —— 而 `reason` 是**"实际判定"的理由**，
+    **不是"期望为什么是 skip"** ✗ ⇒ **期望 skip 而实际 fail 时，reason 必然非空 ⇒ 永远放行** ✗ ⇒
+    **恰好漏掉第六十二轮那两条的形态**（而"占位 skip"正是要治的病 ✓）。
+    **那等于"用兜底掩盖不一致"** ✗ —— 正是本项目一路在治的形态 ✓。
+
+    ## 三段式（照要求 §2.1 ✓）
+    ① **显式写了 `why`**（期望是 dict 且 `why` 非空）⇒ **有据** ✓；
+    ② **期望 skip 但实际不是 skip** ⇒ **不是"有据"，是"未定性"** ✗ ——
+       此时任何非空 reason **都是实际判定的理由** ✓，**证明不了"这条本来不适用"** ✗；
+    ③ **期望与实际都是 skip** ⇒ 这时才轮到"**引擎有没有说不适用的理由**"（reason 非空 ✓）。
     """
     exp = ((m.get('expectations') or {}).get(chk['id']) or {}).get(art['id'])
     if isinstance(exp, dict):
-        return bool(exp.get('why'))
-    reason = (r or {}).get('reason') or ''
-    # **有据 = 引擎自己说了为什么** ✓ 三种都算：
-    #   「不适用：…」（这条检查对这个产物没有可判的面 ✓）
-    #   「环境不足：…」（这次没条件跑 ✓ —— env 档里 render-measure 就是它 ✓）
-    # **有据 = 引擎给了理由** ✓ —— 措辞有很多种（「不适用：…」/「环境不足：…」/
-    # 「未列入 render_targets」…），**逐个列举措辞是不收敛的做法** ✗（我前两版就卡在这）。
-    # ⇒ 判据收敛成一句：**reason 非空即有据** ✓；**空理由 = 未定性** ✗（这也正是审计方反例③的形态：
-    #   删掉某条 skip 的 why/applies_to ⇒ 理由没了 ⇒ 退 2 ✓）。
-    return bool(reason.strip())
+        return bool(exp.get('why'))                     # ① ✓
+    if actual is None:
+        actual = _verdict(r or {})
+    if actual != 'skip':
+        return False                                    # ② ✓（这就是那个洞 ✓）
+    return bool(((r or {}).get('reason') or '').strip())  # ③ ✓
 
 
 def main():
@@ -461,7 +461,7 @@ def main():
                 _chk = next((c for c in m['checks'] if c['id'] == r['check']), None)
                 _art = next((a for a in (m.get('artifacts') or [])
                              if a.get('id') == r['artifact']), None) or {'id': r['artifact'], 'kind': r.get('kind', 'product')}
-                if _chk and not skip_is_qualified(_chk, _art, m, r):
+                if _chk and not skip_is_qualified(_chk, _art, m, r, actual):
                     undecided.append(r)
             if r['expect'] == actual:
                 ok += 1
