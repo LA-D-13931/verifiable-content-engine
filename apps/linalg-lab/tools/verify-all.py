@@ -41,6 +41,7 @@ PY = sys.executable
 
 # (分组, 名称, 命令, 需要的能力)
 CHECKS = [
+    ('静态', '无死代码（return 之后不许有可执行语句）', [PY, 'tools/check-dead-code.py'], None),
     ('矩阵原语', 'Python 侧自检', [PY, os.path.join(ENGINE, 'mat.py')], None),
     ('矩阵原语', 'JS 侧与 Python 一致', ['node', 'tools/verify-mat.mjs'], None),
     ('矩阵原语', '两侧 + 生成物最新', [PY, 'tools/verify-mat.py'], None),

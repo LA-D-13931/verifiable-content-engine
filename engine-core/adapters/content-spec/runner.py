@@ -504,8 +504,17 @@ def main():
         #   **真正比对过的条数 ok 不得低于"应能比的条数"的一半** ✗ ——
         #   应能比 = ok + env_skip + len(fails)。理由：裸环境里"几乎什么都没比"却报通过，
         #   比报红更危险（轮六 RX-01 那个先例 / C2 契约要防的正是这种形态 ✓）。
+        # **退出码优先级（第六十四轮 §负一 修正 ✗）**：
+        #   **fails(1) > undecided(2) > too_few/env_skip(2) > 通过(0)** ✓
+        #   修前：`if undecided: return 2` 排在 `if fails: return 1` **之前** ✗ ⇒
+        #   **同时有真·不符与未定性时，return 1 到不了** ✗ ⇒ 收尾行**从不**打印「失败 N 项」✗ ⇒
+        #   19 条真·不符在三层上全不可见（runner→档位→套件）✗。
         _total_comparable = ok + env_skip + len(fails)
         _too_few = _total_comparable > 0 and ok < (_total_comparable / 2.0)
+        _tally = '比对过 %d 条 ｜ 环境不足 %d 条 ｜ 真·不符 %d 条' % (ok, env_skip, len(fails))
+        if fails:
+            print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）  ｜ %s' % (len(fails), _tally))
+            return 1
         if undecided:
             print('有 %d 条期望未定性 ✗ —— skip 只允许"确认不适用"这一种意思：'
                   '要么该检查的 applies_to 不含这个产物的 kind，要么写成 {"verdict":"skip","why":"…"}' % len(undecided))
@@ -516,10 +525,6 @@ def main():
             print('KNOWN-DEFECTS: %d 项 | %s'
                   % (len(known),
                      '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
-        _tally = '比对过 %d 条 ｜ 环境不足 %d 条 ｜ 真·不符 %d 条' % (ok, env_skip, len(fails))
-        if fails:
-            print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）  ｜ %s' % (len(fails), _tally))
-            return 1
         if _too_few:
             print('本次真正比对过的条数不足（%d / 应能比 %d）⇒ 判"环境不足"，不许报通过 ✗  ｜ %s'
                   % (ok, _total_comparable, _tally))
@@ -529,8 +534,6 @@ def main():
             return 2
         print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致  ｜ %s' % (ok, _tally))
         return 0
-        print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）' % len(fails))
-        return 1
 
     bad = [r for r in results if r.get('pass') is False]
     for r in results:
