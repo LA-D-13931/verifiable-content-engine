@@ -16,6 +16,10 @@ import os
 import re
 
 #: 「数量陈述」：数字 + 量词（**这张表就是本检查的查什么/不查什么**）
+#: **不查**的行文（第四十六轮抽查结论）：比喻/量级比较/数学陈述里的"个"不是"数量陈述" ✗
+#  —— 逐字证据：「松 5 个数量级」「概率向量只有 1 个分量」都不是"数了 N 个东西" ✓
+STOP_PHRASES = ('数量级', '个分量', '个维度', '个元素', '个样本')
+
 QUANTITY = re.compile(r'(?<![\d.])(\d{1,4})\s*(个|项|条|处|章|节|题|组|类|次|份)')
 
 
@@ -40,15 +44,21 @@ def run(artifact, source, base):
             pool.append(open(sp, encoding='utf-8').read())
     pool = '\n'.join(pool)
     missing = []
-    for m in QUANTITY.finditer(text):
+    # 先剥掉代码块（fenced code 里的数字是代码，不是"数量陈述" ✓）
+    text_wo_code = re.sub(r'```.*?```', '', text, flags=re.S)
+    text_wo_code = re.sub(r'`[^`]*`', '', text_wo_code)
+    for m in QUANTITY.finditer(text_wo_code):
         n, unit = m.group(1), m.group(2)
+        seg = text_wo_code[max(0, m.start() - 20):m.end() + 6]
+        if any(sp in seg for sp in STOP_PHRASES):
+            continue
         if not re.search(r'(?<![\d.])' + n + r'\s*' + unit, pool):
             missing.append((n, unit))
     if missing:
         n, unit = missing[0]
         return {'pass': False,
-                'reason': '数量陈述找不到出处：%s %s（共 %d 处；来源 %s）'
-                          % (n, unit, len(missing), '、'.join(srcs)),
+                'reason': '共 %d 处数量陈述找不到出处（其一是「%s %s」；已声明来源：%s）'
+                          % (len(missing), n, unit, '、'.join(srcs)),
                 'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
                                 'environment': {'kind': 'repo-fixture'},
                                 'detail': {'number': n, 'unit': unit,
