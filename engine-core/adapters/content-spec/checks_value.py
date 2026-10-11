@@ -1,0 +1,58 @@
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""P3 数值出处（第四十三轮）：**只查「数量陈述」**。
+
+## 口径（审计方 §1.1 定死，防误报爆炸）
+**只查"后面跟着量词的那些数字"**：`N 个 / N 项 / N 条 / N 处 / N 章 / N 节 / N 题 / N 组 / N 类 / N 次 / N 份` ✓。
+**页码、章节号、日期、题号、公式里的数不进范围** ✗ —— 它们本来就不该有出处 ✓
+（对所有数字都要求溯源 ⇒ 真实语料上误报爆炸 ⇒ 检查会被立刻关掉 ✓）。
+
+## 判据（§1.3）
+- 数字 + 同一量词能在**声明的来源**（`source['value_sources']` 里的数据源文件 / 生成脚本）里找到 → **通过** ✓；
+- 找不到 → **报红** ✓，证书带 `{'number': N, 'unit': '个', 'where': '…', 'declared_sources': [...]}` ✓；
+- 该源**没声明** `value_sources` → **判「不适用」**（`pass=None` ✓ 三态纪律：不是通过、也不是失败 ✓）。
+"""
+import os
+import re
+
+#: 「数量陈述」：数字 + 量词（**这张表就是本检查的查什么/不查什么**）
+QUANTITY = re.compile(r'(?<![\d.])(\d{1,4})\s*(个|项|条|处|章|节|题|组|类|次|份)')
+
+
+def run(artifact, source, base):
+    srcs = source.get('value_sources')
+    if not srcs:
+        return {'pass': None,
+                'reason': '本来源未声明数值出处（value_sources），数量陈述的溯源不适用',
+                'certificate': {'declared_value_sources': None}}
+    path = os.path.join(base, artifact['path']) if not os.path.isabs(artifact['path']) else artifact['path']
+    if not os.path.isfile(path):
+        return {'pass': False, 'reason': '找不到产物 %s' % artifact['path'],
+                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
+                                'environment': {'kind': 'repo-fixture'},
+                                'detail': {'resolved_path': path, 'exists': False}}}
+    text = open(path, encoding='utf-8').read()
+    # 汇总声明的来源里出现的「数字+量词」
+    pool = []
+    for s in srcs:
+        sp = os.path.join(base, s) if not os.path.isabs(s) else s
+        if os.path.isfile(sp):
+            pool.append(open(sp, encoding='utf-8').read())
+    pool = '\n'.join(pool)
+    missing = []
+    for m in QUANTITY.finditer(text):
+        n, unit = m.group(1), m.group(2)
+        if not re.search(r'(?<![\d.])' + n + r'\s*' + unit, pool):
+            missing.append((n, unit))
+    if missing:
+        n, unit = missing[0]
+        return {'pass': False,
+                'reason': '数量陈述找不到出处：%s %s（共 %d 处；来源 %s）'
+                          % (n, unit, len(missing), '、'.join(srcs)),
+                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
+                                'environment': {'kind': 'repo-fixture'},
+                                'detail': {'number': n, 'unit': unit,
+                                           'where': artifact['path'],
+                                           'declared_sources': srcs,
+                                           'missing_count': len(missing)}}}
+    return {'pass': True, 'reason': '', 'certificate': {'checked_units': sorted({u for _, u in QUANTITY.findall(text)})}}
