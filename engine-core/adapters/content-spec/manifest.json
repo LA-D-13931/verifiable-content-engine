@@ -202,11 +202,6 @@
           "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S1.orphan-class.html",
           "what": "**突变体**：静态标记里的 orphan-xyz 类名没有任何样式规则，用来反证类名覆盖"
-        },
-        {
-          "id": "ch1.value-mutant",
-          "path": "fixtures/renzhi/ch1.value-mutant.html",
-          "kind": "data"
         }
       ],
       "text_fields": [
@@ -639,6 +634,11 @@
           "path": "fixtures/gaoshu-mutants/ch6.dup-mutant.html",
           "baseline_from": "page-ch6.html",
           "what": "**突变体**：把一段散文原样复制到附近 → 邻近重复，用来反证 dup-block"
+        },
+        {
+          "id": "ch1.value-mutant",
+          "path": "fixtures/gaoshu-mutants/ch1.value-mutant.html",
+          "kind": "product"
         }
       ],
       "forbidden_patterns": [
@@ -703,7 +703,10 @@
         "window_chars": 20000,
         "allowed_repeats": [],
         "note": "四条条件：只认散文（含中文、无 $ 与 \\）、≥60 字、20000 字符内邻近、样板可在 allowed_repeats 声明。旧判据在真实站点上报 325 处\"重复\"，逐条看全是公式段——故判据被重设计。"
-      }
+      },
+      "value_sources": [
+        "fixtures/gaoshu-mutants/ch6.volume-mutant.html"
+      ]
     },
     {
       "id": "delegates-selftest",
@@ -930,7 +933,7 @@
       "severity": "gate",
       "fn": "checks_value:run",
       "sources": [
-        "renzhi-foundation"
+        "gaoshu-pages"
       ],
       "evidence": "structural"
     }
@@ -1048,6 +1051,28 @@
       "unblock": "高数站把「已掌握」勾选框 label 的点击高度提到 ≥20px（现在 19.8px）",
       "evidence": "第二十四轮独立探针 dump：wrappedLabel=true / boxIs=LABEL / 28.2×19.8 / font-size 11.2 / line-height 15.68 / padding 1.92×2；1440 档命中 0",
       "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**"
+    },
+    {
+      "id": "unsourced-quantity-statements-lab-L00",
+      "status": "未修（在高数站/线代站内容里，本域只报告不代改）",
+      "owner": "consumer",
+      "applies_to": {
+        "check": "value-provenance",
+        "artifacts": [
+          "lab-L00-S1",
+          "lab-L00-S2",
+          "lab-L00-S3",
+          "lab-L00-S4",
+          "lab-L00-S5",
+          "lab-L00-S6",
+          "lab-L00-S7",
+          "lab-L00-S8"
+        ]
+      },
+      "finding": "8 个产物里的「数量陈述」找不到出处（各 2 处；报出的样例是「5 个」）",
+      "unblock": "消费者侧把该数量陈述接到声明的数据源（或生成脚本），或删掉该表述；若消费者认为它是自明的计数，则应把它写进 value_sources 并说明理由",
+      "evidence": "第三十六轮新增的 value-provenance 检查（P3）在真实语料上的第一批产出：--discover --scope repo 里 lab-L00-S1..S8 各报「数量陈述找不到出处：5 个（共 2 处）」",
+      "note": "口径只查\"数字+量词\"（N 个/项/条/处/章/节/题/组/类/次/份）；页码/章节号/日期/题号/公式里的数不在范围内"
     }
   ],
   "expectations": {
@@ -1102,8 +1127,7 @@
     },
     "answer-key": {
       "foundation-index": "pass",
-      "foundation-index.mutant": "fail",
-      "ch1.value-mutant": "pass"
+      "foundation-index.mutant": "fail"
     },
     "style-coverage": {
       "frag-L00-S1": "skip",
@@ -1226,7 +1250,8 @@
       "page-ch6.html": "pass",
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
-      "page-ch9.html": "pass"
+      "page-ch9.html": "pass",
+      "ch1.value-mutant": "pass"
     },
     "content-volume-regression": {
       "ch6.dup-mutant": "pass",
@@ -1313,7 +1338,8 @@
       "page-ch6.html": "pass",
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
-      "page-ch9.html": "skip"
+      "page-ch9.html": "skip",
+      "ch1.value-mutant": "skip"
     },
     "dup-block": {
       "ch6.dup-mutant": "fail",
