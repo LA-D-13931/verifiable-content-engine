@@ -1,25 +1,24 @@
-# 引擎自检的护栏：任何 push / PR 都跑一遍。
-#
-# **一处实现，两处调用**（台账 M1）：命令全部在 理奥杯/CI自检.sh 里，
-# YAML 只做三件事 —— checkout、装 node、**调用那个脚本**。
-# 浏览器供给、依赖安装、阈值判据都在脚本里（它自己幂等、自己会 apt 装 chromium）。
-#
-# 自我约束：本文件除 checkout / setup-node 外，`run:` 只允许出现一次；
-# 由 理奥杯/检查YAML一处实现.py 守着（会红）—— 这样"以后有人往 YAML 里塞命令"会被抓到。
-name: verify
+name: 引擎套件（本仓库）
 
+# 第五十二轮拆 CI：**本 workflow 只引用本仓库内的路径** ✓
 on:
   push:
+    branches: [main]
   pull_request:
   workflow_dispatch:
 
 jobs:
-  selfcheck:
+  engine-suite:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: CI 自检（唯一入口：理奥杯/CI自检.sh）
-        run: bash 理奥杯/CI自检.sh
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: 依赖（puppeteer-core 等）
+        run: cd apps/linalg-lab && npm install --no-audit --no-fund
+      - name: 引擎套件 --all
+        run: cd apps/linalg-lab && python3 tools/verify-all.py --all

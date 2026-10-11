@@ -25,6 +25,13 @@ WORKSPACE = os.path.dirname(os.path.dirname(REPO))
 SNAPSHOT = os.path.join(WORKSPACE, '01_活工程', '线代_两站对照', 'snapshot')
 ADAPTER_DIR = os.path.join(REPO, 'engine-core', 'adapters', 'static-content')
 
+
+# 第五十二轮（RX-02 那一族）：**依赖不在时必须报「环境不足」，不许崩** ✗
+# 旧版：快照缺失 ⇒ 前置步骤失败 ⇒ 后面变量没赋值 ⇒ NameError ⇒ 聚合层判 exit 3 ✗
+if not os.path.isdir(SNAPSHOT):
+    print('环境不足：主站快照不在（%s）' % SNAPSHOT)
+    print('ENV_INSUFFICIENT: 本检查依赖 01_活工程/线代_两站对照/snapshot/（其中含 check-structure.py）')
+    sys.exit(2)
 failures = []
 
 
