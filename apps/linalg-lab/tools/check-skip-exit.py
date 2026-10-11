@@ -32,38 +32,61 @@ WHITELIST = {
 
 
 def verify_premise():
-    """批次 B：**豁免前提必须被真实校验**，不能只写在注释里。
+    """批次 B：**豁免前提必须被真实校验**（不能只写在注释里）。
 
-    白名单的前提是「checks_render.py 会把 skipped 键转成非 pass 态」。
-    这里动态喂一个 {"skipped": "…"} 给它的判定函数，断言 pass is None。
-    改了就会红：删掉 checks_render.py 的 skipped 分支 → 本检查报红。
+    前提是：`checks_render.render_measure()` 会把量测脚本输出的 `{"skipped": …}` 转成**非 pass 态**。
+
+    做法（**端到端**，不是读源码猜）：在 `tools/` 放一个**假量测脚本**（只打印
+    `{"skipped": …}` 并 exit 0），再按真签名 `render_measure(artifact, source, base)` 调用它 ——
+    这会走完"找脚本 → 找 node → 跑脚本 → 解析 JSON → 命中 skipped 分支"的**真实路径**，
+    然后断言返回的 triple 里 `pass is None`。跑完删除假脚本。
+
+    **改了就会红**：删掉 `checks_render.py` 的 `if 'skipped' in d:` 分支、或把它改成 `pass=True`
+    → 返回不再是 `pass=None` → 本函数返回 False → 元检查退出码 1。
+    **校验不了也算红**（"校验不了 ≠ 通过"）。
     """
     import importlib.util
-    spec = importlib.util.spec_from_file_location(
-        'checks_render', os.path.join(REPO, 'engine-core', 'adapters', 'content-spec', 'checks_render.py'))
+    import sys as _sys
+    import tempfile
+    _dir = os.path.join(REPO, 'engine-core', 'adapters', 'content-spec')
+    if _dir not in _sys.path:
+        _sys.path.insert(0, _dir)
+    spec = importlib.util.spec_from_file_location('checks_render', os.path.join(_dir, 'checks_render.py'))
     mod = importlib.util.module_from_spec(spec)
     try:
         spec.loader.exec_module(mod)
     except Exception as e:
         return False, 'checks_render.py 无法加载：%s' % e
-    cand = None
-    for name in dir(mod):
-        f = getattr(mod, name)
-        if callable(f) and getattr(f, '__module__', '') == mod.__name__ and not name.startswith('_'):
-            cand = f
-            break
-    if cand is None:
-        return False, 'checks_render.py 里找不到可调用的判定函数'
-    payload = {'skipped': '批次 B 校验用的假输出'}
-    try:
-        t = cand(payload) if cand.__code__.co_argcount == 1 else cand(payload, 'fixtures/x.html')
-    except Exception as e:
-        return False, '调用判定函数失败（%s）—— 请人工确认 skipped 的转译位置' % e
-    got = getattr(t, 'pass', None) if not isinstance(t, tuple) else t[0]
-    if got is None:
-        return True, '假输出 {"skipped": …} → pass is None（仍是非通过态）✓'
-    return False, 'skipped 被转成了 pass=%r —— 豁免前提失效，那两处会退化成静默通过 ✗' % (got,)
+    fn = getattr(mod, 'render_measure', None)
+    if fn is None:
+        return False, 'checks_render.py 里没有 render_measure()（转译位置变了）'
 
+    fake = os.path.join(TOOLS, '_premise_fake_measure.mjs')
+    tmpdir = tempfile.mkdtemp(prefix='premise-')
+    page = os.path.join(tmpdir, 'x.html')
+    open(page, 'w', encoding='utf-8').write('<!doctype html><title>premise</title>')
+    open(fake, 'w', encoding='utf-8').write(
+        'console.log(JSON.stringify({ skipped: "批次 B 假量测输出" }));\n')
+    try:
+        # script 相对 workspace_root()；tools/ 就在它下面
+        source = {'render_measure': {'script': os.path.relpath(fake, os.path.dirname(TOOLS))},
+                  'render_targets': ['premise']}
+        artifact = {'id': 'premise', 'path': os.path.relpath(page, tmpdir)}
+        t = fn(artifact, source, tmpdir)
+        got = getattr(t, 'pass', None) if not isinstance(t, tuple) else t[0]
+        if got is None:
+            return True, '假量测输出 {"skipped": …} → render_measure() 返回 pass=None（非通过态）✓'
+        return False, 'skipped 被转成了 pass=%r —— 豁免前提失效，白名单不再成立 ✗' % (got,)
+    except Exception as e:
+        return False, '校验不了：%s（校验不了 ≠ 通过）' % e
+    finally:
+        for f in (fake,):
+            try:
+                os.unlink(f)
+            except OSError:
+                pass
+        import shutil
+        shutil.rmtree(tmpdir, ignore_errors=True)
 
 def main():
     print('=== 元检查：打印跳过却 exit 0（批次 C）===')
@@ -92,6 +115,9 @@ def main():
         print('    ✗ %s  %s' % (k, text))
     if unwaived:
         print('\\n发现未豁免的"打印跳过却 exit 0" ✗（判据：聚合层会不会把它记成通过？）')
+        return 1
+    if not premise_ok:
+        print('\n豁免前提**校验不了或已失效** ✗ —— 校验不了 ≠ 通过，那两处不能算数')
         return 1
     print('\\n没有未豁免的命中 ✓')
     return 0
