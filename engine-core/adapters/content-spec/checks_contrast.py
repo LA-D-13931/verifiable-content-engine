@@ -48,9 +48,13 @@ def run(artifact, source, base):
     r = subprocess.run(['node', PROBE, 'file://' + path, '--width', '1440', '--min-ratio', str(MIN_RATIO)],
                        capture_output=True, text=True, timeout=120)
     if r.returncode == 2:
+        # 第六十五轮：**带上探针自己的 stderr** ✓ —— 只写"没有可用浏览器"会把
+        # "真的没浏览器"和"探针起不来（别的环境原因）"混成一句 ✗（我就被它误导过一轮 ✓）。
+        _why = (r.stderr or '').strip().splitlines()[-1:] or ['']
         return {'pass': None,
-                'reason': '环境不足：没有可用浏览器 ⇒ 对比度（渲染维）这次判不了（不是失败 ✗）',
-                'certificate': {'needs': 'browser', 'probe': os.path.relpath(PROBE, REPO)}}
+                'reason': '环境不足：没有可用浏览器 ⇒ 对比度（渲染维）这次判不了（不是失败 ✗）｜ 探针 stderr: %s'
+                          % (_why[0][:160]),
+                'certificate': {'needs': 'browser', 'probe': os.path.relpath(PROBE, REPO), 'probe_stderr': _why[0][:200]}}
     if r.returncode != 0:
         return {'pass': None,
                 'reason': '检查器故障（探针退出码 %d）：%s' % (r.returncode, (r.stderr or '')[:120]),

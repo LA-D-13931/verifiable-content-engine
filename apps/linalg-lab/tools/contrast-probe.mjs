@@ -26,12 +26,31 @@ const page = await browser.newPage();
 await page.setViewport({ width, height: 900 });
 try { await page.goto(url, { waitUntil: 'load' }); } catch (e) { await browser.close(); die('页面打不开：' + e.message); }
 const items = await page.evaluate(() => {
+function parseRGBA(c) {
+  const m = String(c).match(/rgba?\(([\d.]+),\s*([\d.]+),\s*([\d.]+)(?:,\s*([\d.]+))?\)/);
+  return m ? [ +m[1], +m[2], +m[3], m[4] === undefined ? 1 : +m[4] ] : null;
+}
+function over(fg, bg) { // fg 覆在 bg 上
+  const a = fg[3] + bg[3] * (1 - fg[3]);
+  if (a === 0) return [255, 255, 255, 1];
+  return [ (fg[0]*fg[3] + bg[0]*bg[3]*(1-fg[3]))/a,
+           (fg[1]*fg[3] + bg[1]*bg[3]*(1-fg[3]))/a,
+           (fg[2]*fg[3] + bg[2]*bg[3]*(1-fg[3]))/a, a ];
+}
+function effectiveBG(el) {
+  const chain = [];
+  let n = el;
+  while (n) { const c = parseRGBA(getComputedStyle(n).backgroundColor); if (c) chain.push(c); n = n.parentElement; }
+  let acc = [255, 255, 255, 1];                 // 最外层按白底 ✓
+  for (let i = chain.length - 1; i >= 0; i--) acc = over(chain[i], acc);
+  return 'rgb(' + Math.round(acc[0]) + ', ' + Math.round(acc[1]) + ', ' + Math.round(acc[2]) + ')';
+}
+
   const out = [];
   for (const el of document.querySelectorAll('p, li, td, h1, h2, h3, h4, span, strong, em, a')) {
     const t = (el.textContent || '').trim(); if (!t) continue;
     const s = getComputedStyle(el);
-    let bg = s.backgroundColor, node = el;
-    while (node && (bg === 'rgba(0, 0, 0, 0)' || bg === 'transparent')) { node = node.parentElement; if (!node) break; bg = getComputedStyle(node).backgroundColor; }
+    const bg = effectiveBG(el);   // 第六十五轮：**合成半透明背景链** ✓（原来只取第一个非透明祖先 ✗ ⇒ 假红）
     out.push({ text: t.slice(0, 40), fg: s.color, bg: bg || 'rgb(255,255,255)', size: parseFloat(s.fontSize), weight: s.fontWeight });
   }
   return out;
