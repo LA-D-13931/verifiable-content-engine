@@ -29,7 +29,11 @@ def run(artifact, source, base):
         return {'pass': None,
                 'reason': '本来源未声明数值出处（value_sources），数量陈述的溯源不适用',
                 'certificate': {'declared_value_sources': None}}
-    # **用引擎自己的 resolve**（第四十七轮：我原来自己拼路径 ⇒ 对页面报「找不到产物」✗，\n    # 而 common.resolve 明明找得到 —— 正是 循环纪律.md 第 1 条那一族 ✗）\n    import common\n    path = common.resolve(artifact, base)
+    # **用引擎自己的 resolve**（第四十七轮：我原来自己拼路径 ⇒ 对页面报「找不到产物」✗，
+    # 而 common.resolve 明明找得到 —— 正是 循环纪律.md 第 1 条那一族 ✗）
+    import common
+    path = common.resolve(artifact, base)
+
     if not os.path.isfile(path):
         return {'pass': False, 'reason': '找不到产物 %s' % artifact['path'],
                 'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
