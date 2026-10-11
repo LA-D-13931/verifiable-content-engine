@@ -66,7 +66,9 @@ def main():
     if a.block:
         new = sys.stdin.read() if a.block == '-' else open(a.block, encoding='utf-8').read()
     out = text.replace(a.old, new, 1)
-    if a.old in out or (new and new not in out):
+    # 自证：old 必须消失（除非 new 里本来就含它 —— 例如插入到某行之前这种用法 ✓）；new 必须出现 ✓
+    _old_gone = (a.old not in out) or (a.old in (new or ''))
+    if not _old_gone or (new and new not in out):
         print('✗ 写完自证失败（old 仍在或 new 未出现）'); return 1
     open(a.path, 'w', encoding='utf-8').write(out)
     print('✓ 替换成功（锚点唯一；写完自证通过）')
