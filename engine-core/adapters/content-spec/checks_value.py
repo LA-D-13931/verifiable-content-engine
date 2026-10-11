@@ -40,6 +40,9 @@ def run(artifact, source, base):
                                 'environment': {'kind': 'repo-fixture'},
                                 'detail': {'resolved_path': path, 'exists': False}}}
     text = open(path, encoding='utf-8').read()
+    # 剥掉代码块 / 行内代码（代码里的数字不是"数量陈述" ✓）
+    text_wo_code = re.sub(r'```.*?```', '', text, flags=re.S)
+    text_wo_code = re.sub(r'`[^`]*`', '', text_wo_code)
     # 汇总声明的来源里出现的「数字+量词」
     pool = []
     for s in srcs:
@@ -48,22 +51,21 @@ def run(artifact, source, base):
             pool.append(open(sp, encoding='utf-8').read())
     pool = '\n'.join(pool)
     missing = []
-    # 先剥掉代码块（fenced code 里的数字是代码，不是"数量陈述" ✓）
-    text_wo_code = re.sub(r'```.*?```', '', text, flags=re.S)
-    text_wo_code = re.sub(r'`[^`]*`', '', text_wo_code)
+    hits = []                       # 每处命中的**原文**（第四十九轮：证书不许只给 number/unit ✗）
     for m in QUANTITY.finditer(text_wo_code):
         n, unit = m.group(1), m.group(2)
         seg = text_wo_code[max(0, m.start() - 20):m.end() + 6]
+        _before = text_wo_code[max(0, m.start() - 3):m.start()]
         if any(sp in seg for sp in STOP_PHRASES):
             continue
-        # **结构编号不是数量陈述**（第四十八轮抽样 10 处里 7 处是它 ✗）：
-        # 「第 1 章」「第 26 节」「第 32 节」—— 它们是**引用**，不是"数了 N 个东西" ✓。
-        _before = text_wo_code[max(0, m.start() - 3):m.start()]
         if re.search(r'第\s*$', _before):
             continue
         _before10 = text_wo_code[max(0, m.start() - 10):m.start()].strip()
         if re.search(r'^(CHAPTER|Ch\.?)\s*$', _before10):
             continue
+        # 命中处的原文（前后各 ~20 字；**空白折成单空格**，便于 grep / 阅读 ✓）
+        statement = re.sub(r'\s+', ' ', text_wo_code[max(0, m.start() - 30):m.end() + 30]).strip()
+        hits.append({'number': n, 'unit': unit, 'statement': statement})
         if not re.search(r'(?<![\d.])' + n + r'\s*' + unit, pool):
             missing.append((n, unit))
     if missing:
@@ -74,7 +76,9 @@ def run(artifact, source, base):
                 'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
                                 'environment': {'kind': 'repo-fixture'},
                                 'detail': {'number': n, 'unit': unit,
+                                           'statement': hits[0]['statement'] if hits else '',
                                            'where': artifact['path'],
                                            'declared_sources': srcs,
-                                           'missing_count': len(missing)}}}
+                                           'missing_count': len(missing),
+                                           'hits': hits[:10]}}}       # 前 10 处原文 ✓（证书不许大到没法读 ✓）
     return {'pass': True, 'reason': '', 'certificate': {'checked_units': sorted({u for _, u in QUANTITY.findall(text)})}}
