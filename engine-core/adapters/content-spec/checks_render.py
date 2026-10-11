@@ -43,7 +43,8 @@ def verdict_from_json(d):
         return triple(None, '环境不足：%s' % d['skipped'])
 
 
-def render_measure(artifact, source, base):
+def _render_measure_one(artifact, source, base):
+    """单档量测（第二十一轮前的原实现，内部一字未改）。"""
     spec = source.get('render_measure')
     if not spec:
         return triple(None, '本来源没有声明渲染量测（不适用）')
@@ -103,3 +104,46 @@ def render_measure(artifact, source, base):
                                       '单跑这一页，按输出的三个数定位；同样是"重新测量过才算修好"。',
                       }]})
     return triple(True, '', cert)
+
+def render_measure(artifact, source, base):
+    """渲染量测（第二十一轮：**宽度可声明为多档**）。
+
+    - `render_measure.width` 是**标量**（如 `1440`）→ 完全保持原行为（现有 manifest 不必改）；
+    - 是**数组**（如 `[1440, 320]`）→ **同一产物逐档跑**，**每档各出一条判定、各自带自己的宽度**。
+
+    阈值（`min_tap_px` / `max_overflow_px`）**不随宽度变** —— 判断与理由写在回复里：
+    "点击目标 ≥20px"是一条**与视口无关的可达性下限**，窄屏不该放宽它（放宽就是把阈值调松换绿）。
+
+    组合规则：任一档**环境不足** → 整条记环境不足（并点名是哪一档）；任一档**判据不成立** → 记失败（点名哪一档）。
+    """
+    spec = source.get('render_measure') or {}
+    widths = spec.get('width', 1440)
+    if not isinstance(widths, (list, tuple)):
+        return _render_measure_one(artifact, source, base)
+
+    results = []
+    for w in widths:
+        src2 = dict(source)
+        src2['render_measure'] = dict(spec, width=w)      # 该档用标量宽度调原实现
+        results.append((w, _render_measure_one(artifact, src2, base)))
+
+    per = []
+    for w, t in results:
+        d = t if isinstance(t, dict) else {'pass': t[0], 'reason': t[1]}
+        per.append({'width': w, 'pass': d.get('pass'), 'reason': d.get('reason')})
+
+    env = [(w, t) for w, t in results if (t if isinstance(t, dict) else {'pass': t[0]}).get('pass') is None]
+    bad = [(w, t) for w, t in results if (t if isinstance(t, dict) else {'pass': t[0]}).get('pass') is False]
+
+    if env:
+        w, t = env[0]
+        return triple(None, '环境不足（宽度 %s）：%s' % (w, (t if isinstance(t, dict) else {'reason': t[1]}).get('reason')),
+                      {'evidence': 'render', 'widths': list(widths), 'per_width': per})
+    if bad:
+        w, t = bad[0]
+        return triple(False, '浏览器里量到问题（宽度 %s）：%s'
+                      % (w, (t if isinstance(t, dict) else {'reason': t[1]}).get('reason')),
+                      {'evidence': 'render', 'widths': list(widths), 'per_width': per})
+    return triple(True, '', {'evidence': 'render',
+                             'width': per[0]['width'],            # 兼容：仍给一个 width
+                             'widths': list(widths), 'per_width': per})

@@ -283,7 +283,10 @@
       "render_measure": {
         "script": "工作台/线代交互实验台/apps/linalg-lab/tools/render-measure.mjs",
         "timeout": 180,
-        "width": 1440,
+        "width": [
+          1440,
+          320
+        ],
         "min_tap_px": 20,
         "max_overflow_px": 1,
         "note": "量测脚本在消费者侧（本项目分工：规则层本域、量测层消费者侧）；阈值 20px 是\"明显过小\"的保守下限——约 24px 的设计取舍不该被这条判红。"
@@ -674,7 +677,10 @@
       "render_measure": {
         "script": "工作台/线代交互实验台/apps/linalg-lab/tools/render-measure.mjs",
         "timeout": 180,
-        "width": 1440,
+        "width": [
+          1440,
+          320
+        ],
         "min_tap_px": 20,
         "max_overflow_px": 1,
         "note": "量测脚本在消费者侧（本项目分工：规则层本域、量测层消费者侧）；阈值 20px 是\"明显过小\"的保守下限——约 24px 的设计取舍不该被这条判红。"
