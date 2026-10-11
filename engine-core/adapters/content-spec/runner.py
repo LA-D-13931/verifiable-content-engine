@@ -462,7 +462,7 @@ def main():
     if not bad:
         print('全部通过 ✓  %d 条判定都通过' % len(results))
         return 0
-    _cert_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir, os.pardir, '.certificates')
+    _cert_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir, '.certificates')
     _n_cert = dump_certificates(results, _cert_dir)
     if _n_cert:
         print('证书已落盘：%d 份 → .certificates/' % _n_cert)
