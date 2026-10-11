@@ -395,22 +395,19 @@ def main():
             human = [r for r in results if r.get('evidence') == 'human']
             if human and not quiet:
                 print('  ⚠ 另有 %d 条**需人工确认**（human 证据：机器不签字，不计入全绿）' % len(human))
+            # 结构化协议行（与 NOT-COMPARED: 同一套做法）：单行、前缀固定、机器可读
+            # **必须打在 return 之前** —— 否则永远执行不到（第二十七轮就栽在这）
+            if known:
+                print('KNOWN-DEFECTS: %d 项 | %s'
+                      % (len(known),
+                         '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
             nf = sum(1 for r in results if r['expect'] == 'fail')
             np_ = sum(1 for r in results if r['expect'] == 'pass')
             ns = sum(1 for r in results if r['expect'] == 'skip')
-            print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿'
-                  '%s）' % (len(results), nf, np_,
-                            ' / %d 条按不适用处理' % ns if ns else ''))
-            return 0
-        if known:
-            # **结构化协议行**（与 NOT-COMPARED: 同一套做法）：单行、前缀固定、机器可读
-            print('KNOWN-DEFECTS: %d 项 | %s' % (
-                len(known), '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
-            print('  已登记缺陷 %d 项（**不计入失败**，归属=消费者侧、待其修）：%s'
-                  % (len(known), '、'.join(sorted({r['known_defect'] for r in known}))))
-        if not fails:
-            print('  全部通过 ✓  检查器在 %d 条真实判定上与期望一致'
-                  '（其中 %d 条是**已登记缺陷**，按第四类处理）' % (len(results) - len(unset), len(known)))
+            tail = ('；其中 %d 条为**已登记缺陷**（消费者侧待修）' % len(known)) if known else ''
+            print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿%s）%s'
+                  % (len(results), nf, np_,
+                     ' / %d 条按不适用处理' % ns if ns else '', tail))
             return 0
         print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）' % len(fails))
         return 1

@@ -285,8 +285,14 @@ def main():
             rows.append((group, name, None, '环境不足：超时（>1800s）', 'environment'))
             continue
         out = (r.stdout or '') + (r.stderr or '')
+        # 协议行（子进程自己声明）：单行、前缀固定、机器可读 —— 与 NOT-COMPARED: 同一套做法
+        _kd_note = ''
+        for _l in out.splitlines():
+            if _l.strip().startswith('KNOWN-DEFECTS:'):
+                _kd_note = '  ｜ ' + _l.strip().replace('KNOWN-DEFECTS:', '已登记缺陷')
+                break
         if r.returncode == 0:
-            rows.append((group, name, True, last_meaningful_line(r.stdout), 'pass'))
+            rows.append((group, name, True, last_meaningful_line(r.stdout) + _kd_note, 'pass'))
         elif r.returncode == ENV_EXIT_CODE:
             # 首选判据：子进程**自己声明**"我因环境原因退出"（结构化，不靠文案）
             rows.append((group, name, None,
@@ -383,11 +389,23 @@ def main():
         print('  → 退出码 2：既不算通过，也不算代码失败。补齐上面列出的环境后重跑。')
         return 2
     if unselected:
+        _kd_n = sum(1 for _g, _n, _ok, _d, _k in rows if _k == 'pass' and (_d or '').count('已登记缺陷'))
+        if _kd_n:
+            print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
+                  '（**其中 %d 条为已登记缺陷，待消费者侧修**）'
+                  % (len(rows) - len(unselected), len(unselected), _kd_n))
+        else:
+            print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
+                  % (len(rows) - len(unselected), len(unselected)))
         print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
               % (len(rows) - len(unselected), len(unselected)))
         print('  → 退出码 0 表示**本档范围内**没有失败项；要更全的结论就加 --all 再跑一遍。')
         return 0
-    print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
+    _kd_n2 = sum(1 for _g, _n, _ok, _d, _k in rows if _k == 'pass' and (_d or '').count('已登记缺陷'))
+    if _kd_n2:
+        print('全部通过 ✓  %d 项已跑、0 跳过（**其中 %d 条为已登记缺陷，待消费者侧修**）' % (len(rows), _kd_n2))
+    else:
+        print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
     return 0
 
 
