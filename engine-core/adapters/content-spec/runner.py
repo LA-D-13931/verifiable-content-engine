@@ -146,7 +146,8 @@ def run_all(only_source=None, only_check=None, scope=None):
                             'artifact': art['id'], 'kind': art.get('kind', 'product'),
                             'label': '%s · %s' % (art['id'], chk['id']),
                             'severity': chk.get('severity', 'gate'),
-                            'evidence': chk.get('evidence'), 'expect': exp, **r})
+                            'evidence': chk.get('evidence'), 'expect': exp, **r,
+                            'known_defect': _kd_map().get((chk['id'], art['id']))})
     return m, out
 
 
@@ -245,7 +246,7 @@ def as_json(m, results):
         out['verdicts'].append({
             'check': r['check'], 'artifact': r['artifact'], 'evidence': r.get('evidence'),
             'verdict': _verdict(r), 'expect': r.get('expect'),
-            'known_defect': _KD.get((chk['id'], art['id'])),
+            'known_defect': r.get('known_defect'),
             'reason': r.get('reason', ''), 'certificate': r.get('certificate'),
             'advice': r.get('advice'),
         })
@@ -284,8 +285,14 @@ def list_delegates(m):
     return 0
 
 
+_KD_CACHE = None
+
+
 def _kd_map():
-    return {(c, a): i for (c, a), i, _u in _known_defects()}
+    global _KD_CACHE
+    if _KD_CACHE is None:
+        _KD_CACHE = {(c, a): i for (c, a), i, _u in _known_defects()}
+    return _KD_CACHE
 
 
 def _known_defects():
