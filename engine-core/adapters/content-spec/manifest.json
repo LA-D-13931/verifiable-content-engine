@@ -1140,7 +1140,8 @@
       "lab-L00-S5": "pass",
       "lab-L00-S6": "pass",
       "lab-L00-S7": "pass",
-      "lab-L00-S8": "pass"
+      "lab-L00-S8": "pass",
+      "katex-bad": "skip"
     },
     "undefined-style-token": {
       "frag-L00-S1": "fail",
@@ -1160,20 +1161,25 @@
       "lab-L00-S5": "pass",
       "lab-L00-S6": "pass",
       "lab-L00-S7": "pass",
-      "lab-L00-S8": "pass"
+      "lab-L00-S8": "pass",
+      "katex-bad": "skip"
     },
     "field-coverage": {
-      "renderer": "fail"
+      "renderer": "fail",
+      "katex-bad": "skip"
     },
     "selfcheck-path-coverage": {
-      "renderer": "fail"
+      "renderer": "fail",
+      "katex-bad": "skip"
     },
     "declared-value-vs-actual": {
-      "renderer": "fail"
+      "renderer": "fail",
+      "katex-bad": "skip"
     },
     "answer-key": {
       "foundation-index": "pass",
-      "foundation-index.mutant": "fail"
+      "foundation-index.mutant": "fail",
+      "katex-bad": "skip"
     },
     "style-coverage": {
       "frag-L00-S1": "skip",
@@ -1193,20 +1199,24 @@
       "lab-L00-S5": "pass",
       "lab-L00-S6": "pass",
       "lab-L00-S7": "pass",
-      "lab-L00-S8": "pass"
+      "lab-L00-S8": "pass",
+      "katex-bad": "skip"
     },
     "capability-matrix": {
-      "renderer": "fail"
+      "renderer": "fail",
+      "katex-bad": "skip"
     },
     "lang-policy": {
       "snapshot": "pass",
       "mutant-lang": "fail",
-      "mutant-nav": "pass"
+      "mutant-nav": "pass",
+      "katex-bad": "skip"
     },
     "single-source": {
       "snapshot": "fail",
       "mutant-lang": "pass",
-      "mutant-nav": "fail"
+      "mutant-nav": "fail",
+      "katex-bad": "skip"
     },
     "forbidden-patterns": {
       "ch6.dup-mutant": "pass",
@@ -1281,7 +1291,8 @@
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
       "page-ch9.html": "skip",
-      "ch1.value-mutant": "skip"
+      "ch1.value-mutant": "skip",
+      "katex-bad": "skip"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1300,7 +1311,8 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
-      "ch1.value-mutant": "skip"
+      "ch1.value-mutant": "skip",
+      "katex-bad": "skip"
     },
     "content-volume-regression": {
       "ch6.dup-mutant": "pass",
@@ -1337,7 +1349,8 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
-      "ch1.value-mutant": "skip"
+      "ch1.value-mutant": "skip",
+      "katex-bad": "skip"
     },
     "delegate": {
       "delegate-bad": "fail",
@@ -1352,7 +1365,8 @@
       "delegate-ok": "pass",
       "delegate-refs": "pass",
       "delegate-style": "pass",
-      "delegate-unreadonly": "fail"
+      "delegate-unreadonly": "fail",
+      "katex-bad": "skip"
     },
     "render-measure": {
       "ch6.dup-mutant": "skip",
@@ -1409,10 +1423,12 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
-      "ch1.value-mutant": "skip"
+      "ch1.value-mutant": "skip",
+      "katex-bad": "skip"
     },
     "human-review": {
-      "snapshot": "skip"
+      "snapshot": "skip",
+      "katex-bad": "skip"
     },
     "value-provenance": {
       "ch1.value-mutant": "fail",
@@ -1452,7 +1468,8 @@
       "ch6.dup-mutant": "fail",
       "renderer": "pass",
       "foundation-index": "pass",
-      "foundation-index.mutant": "pass"
+      "foundation-index.mutant": "pass",
+      "katex-bad": "skip"
     },
     "math-command-allowlist": {
       "katex-bad": "fail",
