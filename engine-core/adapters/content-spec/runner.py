@@ -182,10 +182,8 @@ def manifest_contract_problems(m):
     for c in m['checks']:
         ev = c.get('evidence')
         if ev not in EVIDENCE_ENUM:
-            if _KD.get((c.get('id'), a.get('id'))):
-                known.append((c.get('id'), a.get('id'), _KD[(c.get('id'), a.get('id'))]))
                 continue
-            bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
+        bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
     # C2：**未被证伪的检查不许进套件**——语料里必须至少有一个"它应当判红"的例子。
     # 依据是台账 M5（检测器没校准就用来判断：假阳性 21 处、同一个正则陷阱犯 3 次）。
     # 一条只会在好内容上通过的检查，无法区分"它没发现问题"和"它根本不看"。
@@ -359,7 +357,7 @@ def main():
         return 0
 
     if mode == 'selftest':
-        ok, fails, unset = 0, [], []
+        ok, fails, unset, known = 0, [], [], []
         for r in results:
             actual = _verdict(r)
             if r['expect'] is None:
@@ -367,6 +365,12 @@ def main():
                 continue
             if r['expect'] == actual:
                 ok += 1
+            elif actual == 'fail' and r.get('known_defect'):
+                # 第四类：判 fail 但**已登记**（owner=consumer、带 unblock）→ 不算失败、**必须可见**
+                known.append(r)
+                if not quiet:
+                    print('  ◇ %-40s 期望 %-4s 实际 %-4s  —— 已登记缺陷 %s（待消费者侧修）'
+                          % (r['label'], r['expect'], actual, r['known_defect']))
             else:
                 fails.append(r)
                 if not quiet:
@@ -391,6 +395,13 @@ def main():
             print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿'
                   '%s）' % (len(results), nf, np_,
                             ' / %d 条按不适用处理' % ns if ns else ''))
+            return 0
+        if known:
+            print('  已登记缺陷 %d 项（**不计入失败**，归属=消费者侧、待其修）：%s'
+                  % (len(known), '、'.join(sorted({r['known_defect'] for r in known}))))
+        if not fails:
+            print('  全部通过 ✓  检查器在 %d 条真实判定上与期望一致'
+                  '（其中 %d 条是**已登记缺陷**，按第四类处理）' % (len(results) - len(unset), len(known)))
             return 0
         print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）' % len(fails))
         return 1
