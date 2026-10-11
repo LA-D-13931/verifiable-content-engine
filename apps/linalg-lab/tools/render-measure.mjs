@@ -54,7 +54,13 @@ try {
     for (const el of document.querySelectorAll(sel)) {
       // 有效点击区域 = 元素与它最近的 <label>（radio/checkbox 本体默认很小，
       // 但真实可点区域是包裹它的 label）。不做这一步会稳定误报一整类假阳性。
-      const box = (el.closest('label') || el);
+      // 有效点击区域 = 元素与它的 label：
+      //   ① 包裹式 <label><input></label> → closest('label')
+      //   ② **label[for=id] 式**（第二十三轮补上：此前只覆盖 ①，导致一整类假阳性）
+      //      —— 真实可点区域是那个 label，而不是 input 本体（浏览器默认 28.2×19.8）
+      const _lab = el.closest('label')
+        || (el.id ? document.querySelector('label[for="' + CSS.escape(el.id) + '"]') : null);
+      const box = (_lab || el);
       // 排除**正文内联链接**：段落里的 <a> 高度就是行高（约 19px），把它算成
       // "点击目标过小"是经典假阳性——导航/页脚/按钮里的链接仍然照测。
       if (el.tagName === 'A' && el.closest('p')) continue;
