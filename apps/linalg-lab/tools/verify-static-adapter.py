@@ -120,6 +120,9 @@ rc2, out2 = run_original('check-structure.py')
 if rc2 is None:
     ok(False, '结构原脚本可运行', out2)
 else:
+    # 第十六轮修正：这五个统计量**定义在条件块内、却在块外使用**（`:145`）→
+    # 只要那个分支没命中就必抛 NameError。所以先给默认值。
+    o_sections = o_examples = o_qpapers = o_qquestions = o_reviews = None
     ok(rc2 == 0, '结构原脚本对快照通过（退出码 0）', '退出码 %s' % rc2)
     def g(pat, cast=int):
         m = re.search(pat, out2)
