@@ -18,6 +18,7 @@
   python3 替换.py <文件> --old "<锚点>" --block <含新文本的文件或 -> 从 stdin 读整段
 退出码：0 成功 / 1 锚点不唯一或没找到（并打印候选）
 """
+import os
 import argparse
 import difflib
 import sys
@@ -92,7 +93,20 @@ def main():
             return 1
         print('  · --verify-cmd 通过：%s' % a.verify_cmd)
 
+    # **写盘自证**（第四十二轮）：上一轮我踩过"报了成功却没写盘" ✗ ——
+    # 那次是"写盘那行被自己的替换删掉" ✗，工具毫无察觉 ✗。
+    # 所以落盘之后必须**读回**确认内容真的变了、**mtime** 真的动了 ✓。
+    _before = os.path.getmtime(a.path) if os.path.exists(a.path) else 0
     open(a.path, 'w', encoding='utf-8').write(out)
+    os.utime(a.path, None)                       # 显式 touch，确保 mtime 一定变化 ✓
+    _after = os.path.getmtime(a.path)
+    _back = open(a.path, encoding='utf-8').read()
+    if _back != out:
+        print('✗ 写盘自证失败：读回的內容与要写入的不一致（磁盘没落 / 被并发改）')
+        return 1
+    if not (_after > _before):
+        print('✗ 写盘自证失败：mtime 没变（%s → %s）—— 文件可能没被真正写入' % (_before, _after))
+        return 1
     print('✓ 替换成功（锚点唯一；写完自证通过；语法' + ('已校验' if a.path.endswith('.py') else '不适用') + '）')
     return 0
 
