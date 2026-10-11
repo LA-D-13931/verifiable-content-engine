@@ -388,7 +388,10 @@ def skip_is_qualified(chk, art, m, r=None):
     if isinstance(exp, dict):
         return bool(exp.get('why'))
     reason = (r or {}).get('reason') or ''
-    return reason.startswith('不适用')
+    # **有据 = 引擎自己说了为什么** ✓ 三种都算：
+    #   「不适用：…」（这条检查对这个产物没有可判的面 ✓）
+    #   「环境不足：…」（这次没条件跑 ✓ —— env 档里 render-measure 就是它 ✓）
+    return reason.startswith('不适用') or reason.startswith('环境不足')
 
 
 def main():
