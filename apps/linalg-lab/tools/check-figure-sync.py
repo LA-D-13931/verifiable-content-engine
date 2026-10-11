@@ -52,6 +52,17 @@ def read_record():
     return txt[0] if txt else None
 
 
+def check_labels(path):
+    """第二十四轮 §3：图里 **data-node-label 不许重复**（"复制节点忘改标签"的机械判据）。"""
+    import re as _re
+    h = open(path, encoding='utf-8').read()
+    labels = _re.findall(r'data-node-label="([^"]*)"', h)
+    # 空 label 是合法的（外层包装节点用它），只查**非空**标签的重复
+    labels = [x for x in labels if x.strip()]
+    dup = sorted({x for x in labels if labels.count(x) > 1})
+    return dup
+
+
 def main():
     argv = sys.argv[1:]
     print('=== 全貌图单一来源检查 ===')
@@ -97,6 +108,11 @@ def main():
         print('  ✗ 源图与仓库副本不一致 —— 两处漂了（这正是 single-source 要治的病）')
         print('     修法：cp "<源图>" docs/全貌图/engine-audit-flow.html 再 --update-record')
         return 1
+    dup = check_labels(IN_REPO)
+    if dup:
+        print('  ✗ 图里有重复的 data-node-label：%s（复制节点忘了改标签）' % dup)
+        return 1
+    print('  ✓ data-node-label 无重复（%d 个节点）' % len(open(IN_REPO, encoding='utf-8').read().split('data-node-label=')) )
     print('  ✓ 三向一致（源图 == 仓库副本 == 仓库记录）')
     return 0
 

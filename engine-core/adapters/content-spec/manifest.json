@@ -1014,6 +1014,21 @@
       "check_id": "delegate",
       "note": "这正是 Q13 说的分工——口径是站点自己的，引擎不重写它的规矩，只把结论纳入同一契约",
       "id_note": "原登记名 missing-math-in-exam 基于脚本末行（exam.html: 1）；正文实为 ch1.html 多处，已改正"
+    },
+    {
+      "id": "mastered-checkbox-label-under-20px",
+      "status": "未修（在高数站里，本域只报告不代改）",
+      "owner": "consumer",
+      "applies_to": {
+        "check": "render-measure",
+        "artifacts": [
+          "page-ch2.html",
+          "page-ch6.html"
+        ]
+      },
+      "unblock": "高数站把「已掌握」勾选框 label 的点击高度提到 ≥20px（现在 19.8px）",
+      "evidence": "第二十四轮独立探针 dump：wrappedLabel=true / boxIs=LABEL / 28.2×19.8 / font-size 11.2 / line-height 15.68 / padding 1.92×2；1440 档命中 0",
+      "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**"
     }
   ],
   "expectations": {

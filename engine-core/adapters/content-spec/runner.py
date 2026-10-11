@@ -182,10 +182,14 @@ def manifest_contract_problems(m):
     for c in m['checks']:
         ev = c.get('evidence')
         if ev not in EVIDENCE_ENUM:
+            if _KD.get((c.get('id'), a.get('id'))):
+                known.append((c.get('id'), a.get('id'), _KD[(c.get('id'), a.get('id'))]))
+                continue
             bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
     # C2：**未被证伪的检查不许进套件**——语料里必须至少有一个"它应当判红"的例子。
     # 依据是台账 M5（检测器没校准就用来判断：假阳性 21 处、同一个正则陷阱犯 3 次）。
     # 一条只会在好内容上通过的检查，无法区分"它没发现问题"和"它根本不看"。
+    _KD = _kd_map()
     exp = m.get('expectations') or {}
     for c in m['checks']:
         if c.get('evidence') == 'human':
@@ -244,6 +248,7 @@ def as_json(m, results):
         out['verdicts'].append({
             'check': r['check'], 'artifact': r['artifact'], 'evidence': r.get('evidence'),
             'verdict': _verdict(r), 'expect': r.get('expect'),
+            'known_defect': _KD.get((chk['id'], art['id'])),
             'reason': r.get('reason', ''), 'certificate': r.get('certificate'),
             'advice': r.get('advice'),
         })
@@ -280,6 +285,31 @@ def list_delegates(m):
         return 1
     print('\n全部委托都已声明 只读 + 超时 ✓（这是它们被允许执行的前提）')
     return 0
+
+
+def _kd_map():
+    return {(c, a): i for (c, a), i, _u in _known_defects()}
+
+
+def _known_defects():
+    """已登记的消费者侧缺陷（第四类 known_defect）：**判 fail 但已登记 → 不算失败**。
+
+    三个最小开关（缺一不可）：① 引用已登记缺陷 id；② 归属必须是 consumer（**引擎侧不许登记**）；
+    ③ 必须有 unblock（谁、做什么、解封条件）。缺任一条 → 该条目**不生效**（回落到"失败"）。
+    """
+    import json as _j
+    p = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'manifest.json')
+    try:
+        d = _j.load(open(p, encoding='utf-8'))
+    except Exception:
+        return []
+    out = []
+    for x in (d.get('discovered_defects') or []):
+        ap = (x.get('applies_to') or {})
+        if x.get('owner') == 'consumer' and x.get('unblock') and ap.get('check'):
+            for a in (ap.get('artifacts') or []):
+                out.append(((ap['check'], a), x['id'], x['unblock']))
+    return out
 
 
 def main():
