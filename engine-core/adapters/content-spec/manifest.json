@@ -1196,7 +1196,8 @@
       "page-ch6.html": "pass",
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
-      "page-ch9.html": "pass"
+      "page-ch9.html": "pass",
+      "ch1.value-mutant": "pass"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
@@ -1232,7 +1233,8 @@
       "page-ch6.html": "skip",
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
-      "page-ch9.html": "skip"
+      "page-ch9.html": "skip",
+      "ch1.value-mutant": "skip"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1251,7 +1253,7 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
-      "ch1.value-mutant": "pass"
+      "ch1.value-mutant": "skip"
     },
     "content-volume-regression": {
       "ch6.dup-mutant": "pass",
@@ -1287,7 +1289,8 @@
       "page-ch6.html": "pass",
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
-      "page-ch9.html": "pass"
+      "page-ch9.html": "pass",
+      "ch1.value-mutant": "skip"
     },
     "delegate": {
       "delegate-bad": "fail",
@@ -1357,7 +1360,8 @@
       "page-ch6.html": "pass",
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
-      "page-ch9.html": "pass"
+      "page-ch9.html": "pass",
+      "ch1.value-mutant": "skip"
     },
     "human-review": {
       "snapshot": "skip"
