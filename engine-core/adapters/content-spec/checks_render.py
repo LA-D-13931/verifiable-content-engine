@@ -89,7 +89,7 @@ def _render_measure_one(artifact, source, base):
                            t.get('tag'), t.get('w'), t.get('h'), t.get('text', '')))
     if d.get('pageErrors'):
         problems.append('%d 条页面脚本报错（如 %s）' % (len(d['pageErrors']), d['pageErrors'][0][:80]))
-    cert = {'evidence': 'render', 'browser': 'Edge/Chrome headless', 'width': d.get('width'),
+    cert = {'evidence': 'render', 'browser': d.get('browser') or '（量测脚本未回报浏览器）', 'width': d.get('width'),
             'overflowX': d.get('overflowX'), 'nodes': d.get('nodes'),
             'scrollHeight': d.get('scrollHeight'), 'smallTapCount': d.get('smallTapCount'),
             'smallTaps': d.get('smallTaps'), 'pageErrors': d.get('pageErrors')}

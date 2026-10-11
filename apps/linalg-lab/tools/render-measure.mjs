@@ -39,7 +39,9 @@ catch (e) { console.log(JSON.stringify({ skipped: 'puppeteer-core 不可用：' 
 const url = /^https?:/.test(target) ? target : pathToFileURL(target).href;
 const br = await puppeteer.launch({ executablePath: exe, headless: 'new',
   args: ['--no-sandbox', '--disable-gpu', `--window-size=${WIDTH},900`] });
-const out = { url, width: WIDTH, pageErrors: [], consoleErrors: [] };
+let browserTag = 'unknown';
+try { const v = await br.version(); browserTag = v; } catch (e) { /* 量不到就写 unknown，不写死 */ }
+const out = { browser: browserTag, url, width: WIDTH, pageErrors: [], consoleErrors: [] };
 try {
   const page = await br.newPage();
   await page.setViewport({ width: WIDTH, height: 900 });
