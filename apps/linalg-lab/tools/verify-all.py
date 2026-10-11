@@ -158,7 +158,70 @@ def last_meaningful_line(text):
     return '(无输出)'
 
 
+#: **分类契约**（第十九轮修 D）：`kind` 只允许这五个值，多一个或少一个即红 ——
+#: 这样"忘了接一条分支"（第十八轮根因 A：注释写了、`elif` 没插进去）会被契约抓住。
+KINDS = ('pass', 'fail', 'not_selected', 'environment', 'crash')
+
+
+def classify(returncode, out):
+    """（退出码, 输出）→ 分类。**纯函数**：把判定链的形状变成可断言的对象。
+
+    顺序（崩溃文案先于环境文案；但"明确的缺依赖"仍归环境）：
+      0 → pass ｜ 3 → crash（结构化）｜ 2 → environment（结构化）
+      1 且含缺依赖文案 → environment ｜ 1 且含崩溃文案 → crash ｜ 1 其他 → fail
+    """
+    if returncode == 0:
+        return 'pass'
+    if returncode == CRASH_EXIT_CODE:
+        return 'crash'
+    if returncode == ENV_EXIT_CODE:
+        return 'environment'
+    if returncode == 1:
+        if any(sign in out for sign in ENV_FIRST_SIGNS):
+            return 'environment'
+        if ('Traceback (most recent call last)' in out
+                or any(sign in out for sign in CRASH_SIGNS)):
+            return 'crash'
+        if any(sign in out for sign in ENV_SIGNS):
+            return 'environment'
+    return 'fail'
+
+
+CLASSIFY_CONTRACT = (
+    ('', 0, 'pass'),
+    ('', 3, 'crash'),
+    ('NameError: boom\n', 1, 'crash'),
+    ('ModuleNotFoundError: xx\n', 1, 'environment'),
+    ('', 2, 'environment'),
+    ('普通失败输出', 1, 'fail'),
+    ('', 1, 'fail'),
+    ('', 99, 'fail'),
+)
+
+
+def selfcheck_classify():
+    """启动自检（纯函数、零成本）：分类契约必须成立 —— 不成立就拒绝继续分类。
+
+    第十八轮我把聚合器改崩过一次（插了一行引用不存在作用域的 `results`），
+    当时**没有任何东西会告诉我"聚合器自己坏了"** —— 那一轮四个反例的退出码 1 全是它造成的。
+    """
+    bad = []
+    for out, rc, want in CLASSIFY_CONTRACT:
+        got = classify(rc, out)
+        if got != want:
+            bad.append('classify(%r, %d) = %r，期望 %r' % (out[:24], rc, got, want))
+        if got not in KINDS:
+            bad.append('分类出没声明的 kind：%r' % got)
+    return (not bad), bad
+
 def main():
+    # 第十九轮修 D：**聚合器自检** —— 分类契约不成立就立刻退出（不许静默继续分类）
+    _ok_c, _bad_c = selfcheck_classify()
+    if not _ok_c:
+        print('✗ 聚合器的分类契约不成立 —— 拒绝继续分类（否则会把"我的 bug"记到内容/环境账上）：')
+        for b in _bad_c:
+            print('   - %s' % b)
+        return 3
     argv = set(sys.argv[1:])
 
     # 只报"一共有多少项检查"，供交付闸门核对材料（申报书/PPT/海报）里的数字是否过期。
@@ -220,6 +283,19 @@ def main():
             # 首选判据：子进程**自己声明**"我因环境原因退出"（结构化，不靠文案）
             rows.append((group, name, None,
                          '环境不足（声明式 · 退出码 2）：' + last_meaningful_line(out), 'environment'))
+        elif r.returncode == CRASH_EXIT_CODE:
+            # 结构化：子进程**自己声明**"我崩了"（与退出码 2 同一套做法）
+            rows.append((group, name, None,
+                         '检查器故障（声明式 · 退出码 3）：' + last_meaningful_line(out), 'crash'))
+        elif r.returncode == 1 and any(sign in out for sign in ENV_FIRST_SIGNS):
+            # 缺依赖/语料：**环境**，不是检查器崩溃（虽然它也带堆栈）
+            rows.append((group, name, None,
+                         '环境不足（文案判据 · 缺依赖）：' + last_meaningful_line(out), 'environment'))
+        elif r.returncode == 1 and ('Traceback (most recent call last)' in out
+                                    or any(sign in out for sign in CRASH_SIGNS)):
+            # 兼容层：**崩溃文案必须先于环境文案判**
+            rows.append((group, name, None,
+                         '检查器故障（文案判据）：' + last_meaningful_line(out), 'crash'))
         elif any(sign in out for sign in ENV_SIGNS) and r.returncode == 1:
             # 兼容层：靠文案认环境问题。两个方向都有反例守着（见文件头 docstring）
             rows.append((group, name, None, '环境不足（文案判据）：' + last_meaningful_line(out), 'environment'))
@@ -281,6 +357,12 @@ def main():
             print('    · %s —— %s' % (name, detail))
 
     print('')
+    if crash_bad:
+        print('检查器故障 %d 项 ⁉ —— **这可能是引擎自己的 bug，不是内容的问题**' % len(crash_bad))
+        for _, n, _ in crash_bad:
+            print('   - %s' % n)
+        print('  → 退出码 3：与"1 内容失败""2 环境不足"并列的第三类；该修的是引擎，不是内容')
+        return 3
     if hard_fail:
         print('失败 %d 项 ✗' % len(hard_fail))
         for _, n, _ in hard_fail:
