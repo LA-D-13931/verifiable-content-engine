@@ -24,6 +24,47 @@ import difflib
 import sys
 
 
+
+def table_problems(text):
+    """**表格守卫**（第六十轮 ③①）：Markdown 表里，行的列数与**同表表头**不一致 ⇒ 返回问题列表。
+
+    为什么要它：我第五十八/五十九轮**两次把表格拆行**（插进去的单元格带了换行 ✗），
+    而那两次都**过了** old/new 自证 ✓ —— **自证只管"改没改到"，不管"改完这张表还站得住吗"** ✗。
+    这条把"先 --show 两端锚点"从**习惯**变成**机器判据** ✓。
+
+    判据（只用结构，不猜语义 ✓）：
+    - 表头 = 一段连续以 `|` 开头的块里**第一行**；列数 = 去掉首尾空单元后的 `|` 段数；
+    - 同一块内每一行（含分隔行 `|---|---|`）的列数必须与表头一致；
+    - **表格内不允许出现空行**（拆行的典型症状 ✗：碎片单独成行 ✓）。
+    """
+    problems = []
+    lines = text.splitlines()
+    block, start = [], 0
+    def cells(ln):
+        # ★ 用"单元格数"而不是"| 的个数"（后者对首尾空格/缩进敏感 ⇒ 我第一版把表头算成 -1 ✗，
+        #   于是**正常替换也被拦** ✗）。strip('|') 后按 '|' 切分即可 ✓。
+        return len(ln.strip().strip('|').split('|'))
+
+    def flush(block, start):
+        if len(block) < 2:
+            return
+        ncol = cells(block[0][0])
+        for k, (ln, idx) in enumerate(block):
+            if ln.strip().startswith('|') and cells(ln) != ncol:
+                problems.append('第 %d 行：列数 %d ≠ 表头 %d（表格被拆行 ✗）'
+                                % (idx + 1, cells(ln), ncol))
+    for i, l in enumerate(lines):
+        if l.strip().startswith('|'):
+            if not block:
+                start = i
+            block.append((l, i))
+        else:
+            flush(block, start)
+            block = []
+    flush(block, start)
+    return problems
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('path')
@@ -97,6 +138,14 @@ def main():
     # 那次是"写盘那行被自己的替换删掉" ✗，工具毫无察觉 ✗。
     # 所以落盘之后必须**读回**确认内容真的变了、**mtime** 真的动了 ✓。
     _before = os.path.getmtime(a.path) if os.path.exists(a.path) else 0
+    # **表格守卫**（第六十轮 ③①）：列数与同表表头不一致 ⇒ **拒写** ✗
+    _tbl = table_problems(out)
+    if _tbl:
+        print('✗ 表格守卫拦下：替换会让表格结构坏掉 —— 已**拒写** ✗')
+        for p in _tbl[:5]:
+            print('    ' + p)
+        print('   （提示：多半是插入的单元格里带了换行 ✗ —— 先把两端锚点打出来再改 ✓）')
+        return 1
     open(a.path, 'w', encoding='utf-8').write(out)
     os.utime(a.path, None)                       # 显式 touch，确保 mtime 一定变化 ✓
     _after = os.path.getmtime(a.path)
