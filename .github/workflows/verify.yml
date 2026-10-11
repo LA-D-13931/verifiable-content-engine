@@ -20,7 +20,12 @@ jobs:
           node-version: '20'
       - uses: actions/setup-python@v5
         with:
-          python-version: '3.12'
+          # ⚠️ 第五十七轮：**ci 的 Python 版本必须与生成物一致** ✗ ——
+          # engine-core/mat-vectors.json 里的 signature 是 **AST 指纹**（ast.dump 的哈希 ✓），
+          # 而 ast.dump 的输出**跨 Python 版本会变** ✗ ⇒ 3.12 上算出来的指纹与记录值不等 ⇒
+          # 报「mat.py 的数学已变更，但测试向量未重新生成」✗（内容其实一个字没改 ✓）。
+          # 这是**环境适配**，不是判据改动 ✓（判据一个字没动 ✓）。
+          python-version: '3.13'
       - name: 依赖（puppeteer-core 等）
         run: cd apps/linalg-lab && npm install --no-audit --no-fund
       - name: 引擎套件 --all（只跑 + 留证；判成败在下一步）
