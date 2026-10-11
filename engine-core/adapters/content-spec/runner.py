@@ -372,6 +372,25 @@ def dump_certificates(results, out_dir):
         n += 1
     return n
 
+
+def skip_is_qualified(chk, art, m, r=None):
+    """**skip 必须"有据"**（第六十二轮）：`skip` 被当成两种意思 ✗ ——
+    ① "确认不适用" ✓；② "占位/还没定" ✗。selftest 只抓"期望 vs 实际不符" ⇒ ② 类永远抓不到 ✗。
+
+    定性判据（**两条之一**即可 ✓）：
+    - **引擎自己的判定语是"不适用"** ✓（第六十二轮改定：这比查 `applies_to` 可靠 ✓ ——
+      `applies_to` 只说明"这类检查评哪类产物"✗，**不能说明"这一条为什么不适用"** ✓）；
+      这正是审计方举的好例：`frag-L00-S1 · style-coverage` 的实际判定自带理由
+      「静态标记里没有类名，静态检查会在空集上通过（假绿）」✓；
+    - 或该条期望写成 `{"verdict": "skip", "why": "…"}` ✓（兼容显式说明 ✓）。
+    """
+    exp = ((m.get('expectations') or {}).get(chk['id']) or {}).get(art['id'])
+    if isinstance(exp, dict):
+        return bool(exp.get('why'))
+    reason = (r or {}).get('reason') or ''
+    return reason.startswith('不适用')
+
+
 def main():
     argv = sys.argv[1:]
     mode = 'report' if '--report' in argv else ('discover' if '--discover' in argv else 'selftest')
@@ -420,11 +439,19 @@ def main():
 
     if mode == 'selftest':
         ok, fails, unset, known, env_skip = 0, [], [], [], 0
+        undecided = []      # 第六十二轮：skip 但**没有据**（未定性）✗
         for r in results:
             actual = _verdict(r)
             if r['expect'] is None:
                 unset.append(r)
                 continue
+            # **未定性的 skip**（第六十二轮）：skip 只允许"确认不适用"这一种意思 ✗
+            if r['expect'] == 'skip':
+                _chk = next((c for c in m['checks'] if c['id'] == r['check']), None)
+                _art = next((a for a in (m.get('artifacts') or [])
+                             if a.get('id') == r['artifact']), None) or {'id': r['artifact'], 'kind': r.get('kind', 'product')}
+                if _chk and not skip_is_qualified(_chk, _art, m, r):
+                    undecided.append(r)
             if r['expect'] == actual:
                 ok += 1
             elif actual == 'fail' and r.get('known_defect'):
@@ -468,6 +495,12 @@ def main():
         #   比报红更危险（轮六 RX-01 那个先例 / C2 契约要防的正是这种形态 ✓）。
         _total_comparable = ok + env_skip + len(fails)
         _too_few = _total_comparable > 0 and ok < (_total_comparable / 2.0)
+        if undecided:
+            print('有 %d 条期望未定性 ✗ —— skip 只允许"确认不适用"这一种意思：'
+                  '要么该检查的 applies_to 不含这个产物的 kind，要么写成 {"verdict":"skip","why":"…"}' % len(undecided))
+            for r in undecided[:6]:
+                print('    – %-40s · %s（skip 但无据 ✗）' % (r['label'], r.get('kind', '?')))
+            return 2
         if known:
             print('KNOWN-DEFECTS: %d 项 | %s'
                   % (len(known),

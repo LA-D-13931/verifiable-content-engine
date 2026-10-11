@@ -19,6 +19,7 @@
 退出码：0 成功 / 1 锚点不唯一或没找到（并打印候选）
 """
 import os
+import re
 import argparse
 import difflib
 import sys
@@ -62,6 +63,35 @@ def table_problems(text):
             flush(block, start)
             block = []
     flush(block, start)
+    return problems
+
+
+
+FULLWIDTH = '（），：；、｜「」【】《》！？…—～'
+
+
+def fullwidth_problems(text):
+    """**全角字符守卫**（第六十二轮 ③）：标识符后紧跟全角字符 ⇒ 报问题。
+
+    为什么：本会话 `$GITHUB_STEP_SUMMARY）` 这类**全角吃变量**出现过 **7 次**（第二多 ✗），
+    每次都让整段脚本中断 ✓。**机械可查** ✓。
+
+    判据（**只挡能确定的情形** ✓）：
+    - 行**不是注释**（不含 `#` 开头）**且**不在引号内 ✓；
+    - 出现 `<标识符><全角>` 的**紧邻**形态（标识符 = 变量名/命令名 ✓）。
+    ⚠️ **分不清的情形（引号内的字符串、注释）一律放行** ✓ —— 那一条我如实写在文案里 ✓。
+    """
+    import re
+    problems = []
+    for i, ln in enumerate(text.splitlines(), 1):
+        st = ln.strip()
+        if st.startswith('#') or st.startswith('//'):
+            continue          # 注释：放行 ✓（反例② ✓）
+        # 简单引号剥离：把成对的引号内容换成占位符（分不清的就放行 ✓）
+        stripped = re.sub(r"'[^']*'|\"[^\"]*\"", 'Q', ln)
+        for m in re.finditer(r'([A-Za-z_$][\w$]*)([' + FULLWIDTH + r'])', stripped):
+            problems.append('第 %d 行：`%s` 后紧跟全角「%s」—— 全角吃变量/参数 ✗'
+                            % (i, m.group(1), m.group(2)))
     return problems
 
 
@@ -138,6 +168,14 @@ def main():
     # 那次是"写盘那行被自己的替换删掉" ✗，工具毫无察觉 ✗。
     # 所以落盘之后必须**读回**确认内容真的变了、**mtime** 真的动了 ✓。
     _before = os.path.getmtime(a.path) if os.path.exists(a.path) else 0
+    # **全角字符守卫**（第六十二轮 ③）：标识符后紧跟全角 ⇒ **拒写** ✗
+    _fw = fullwidth_problems(out)
+    if _fw:
+        print('✗ 全角守卫拦下：标识符后紧跟全角字符 —— 已**拒写** ✗')
+        for p in _fw[:5]:
+            print('    ' + p)
+        print('   （提示：改成 `${VAR}` + 半角空白/半角括号 ✓；**引号内与注释里一律放行** ✓）')
+        return 1
     # **表格守卫**（第六十轮 ③①）：列数与同表表头不一致 ⇒ **拒写** ✗
     _tbl = table_problems(out)
     if _tbl:
