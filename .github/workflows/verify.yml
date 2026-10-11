@@ -1,10 +1,11 @@
 # 引擎自检的护栏：任何 push / PR 都跑一遍。
 #
-# **一处实现，两处调用**（台账 M1 的治法）：命令都在 理奥杯/CI自检.sh 里，
-# 本地跑同一个脚本就能预演 CI —— YAML 没法本地跑，脚本能。
+# **一处实现，两处调用**（台账 M1）：命令全部在 理奥杯/CI自检.sh 里，
+# YAML 只做三件事 —— checkout、装 node、**调用那个脚本**。
+# 浏览器供给、依赖安装、阈值判据都在脚本里（它自己幂等、自己会 apt 装 chromium）。
 #
-# 脚本里已经包含：依赖准备 → 浏览器供给（方案 (a) 系统包 chromium）→
-# `verify-all.py --all`（退出码 != 0 即失败，**含 exit 2**；且 `--all` 下 0 项未选择才算过）→ 材料闸门 34 项。
+# 自我约束：本文件除 checkout / setup-node 外，`run:` 只允许出现一次；
+# 由 理奥杯/检查YAML一处实现.py 守着（会红）—— 这样"以后有人往 YAML 里塞命令"会被抓到。
 name: verify
 
 on:
@@ -20,7 +21,5 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
-      - name: 浏览器供给（系统包）
-        run: sudo apt-get update -qq && sudo apt-get install -y -qq chromium-browser || sudo apt-get install -y -qq chromium
       - name: CI 自检（唯一入口：理奥杯/CI自检.sh）
         run: bash 理奥杯/CI自检.sh

@@ -24,6 +24,25 @@ from shutil import which
 from common import resolve, triple, workspace_root
 
 
+def verdict_from_json(d):
+    """**纯函数**（第十七轮第 1 件）：量测脚本 JSON 输出 → 判定三元组。
+
+    为什么抽出来：元检查（tools/check-skip-exit.py）要验证
+    「`{"skipped": …}` 会被转成非 pass 态」这条豁免前提。
+    原先它只能**端到端**跑（stage 一个假脚本到 `workspace_root()` 之外）——
+    那使这个检查**依赖"调用者能写引擎仓库之外"**：审计方的只读沙箱里必红，
+    GitHub Actions 上则取决于 runner 的 cwd 与布局 → **CI 真实首跑会撞上它**。
+
+    抽成纯函数之后：**不碰文件系统、不依赖 cwd、不依赖可写性**，CI 上也稳。
+    代价：元检查不再是"端到端"——但那个"端到端"本来就必须写在仓库外，得不偿失。
+
+    ⚠️ 这条分支的形状（`if 'skipped' in d:`）**是判据的一部分**：
+    反例脚本按它做变异（改成 `if False and …`）来验证元检查真的在验东西。
+    """
+    if 'skipped' in d:
+        return triple(None, '环境不足：%s' % d['skipped'])
+
+
 def render_measure(artifact, source, base):
     spec = source.get('render_measure')
     if not spec:
@@ -54,7 +73,7 @@ def render_measure(artifact, source, base):
     except Exception:
         return triple(None, '环境不足：量测脚本没有返回 JSON（%s）' % (raw[:120] or (p.stderr or '')[-120:]))
     if 'skipped' in d:
-        return triple(None, '环境不足：%s' % d['skipped'])
+        return verdict_from_json(d)      # 判定逻辑只有一份（台账 M1）
     if 'error' in d:
         return triple(False, '页面加载或量测失败：%s' % d['error'][:160], {'raw': d})
 
