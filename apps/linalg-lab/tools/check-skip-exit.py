@@ -30,6 +30,41 @@ WHITELIST = {
 }
 
 
+
+def verify_premise():
+    """批次 B：**豁免前提必须被真实校验**，不能只写在注释里。
+
+    白名单的前提是「checks_render.py 会把 skipped 键转成非 pass 态」。
+    这里动态喂一个 {"skipped": "…"} 给它的判定函数，断言 pass is None。
+    改了就会红：删掉 checks_render.py 的 skipped 分支 → 本检查报红。
+    """
+    import importlib.util
+    spec = importlib.util.spec_from_file_location(
+        'checks_render', os.path.join(REPO, 'engine-core', 'adapters', 'content-spec', 'checks_render.py'))
+    mod = importlib.util.module_from_spec(spec)
+    try:
+        spec.loader.exec_module(mod)
+    except Exception as e:
+        return False, 'checks_render.py 无法加载：%s' % e
+    cand = None
+    for name in dir(mod):
+        f = getattr(mod, name)
+        if callable(f) and getattr(f, '__module__', '') == mod.__name__ and not name.startswith('_'):
+            cand = f
+            break
+    if cand is None:
+        return False, 'checks_render.py 里找不到可调用的判定函数'
+    payload = {'skipped': '批次 B 校验用的假输出'}
+    try:
+        t = cand(payload) if cand.__code__.co_argcount == 1 else cand(payload, 'fixtures/x.html')
+    except Exception as e:
+        return False, '调用判定函数失败（%s）—— 请人工确认 skipped 的转译位置' % e
+    got = getattr(t, 'pass', None) if not isinstance(t, tuple) else t[0]
+    if got is None:
+        return True, '假输出 {"skipped": …} → pass is None（仍是非通过态）✓'
+    return False, 'skipped 被转成了 pass=%r —— 豁免前提失效，那两处会退化成静默通过 ✗' % (got,)
+
+
 def main():
     print('=== 元检查：打印跳过却 exit 0（批次 C）===')
     hits = []
@@ -44,6 +79,8 @@ def main():
                 key = '%s:%d' % (name, i + 1)
                 hits.append((key, line.strip()[:110]))
     unwaived = [(k, t) for k, t in hits if k not in WHITELIST]
+    premise_ok, why = verify_premise()
+    print('  豁免前提校验：%s' % why)
     print('  命中 %d 处 ｜ 已豁免 %d 处（白名单带理由）｜ 未豁免 %d 处'
           % (len(hits), len(hits) - len(unwaived), len(unwaived)))
     for k, reason in WHITELIST.items():
