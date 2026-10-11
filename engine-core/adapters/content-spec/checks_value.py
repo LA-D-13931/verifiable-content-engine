@@ -29,7 +29,7 @@ def run(artifact, source, base):
         return {'pass': None,
                 'reason': '本来源未声明数值出处（value_sources），数量陈述的溯源不适用',
                 'certificate': {'declared_value_sources': None}}
-    path = os.path.join(base, artifact['path']) if not os.path.isabs(artifact['path']) else artifact['path']
+    # **用引擎自己的 resolve**（第四十七轮：我原来自己拼路径 ⇒ 对页面报「找不到产物」✗，\n    # 而 common.resolve 明明找得到 —— 正是 循环纪律.md 第 1 条那一族 ✗）\n    import common\n    path = common.resolve(artifact, base)
     if not os.path.isfile(path):
         return {'pass': False, 'reason': '找不到产物 %s' % artifact['path'],
                 'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
@@ -39,7 +39,7 @@ def run(artifact, source, base):
     # 汇总声明的来源里出现的「数字+量词」
     pool = []
     for s in srcs:
-        sp = os.path.join(base, s) if not os.path.isabs(s) else s
+        sp = common.resolve({'path': s}, base)
         if os.path.isfile(sp):
             pool.append(open(sp, encoding='utf-8').read())
     pool = '\n'.join(pool)
