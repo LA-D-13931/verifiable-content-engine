@@ -22,6 +22,7 @@ from common import resolve, triple
     而不是只收到一个 fail。
 """
 import os
+import sys
 
 #: 能力表。required_if 由**数据**决定（不是拍脑袋），probe 是产物里的实现探测。
 CAPABILITIES = [
@@ -78,9 +79,19 @@ def run(product, source, base):
     data_path = resolve({'path': source['data']}, base)
     prod_path = resolve(product, base)
     if not os.path.isfile(data_path):
-        return {'pass': False, 'reason': '找不到数据源 %s' % source['data'], 'certificate': None}
+        # C6：判红**必须有证据** —— 且证据要能回答"你怎么知道的"：
+        # "找不到"的全部依据就是解析出来的路径与存在性，所以 detail 里必须有 resolved_path 与 exists。
+        return {'pass': False, 'reason': '找不到数据源 %s' % source['data'],
+                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
+                                'environment': {'python': sys.version.split()[0]},
+                                'detail': {'resolved_path': data_path, 'exists': False,
+                                           'source_data': source['data']}}}
     if not os.path.isfile(prod_path):
-        return {'pass': False, 'reason': '找不到产物 %s' % product['path'], 'certificate': None}
+        return {'pass': False, 'reason': '找不到产物 %s' % product['path'],
+                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
+                                'environment': {'python': sys.version.split()[0]},
+                                'detail': {'resolved_path': prod_path, 'exists': False,
+                                           'product_path': product['path']}}}
 
     data, html = _read(data_path), _read(prod_path)
     cert, missing, advice = {}, [], []
