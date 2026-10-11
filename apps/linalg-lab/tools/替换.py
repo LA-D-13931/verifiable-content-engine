@@ -30,6 +30,8 @@ def main():
     ap.add_argument('--old')
     ap.add_argument('--new')
     ap.add_argument('--block')
+    ap.add_argument('--verify-cmd', default=None,
+                    help='替换后要跑的命令；非 0 则报错（用于"改完这个文件还站得住吗"）')
     a = ap.parse_args()
     try:
         text = open(a.path, encoding='utf-8').read()
@@ -70,8 +72,27 @@ def main():
     _old_gone = (a.old not in out) or (a.old in (new or ''))
     if not _old_gone or (new and new not in out):
         print('✗ 写完自证失败（old 仍在或 new 未出现）'); return 1
-    open(a.path, 'w', encoding='utf-8').write(out)
-    print('✓ 替换成功（锚点唯一；写完自证通过）')
+    # **先验后写**（第四十轮修正）：上一版先写再验 ⇒ 语法一坏就把坏内容落盘了 ✗。
+    # 现在：先在内存里验，只有全过才写。
+    # 自证 1：**整份文件还站得住吗**（上一轮我摔 4 次全是因为缺这一步）
+    if a.path.endswith('.py'):
+        import ast
+        try:
+            ast.parse(open(a.path, encoding='utf-8').read())
+        except SyntaxError as e:
+            print('✗ 替换后语法坏了：%s（行 %s）—— 已停在此处，请修' % (e.msg, e.lineno))
+            return 1
+    # 落盘自证 2：可选地跑一条命令（如该文件的主命令 / 单元测试）
+    if a.verify_cmd:
+        import subprocess as _sp
+        r = _sp.run(a.verify_cmd, shell=True, capture_output=True, text=True)
+        if r.returncode != 0:
+            print('✗ --verify-cmd 失败（退出码 %d）：%s' % (r.returncode, a.verify_cmd))
+            print('   ' + (r.stdout or r.stderr).strip()[:200])
+            return 1
+        print('  · --verify-cmd 通过：%s' % a.verify_cmd)
+
+    print('✓ 替换成功（锚点唯一；写完自证通过；语法' + ('已校验' if a.path.endswith('.py') else '不适用') + '）')
     return 0
 
 
