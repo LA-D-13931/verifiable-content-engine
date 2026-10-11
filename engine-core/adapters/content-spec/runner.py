@@ -110,6 +110,7 @@ def pair_is_env(src, chk):
 
 
 def run_all(only_source=None, only_check=None, scope=None):
+    from common import resolve as _resolve      # 门的判据用它（与引擎同一套路径解析 ✓）
     """scope: None=全部 ｜ 'repo'=只跑仓库内可判的（CI 用）｜ 'env'=只跑依赖环境的"""
     m = load_manifest()
     out = []
@@ -133,8 +134,29 @@ def run_all(only_source=None, only_check=None, scope=None):
             fn = load_check(chk['fn'])
             checker_crash = False
             for art in arts:
+                # **产物存在性的统一闸门**（第五十四轮 §1.1）：**环境事实不下放给检查** ✓
+                # 产物不在位 ⇒ 这一条本来就无从判起 ⇒ 报「环境不足」 ✓
+                # ⚠️ 门只挡"东西不在"（判据 = 文件是否存在 ✗）；
+                #    **不挡"检查有 bug / 判错了"** ✓ —— 后者仍走下面的 try/except 与"真·不符" ✗。
+                r = None
+                # 判据 = "**在检查会用的那些基准下都找不到**" ✓（第五十四轮修正）：
+                # 我第一版只看 BASE，结果本地多报 6 条"环境不足" ✗ —— 因为有些产物的
+                # path 是相对**工作区根**的 ✓。所以把三个候选都试一遍，都不在才判环境不足 ✓。
+                _p = None
+                if art.get('path'):
+                    for _b in (BASE, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(os.path.abspath(__file__)))))),
+                               os.getcwd()):
+                        _cand = _resolve(art, _b)
+                        if os.path.exists(_cand):     # 文件**或目录**（kind: site 的产物就是目录 ✓——我第一版只认 isfile ✗，本地多报 6 条）
+                            _p = _cand
+                            break
+                if art.get('path') and _p is None:
+                    r = {'pass': None,
+                         'reason': '环境不足：产物不在位（%s）' % art['path'],
+                         'certificate': {'resolved_path': _p, 'exists': False}}
                 try:
-                    r = fn(art, src, BASE)
+                    if r is None:
+                        r = fn(art, src, BASE)
                 except Exception as e:      # 第十八轮：单条检查崩了不许吞掉整轮
                     r = {'pass': None,
                          'reason': '检查器故障：%s: %s' % (type(e).__name__, str(e).splitlines()[0][:160]),
