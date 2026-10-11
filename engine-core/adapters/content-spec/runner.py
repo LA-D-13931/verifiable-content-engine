@@ -316,6 +316,45 @@ def _known_defects():
     return out
 
 
+def dump_certificates(m, results, repo_root):
+    """C5：把证书落盘到 `<repo>/.certificates/`。
+
+    **文件名策略（择一写死）**：`<产物id>-<产物hash前12位>.json`
+    —— **不带时间戳** ✗：同一产物同一 hash 重复跑会**覆盖同一个文件**，**不会无限增长** ✓；
+    **生成时间写在文件内容里** ✓（既能追溯，又不让文件名随运行次数膨胀 ✓）。
+    """
+    import time
+    outdir = os.path.join(repo_root, '.certificates')
+    os.makedirs(outdir, exist_ok=True)
+    import hashlib
+    n = 0
+    for r in results:
+        cert = r.get('certificate')
+        if not cert:
+            continue
+        art = r.get('artifact') or 'unknown'
+        # 产物 hash：优先按产物文件内容；取不到就按 id（并如实标注）
+        p = None
+        for a in (m.get('artifacts') or []):
+            if a.get('id') == art:
+                p = a.get('path'); break
+        h, src = '', 'id'
+        if p:
+            for cand in (os.path.join(repo_root, p), os.path.join(os.path.dirname(repo_root), p)):
+                if os.path.isfile(cand):
+                    h = hashlib.sha256(open(cand, 'rb').read()).hexdigest()[:12]; src = 'file'; break
+        if not h:
+            h = hashlib.sha256(art.encode('utf-8')).hexdigest()[:12]
+        fn = os.path.join(outdir, '%s-%s.json' % (art.replace('/', '_'), h))
+        with open(fn, 'w', encoding='utf-8') as f:
+            json.dump({'generated_at': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
+                       'artifact': art, 'artifact_hash': h, 'hash_source': src,
+                       'check': r.get('check'), 'verdict': _verdict(r),
+                       'certificate': cert}, f, ensure_ascii=False, indent=2)
+        n += 1
+    return n
+
+
 def main():
     argv = sys.argv[1:]
     mode = 'report' if '--report' in argv else ('discover' if '--discover' in argv else 'selftest')

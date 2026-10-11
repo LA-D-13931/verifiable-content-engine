@@ -29,3 +29,4 @@ Thumbs.db
 .keys/
 .env
 .env.*
+.certificates/
