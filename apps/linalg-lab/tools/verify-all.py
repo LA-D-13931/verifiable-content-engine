@@ -29,6 +29,7 @@
     于是"想让它绿，最省事的办法是少验"（激励方向错误）。跳过 ≠ 通过，这条在聚合层也要成立。
 """
 import os
+import re
 import subprocess
 import sys
 
@@ -163,6 +164,22 @@ def last_meaningful_line(text):
 KINDS = ('pass', 'fail', 'not_selected', 'environment', 'crash')
 
 
+_KD_PROTO = re.compile(r'^KNOWN-DEFECTS:\s*(\d+)\s*项\s*\|\s*(.+)$')
+
+
+def parse_known_defects(text):
+    """从子进程 stdout 里取结构化协议行 → (条数, id 串)。没有则 (0, '')。
+
+    **不要再从说明文本里数关键词** —— 那是文案统计，已经错过一次：
+    第二十八轮收尾显示 1、同一份输出里的说明显示 2（因为"已登记缺陷"这几个字在同一行里出现两次）。
+    """
+    for line in (text or '').splitlines():
+        m = _KD_PROTO.match(line.strip())
+        if m:
+            return int(m.group(1)), m.group(2).strip()
+    return 0, ''
+
+
 def classify(returncode, out):
     """（退出码, 输出）→ 分类。**纯函数**：把判定链的形状变成可断言的对象。
 
@@ -266,6 +283,7 @@ def main():
     # rows 是五元组：(分组, 名称, ok, 说明, kind)
     #   kind: pass / fail / not_selected（我没要求跑）/ environment（要跑了但环境不满足）
     rows = []
+    _kd_items = []   # 含已登记缺陷的**项**（收尾计数用这个，不再从说明文本里数词）
     for group, name, cmd, need in CHECKS:
         if need == 'browser' and not want_browser:
             rows.append((group, name, None, '未选择（需 --with-browser）', 'not_selected'))
@@ -286,11 +304,10 @@ def main():
             continue
         out = (r.stdout or '') + (r.stderr or '')
         # 协议行（子进程自己声明）：单行、前缀固定、机器可读 —— 与 NOT-COMPARED: 同一套做法
-        _kd_note = ''
-        for _l in out.splitlines():
-            if _l.strip().startswith('KNOWN-DEFECTS:'):
-                _kd_note = '  ｜ ' + _l.strip().replace('KNOWN-DEFECTS:', '已登记缺陷')
-                break
+        _kd_n, _kd_ids = parse_known_defects(out)
+        _kd_note = ('  ｜ 已登记缺陷 %d **条判定**：%s' % (_kd_n, _kd_ids)) if _kd_n else ''
+        if _kd_n:
+            _kd_items.append((group, name, _kd_n))
         if r.returncode == 0:
             rows.append((group, name, True, last_meaningful_line(r.stdout) + _kd_note, 'pass'))
         elif r.returncode == ENV_EXIT_CODE:
@@ -389,11 +406,11 @@ def main():
         print('  → 退出码 2：既不算通过，也不算代码失败。补齐上面列出的环境后重跑。')
         return 2
     if unselected:
-        _kd_n = sum(1 for _g, _n, _ok, _d, _k in rows if _k == 'pass' and (_d or '').count('已登记缺陷'))
-        if _kd_n:
+        if _kd_items:
+            _tot = sum(n for _g, _n, n in _kd_items)
             print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
-                  '（**其中 %d 条为已登记缺陷，待消费者侧修**）'
-                  % (len(rows) - len(unselected), len(unselected), _kd_n))
+                  '（**其中 %d 项含已登记缺陷，共 %d 条判定，待消费者侧修**）'
+                  % (len(rows) - len(unselected), len(unselected), len(_kd_items), _tot))
         else:
             print('本档全部通过 ✓  %d 项已跑、0 失败；另有 %d 项未选择（见上）'
                   % (len(rows) - len(unselected), len(unselected)))
@@ -401,9 +418,10 @@ def main():
               % (len(rows) - len(unselected), len(unselected)))
         print('  → 退出码 0 表示**本档范围内**没有失败项；要更全的结论就加 --all 再跑一遍。')
         return 0
-    _kd_n2 = sum(1 for _g, _n, _ok, _d, _k in rows if _k == 'pass' and (_d or '').count('已登记缺陷'))
-    if _kd_n2:
-        print('全部通过 ✓  %d 项已跑、0 跳过（**其中 %d 条为已登记缺陷，待消费者侧修**）' % (len(rows), _kd_n2))
+    if _kd_items:
+        _tot2 = sum(n for _g, _n, n in _kd_items)
+        print('全部通过 ✓  %d 项已跑、0 跳过（**其中 %d 项含已登记缺陷，共 %d 条判定，待消费者侧修**）'
+              % (len(rows), len(_kd_items), _tot2))
     else:
         print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
     return 0
