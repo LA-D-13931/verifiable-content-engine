@@ -202,6 +202,11 @@
           "kind": "product",
           "path": "fixtures/renzhi/frag-L00-S1.orphan-class.html",
           "what": "**突变体**：静态标记里的 orphan-xyz 类名没有任何样式规则，用来反证类名覆盖"
+        },
+        {
+          "id": "katex-bad",
+          "path": "fixtures/renzhi/katex-bad.html",
+          "kind": "product"
         }
       ],
       "text_fields": [
@@ -936,6 +941,17 @@
         "gaoshu-pages"
       ],
       "evidence": "structural"
+    },
+    {
+      "id": "math-command-allowlist",
+      "title": "KaTeX 命令白名单（不在白名单内即报）",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_katex:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "structural"
     }
   ],
   "delegates": [
@@ -1227,7 +1243,8 @@
       "page-ch7.html": "pass",
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
-      "ch1.value-mutant": "pass"
+      "ch1.value-mutant": "pass",
+      "katex-bad": "pass"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
@@ -1372,7 +1389,8 @@
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
       "page-ch9.html": "skip",
-      "ch1.value-mutant": "skip"
+      "ch1.value-mutant": "skip",
+      "katex-bad": "skip"
     },
     "dup-block": {
       "ch6.dup-mutant": "fail",
@@ -1435,6 +1453,30 @@
       "renderer": "pass",
       "foundation-index": "pass",
       "foundation-index.mutant": "pass"
+    },
+    "math-command-allowlist": {
+      "katex-bad": "fail",
+      "renderer": "pass",
+      "frag-L00-S1": "pass",
+      "lab-L00-S1": "pass",
+      "frag-L00-S2": "pass",
+      "lab-L00-S2": "pass",
+      "frag-L00-S3": "pass",
+      "lab-L00-S3": "pass",
+      "frag-L00-S4": "pass",
+      "lab-L00-S4": "pass",
+      "frag-L00-S5": "pass",
+      "lab-L00-S5": "pass",
+      "frag-L00-S6": "pass",
+      "lab-L00-S6": "pass",
+      "frag-L00-S7": "pass",
+      "lab-L00-S7": "pass",
+      "frag-L00-S8": "pass",
+      "lab-L00-S8": "pass",
+      "foundation-index": "pass",
+      "foundation-index.mutant": "pass",
+      "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S1.orphan-class": "pass"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
