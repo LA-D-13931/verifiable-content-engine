@@ -182,8 +182,7 @@ def manifest_contract_problems(m):
     for c in m['checks']:
         ev = c.get('evidence')
         if ev not in EVIDENCE_ENUM:
-                continue
-        bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
+            bad.append('检查 %s 未声明证据类型（应为 %s 之一）' % (c['id'], '/'.join(EVIDENCE_ENUM)))
     # C2：**未被证伪的检查不许进套件**——语料里必须至少有一个"它应当判红"的例子。
     # 依据是台账 M5（检测器没校准就用来判断：假阳性 21 处、同一个正则陷阱犯 3 次）。
     # 一条只会在好内容上通过的检查，无法区分"它没发现问题"和"它根本不看"。
