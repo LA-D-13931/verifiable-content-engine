@@ -12,7 +12,7 @@ catch (e) {
   process.exit(2);
 }
 
-const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
+const EDGE = resolveBrowser();   // D-4a：显式 → 环境变量 → 探测 → exit 2
 const BASE_PATH = '/apps/linalg-lab';
 const PROBE_PATH = '/apps/linalg-lab';
 /* 本地服务由 serve.mjs 保证：它探活、必要时自己从仓库根起一个。
@@ -21,6 +21,7 @@ const PROBE_PATH = '/apps/linalg-lab';
 
    本文件是 ESM（.mjs），所以可以顶层 await 与顶层 import。 */
 import { ensureServer } from './serve.mjs';
+import { resolveBrowser } from './browser.mjs';   // D-4a：四级回退，共用一份
 let _srv;
 try {
     _srv = await ensureServer({ basePath: BASE_PATH });

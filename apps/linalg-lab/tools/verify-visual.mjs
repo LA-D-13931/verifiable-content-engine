@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { createRequire } from 'node:module';
 import { fileURLToPath, pathToFileURL } from 'node:url';
 import { dirname, join } from 'node:path';
+import { resolveBrowser } from './browser.mjs';   // D-4a：四级回退，共用一份
 
 const HERE = dirname(fileURLToPath(import.meta.url));
 const APP = dirname(HERE);
@@ -33,8 +34,7 @@ catch (e) {
     console.log('环境不足：未安装 puppeteer-core（浏览器类工具需要它）');
     process.exit(2);   // 环境原因 → 退出码 2（D-1：以前是 0，于是被聚合层记成「✓ 通过」）
 }
-const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const EDGE = resolveBrowser();   // D-4a：显式 → 环境变量 → 探测 → exit 2
 
 let pass = 0, fail = 0;
 const failures = [];
@@ -43,7 +43,7 @@ function ok(cond, name, extra) {
     else { fail++; failures.push(name); console.log('  ✗ ' + name + (extra ? '  —— ' + extra : '')); }
 }
 
-const exe = (() => { for (const p of [EDGE, CHROME]) { try { readFileSync(p); return p; } catch {} } return null; })();
+const exe = resolveBrowser();   // D-4a
 if (!exe) { console.log('环境不足：找不到 Edge 或 Chrome'); process.exit(2); }
 
 const br = await puppeteer.launch({ executablePath: exe, headless: 'new',

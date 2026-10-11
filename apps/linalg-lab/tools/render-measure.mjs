@@ -15,9 +15,9 @@
  */
 import { readFileSync } from 'node:fs';
 import { pathToFileURL } from 'node:url';
+import { resolveBrowser } from './browser.mjs';   // D-4a：四级回退，共用一份
 
-const EDGE = '/Applications/Microsoft Edge.app/Contents/MacOS/Microsoft Edge';
-const CHROME = '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome';
+const EDGE = resolveBrowser();   // D-4a：显式 → 环境变量 → 探测 → exit 2
 
 const argv = process.argv.slice(2);
 const target = argv[0];
@@ -29,7 +29,7 @@ const ti = argv.indexOf('--min-tap');
 const MIN_TAP = ti >= 0 ? (parseFloat(argv[ti + 1]) || 20) : 20;
 if (!target) { console.log(JSON.stringify({ error: '用法：node render-measure.mjs <file|url>' })); process.exit(2); }
 
-const exe = (() => { for (const p of [EDGE, CHROME]) { try { readFileSync(p); return p; } catch {} } return null; })();
+const exe = resolveBrowser();   // D-4a
 if (!exe) { console.log(JSON.stringify({ skipped: '找不到 Edge 或 Chrome（环境不足，不是通过）' })); process.exit(0); }
 
 let puppeteer;
