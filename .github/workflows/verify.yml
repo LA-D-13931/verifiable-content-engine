@@ -46,3 +46,17 @@ jobs:
       - name: 汇总（always()：这一步必跑，结论自带原因）
         if: always()
         run: bash apps/linalg-lab/tools/ci-judge.sh
+      - name: 留证（artifact：让 agent 也读得到原因）
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: suite-evidence
+          # ⚠️ if-no-files-found: warn —— **读不到文件本身也是情报** ✓（说明套件步没写成 ✓），
+          #    所以不设成 error ✗（那会把"没写成"和"跑失败"混成一件事 ✓）。
+          if-no-files-found: warn
+          retention-days: 7
+          path: |
+            /tmp/suite.out
+            /tmp/suite.err
+            /tmp/suite.rc
+            /tmp/suite-summary.md

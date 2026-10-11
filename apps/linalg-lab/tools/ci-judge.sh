@@ -10,9 +10,16 @@ SUMMARY="${CI_SUMMARY:-$GITHUB_STEP_SUMMARY}"
 OUT="${SUITE_OUT:-/tmp/suite.out}"
 ERR="${SUITE_ERR:-/tmp/suite.err}"
 RC="${CI_RC:-$(sed 's/rc=//' /tmp/suite.rc 2>/dev/null || echo '?')}"
+# **Summary 同时落一份文件**（第五十七轮）：CI 那边由 upload-artifact 收走 ✓
+# —— 这样"原因"对 agent 也是机器可读的（不必靠人看页面 ✓）。
+SUM="${SUITE_SUMMARY:-/tmp/suite-summary.md}"
+: >"$SUM" 2>/dev/null || true
+_sum() { echo "$@" | tee -a "$SUMMARY" >>"$SUM" 2>/dev/null || echo "$@"; }
+_out() { tail -40 "$OUT" 2>/dev/null; }
+_err() { tail -20 "$ERR" 2>/dev/null; }
 
 {
-  echo "## 套件退出码：${RC}"
+  echo "## 套件退出码：${RC}" | tee -a "$SUM" 2>/dev/null || true
   echo '### stdout 尾部（40 行）'
   echo '```'
   tail -40 "$OUT" 2>/dev/null || echo '(没有 $OUT)'
