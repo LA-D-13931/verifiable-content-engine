@@ -26,6 +26,28 @@ STOP_PHRASES = ('数量级', '个分量', '个维度', '个元素', '个样本')
 QUANTITY = re.compile(r'(?<![\d.])(\d{1,4})\s*(个|项|条|处|章|节|题|组|类|次|份)')
 
 
+def claim_at(text, m):
+    """**口径的唯一实现**（第五十一轮抽取）：某处命中是否算"要找来源的数量陈述"。
+
+    返回 (是否算, 排除原因)。**检查与分类脚本都必须调它** ——
+    否则两边各写一份规则，就会出现"131 与 ①+④ 差 11 处"那种对不上的账 ✗。
+
+    排除规则（每条都由抽样原文定 ✓）：
+    - `STOP_PHRASES`：行文比喻/量级比较（"松 5 个数量级"、"1 个分量"）；
+    - `STRUCT_REF`：结构引用（"第 1 章"、"§1-1 节"、"见 §N"、"参考第 N 章"）；
+    - 代码块内的数字（调用方先剥）。
+    """
+    n, unit = m.group(1), m.group(2)
+    seg = text[max(0, m.start() - 20):m.end() + 6]
+    pre = text[max(0, m.start() - 22):m.start()]
+    if any(sp in seg for sp in STOP_PHRASES):
+        return False, 'STOP_PHRASES'
+    if any(w in pre for w in STRUCT_REF):
+        return False, 'STRUCT_REF'
+    if re.search(r'^(CHAPTER|Ch\.?)\s*$', text[max(0, m.start() - 10):m.start()].strip()):
+        return False, 'CHAPTER'
+    return True, ''
+
 def run(artifact, source, base):
     srcs = source.get('value_sources')
     if not srcs:
@@ -57,18 +79,9 @@ def run(artifact, source, base):
     hits = []                       # 每处命中的**原文**（第四十九轮：证书不许只给 number/unit ✗）
     for m in QUANTITY.finditer(text_wo_code):
         n, unit = m.group(1), m.group(2)
-        seg = text_wo_code[max(0, m.start() - 20):m.end() + 6]
-        _before = text_wo_code[max(0, m.start() - 3):m.start()]
-        if any(sp in seg for sp in STOP_PHRASES):
+        _ok, _why = claim_at(text_wo_code, m)      # **口径的唯一实现** ✓
+        if not _ok:
             continue
-        # 结构引用（第五十轮按原文收紧 ✓）：前文含 第/§/见/参考 —— 它们是**引用**，不是计数 ✓
-        _pre22 = text_wo_code[max(0, m.start() - 22):m.start()]
-        if any(w in _pre22 for w in STRUCT_REF):
-            continue
-        _before10 = text_wo_code[max(0, m.start() - 10):m.start()].strip()
-        if re.search(r'^(CHAPTER|Ch\.?)\s*$', _before10):
-            continue
-        # 命中处的原文（前后各 ~20 字；**空白折成单空格**，便于 grep / 阅读 ✓）
         statement = re.sub(r'\s+', ' ', text_wo_code[max(0, m.start() - 30):m.end() + 30]).strip()
         hits.append({'number': n, 'unit': unit, 'statement': statement})
         if not re.search(r'(?<![\d.])' + n + r'\s*' + unit, pool):
