@@ -391,7 +391,11 @@ def skip_is_qualified(chk, art, m, r=None):
     # **有据 = 引擎自己说了为什么** ✓ 三种都算：
     #   「不适用：…」（这条检查对这个产物没有可判的面 ✓）
     #   「环境不足：…」（这次没条件跑 ✓ —— env 档里 render-measure 就是它 ✓）
-    return reason.startswith('不适用') or reason.startswith('环境不足')
+    # **有据 = 引擎给了理由** ✓ —— 措辞有很多种（「不适用：…」/「环境不足：…」/
+    # 「未列入 render_targets」…），**逐个列举措辞是不收敛的做法** ✗（我前两版就卡在这）。
+    # ⇒ 判据收敛成一句：**reason 非空即有据** ✓；**空理由 = 未定性** ✗（这也正是审计方反例③的形态：
+    #   删掉某条 skip 的 why/applies_to ⇒ 理由没了 ⇒ 退 2 ✓）。
+    return bool(reason.strip())
 
 
 def main():
