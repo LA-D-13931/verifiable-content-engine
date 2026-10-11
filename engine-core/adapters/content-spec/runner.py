@@ -131,8 +131,14 @@ def run_all(only_source=None, only_check=None, scope=None):
             want = chk.get('applies_to') or 'product'
             arts = [a for a in src['artifacts'] if a.get('kind', 'product') == want]
             fn = load_check(chk['fn'])
+            checker_crash = False
             for art in arts:
-                r = fn(art, src, BASE)
+                try:
+                    r = fn(art, src, BASE)
+                except Exception as e:      # 第十八轮：单条检查崩了不许吞掉整轮
+                    r = {'pass': None,
+                         'reason': '检查器故障：%s: %s' % (type(e).__name__, str(e).splitlines()[0][:160]),
+                         'certificate': {'checker_crash': type(e).__name__}}
                 exp = ((m.get('expectations') or {}).get(chk['id']) or {}).get(art['id'])
                 if exp is None and chk['id'] == 'render-capability':
                     exp = art.get('expect')          # 兼容旧位置
@@ -243,6 +249,8 @@ def as_json(m, results):
         })
     out['tally'] = dict(collections.Counter(v['verdict'] for v in out['verdicts']))
     print(json.dumps(out, ensure_ascii=False, indent=2))
+    if any('检查器故障' in (o.get('reason') or '') for o in out):
+        sys.exit(3)      # 结构化声明：有检查器故障
     return 0 if out['tally'].get('fail', 0) == 0 else 1
 
 

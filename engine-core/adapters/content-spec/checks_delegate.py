@@ -100,7 +100,9 @@ def run_delegate(artifact, source, base):
                    'ModuleNotFoundError', 'command not found', 'SyntaxError')
     both = (p.stdout or '') + '\n' + (p.stderr or '')
     if any(sign in both for sign in CRASH_SIGNS):
-        return triple(None, '环境不足：委托脚本自己没跑起来（不是内容问题）——%s'
+        # 第十八轮：**崩溃属于第三类「检查器故障」，不再记成"环境不足"** ——
+        # 归属不同（内容 / 环境 / 我的工具）；reason 前缀是给 runner 的结构化记号。
+        return triple(None, '检查器故障：工具自身没跑起来（不是内容问题，也不一定是环境）——%s'
                       % ((p.stderr or p.stdout or '').strip().split('\n')[-1][:120] or '见证书'),
                       cert)
     return triple(False, '委托脚本判定不通过（退出码 %d）：%s'

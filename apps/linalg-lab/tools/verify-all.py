@@ -81,6 +81,32 @@ PASS_MARKS = ('全部通过', '✓')
 #: （内容失败应当用退出码 1）。审查方实测：11 处 `process.exit(2)` 的文案全部未命中下面的白名单，
 #: 靠子串匹配必然漏 —— 所以有了这条，白名单只是兼容层。
 ENV_EXIT_CODE = 2
+#: **环境专属**文案（排在崩溃判据之前）：它们各自都是"依赖/语料不在位"，
+#: 而不是检查器崩了 —— 但它们**常常带着 Python 堆栈**（ModuleNotFoundError），
+#: 所以必须与"崩溃文案"分开判，否则缺依赖会被误记成"引擎的 bug"。
+ENV_FIRST_SIGNS = (
+    'ModuleNotFoundError', 'ImportError', 'Cannot find module', 'ERR_MODULE_NOT_FOUND',
+)
+#: 第十七轮→第十八轮：**第三类状态「检查器故障」**。
+#: 契约：1 = 被检内容有问题（判据不成立）｜2 = 环境不满足（要跑而跑不成）
+#:      ｜**3 = 检查器自己崩了 —— 这可能是引擎的 bug**。
+#: 归属不同这件事很要紧：三类混成一两类，就会把"我的 bug"记到"内容"或"环境"账上。
+CRASH_EXIT_CODE = 3
+#: ⚠️ **兼容层**：崩了但没有用退出码 3 声明的老脚本，只能靠文案认。
+#: **结构化信号（退出码 3）才是方向** —— 这张表是待迁移的债，不是判据本身。
+#: 顺序要求：**崩溃文案先于环境文案**判（否则 NameError 会被 ENV_SIGNS 里的
+#: ModuleNotFoundError 那类词吞成"环境不足"—— 第十六轮真发生过）。
+CRASH_SIGNS = (
+    'Traceback (most recent call last)', 'NameError', 'SyntaxError', 'IndentationError',
+    'UnboundLocalError', 'AttributeError', 'TypeError', 'KeyError', 'IndexError',
+    'ZeroDivisionError', 'RecursionError',
+)
+#: 判据顺序（**崩溃先于环境**，但"明确的缺模块"仍归环境）：
+#:   0 通过 → 3 检查器故障(声明) → 2 环境(声明) →
+#:   1 且输出含 Python 真堆栈/崩溃名 → 检查器故障 → 1 且含环境文案 → 环境不足 → 1 其他 → 失败
+#: 为什么"含环境文案"排在崩溃判据**之后**：第十六轮实测 `NameError` 被
+#: `ENV_SIGNS` 里的 `ModuleNotFoundError` 那类词吞成"环境不足" —— 谁先命中决定了归属。
+#: 而 `Cannot find module`（Node 缺依赖）**没有 Python 堆栈头**，所以仍会落到环境一档 ✓。
 
 #: 兼容层：文案信号。刻意写窄：宽了会把真实失败误判成「环境问题」，
 #: 那正是本项目最反对的失效模式（用「跳过」掩盖真问题）。
@@ -206,7 +232,8 @@ def main():
         if group != cur:
             print('── %s' % group)
             cur = group
-        mark = {'pass': '✓', 'fail': '✗', 'not_selected': '·', 'environment': '–'}[kind]
+        mark = {'pass': '✓', 'fail': '✗', 'not_selected': '·', 'environment': '–',
+              'crash': '⁉'}[kind]
         print('  %s %s%s' % (mark, name.ljust(width), detail))
 
     # D-2：**兼容层（文案判据）命中数必须出现在汇总里**——它是待迁移的债务：
@@ -217,6 +244,7 @@ def main():
     # 聚合层据此计数——它不是"文案猜环境"，而是一条**声明式协议行**（写在 check-figure-sync.py 的 docstring 里）。
     not_compared = [(g, n) for g, n, ok, d, k in rows if 'NOT-COMPARED:' in (d or '')]
     hard_fail = [(g, n, d) for g, n, ok, d, k in rows if k == 'fail']
+    crash_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'crash']
     env_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'environment']
     unselected = [(g, n, d) for g, n, ok, d, k in rows if k == 'not_selected']
     print('')
