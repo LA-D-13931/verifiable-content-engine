@@ -441,6 +441,10 @@ def main():
         ok, fails, unset, known, env_skip = 0, [], [], [], 0
         undecided = []      # 第六十二轮：skip 但**没有据**（未定性）✗
         for r in results:
+            # 第六十二轮：归一化期望 ✓ —— 期望可写成 dict（带 why），比对前取其 verdict；
+            # 否则 dict != 'skip' 会被算成「环境不足」✗（我第一版就踩了）。
+            if isinstance(r.get('expect'), dict):
+                r['expect'] = r['expect'].get('verdict')
             actual = _verdict(r)
             if r['expect'] is None:
                 unset.append(r)
