@@ -1051,6 +1051,37 @@
       "unblock": "高数站把「已掌握」勾选框 label 的点击高度提到 ≥20px（现在 19.8px）",
       "evidence": "第二十四轮独立探针 dump：wrappedLabel=true / boxIs=LABEL / 28.2×19.8 / font-size 11.2 / line-height 15.68 / padding 1.92×2；1440 档命中 0",
       "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**"
+    },
+    {
+      "id": "unsourced-quantity-statements-gaoshu-pages-spotchecked",
+      "status": "未修（在高数站内容里，本域只报告不代改）",
+      "owner": "consumer",
+      "applies_to": {
+        "check": "value-provenance",
+        "artifacts": [
+          "page-ch1.html",
+          "page-ch10.html",
+          "page-ch11.html",
+          "page-ch12.html",
+          "page-ch2.html",
+          "page-ch3.html",
+          "page-ch4.html",
+          "page-ch5.html",
+          "page-ch6.html",
+          "page-ch7.html",
+          "page-ch8.html",
+          "page-ch9.html"
+        ]
+      },
+      "finding": "这些页面里的「数量陈述」找不到出处（共 242 处）",
+      "spotchecked": [
+        "page-ch1.html「7518 个」（公式数）",
+        "page-ch1.html「5484 个」（公式一次成型数）",
+        "page-ch1.html「60 个」（首屏块数）"
+      ],
+      "unblock": "把该数量陈述接到声明的数据源/生成脚本（现声明为 …/snapshot/assets/course-data.json），或删掉该表述",
+      "note": "**只登记已逐处定性的部分** ✓；其余（含「§1-1 节」这类新的边界情形 ✗）**待定性** ✗，按 循环纪律.md 第 2 条：报出来 ≠ 是真的 ✓",
+      "evidence": "第四十八轮：抽样 10 处 → 7 处是「第 N 章/节」结构编号（已从判据排除 ✓）、3 处是真数量陈述（已定性 ✓）；判据改后报出数 795 → 260 ✓，反例 ch1.value-mutant 仍判 fail ✓"
     }
   ],
   "expectations": {

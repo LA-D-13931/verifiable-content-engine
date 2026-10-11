@@ -56,6 +56,14 @@ def run(artifact, source, base):
         seg = text_wo_code[max(0, m.start() - 20):m.end() + 6]
         if any(sp in seg for sp in STOP_PHRASES):
             continue
+        # **结构编号不是数量陈述**（第四十八轮抽样 10 处里 7 处是它 ✗）：
+        # 「第 1 章」「第 26 节」「第 32 节」—— 它们是**引用**，不是"数了 N 个东西" ✓。
+        _before = text_wo_code[max(0, m.start() - 3):m.start()]
+        if re.search(r'第\s*$', _before):
+            continue
+        _before10 = text_wo_code[max(0, m.start() - 10):m.start()].strip()
+        if re.search(r'^(CHAPTER|Ch\.?)\s*$', _before10):
+            continue
         if not re.search(r'(?<![\d.])' + n + r'\s*' + unit, pool):
             missing.append((n, unit))
     if missing:
