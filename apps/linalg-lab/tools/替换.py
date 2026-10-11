@@ -92,6 +92,7 @@ def main():
             return 1
         print('  · --verify-cmd 通过：%s' % a.verify_cmd)
 
+    open(a.path, 'w', encoding='utf-8').write(out)
     print('✓ 替换成功（锚点唯一；写完自证通过；语法' + ('已校验' if a.path.endswith('.py') else '不适用') + '）')
     return 0
 

@@ -167,6 +167,18 @@ def print_advice(r):
             print('       · 还能往哪扩：  %s' % a['generalize'])
         print('       · 验证：        python3 %s --report'
               % os.path.relpath(os.path.abspath(__file__), os.getcwd()))
+    # C2（第四十一轮）：证书必须落到**人读路径** —— 否则"有证据"只对 --json 的用户成立。
+    cert = r.get('certificate')
+    if cert:
+        det = cert.get('detail') or {}
+        env = cert.get('environment') or {}
+        print('       · 证据（证书）：type=%s ｜ env=%s'
+              % (cert.get('evidence_type', '?'),
+                 '、'.join('%s=%s' % (k, v) for k, v in list(env.items())[:3]) or '—'))
+        for k, v in list(det.items())[:4]:
+            print('           %s = %s' % (k, str(v)[:80]))
+    elif r.get('pass') is False:
+        print('       · 证据（证书）：**缺失** —— 判红但无 certificate')
 
 
 EVIDENCE_ENUM = ('structural', 'render', 'human', 'external')
@@ -316,44 +328,27 @@ def _known_defects():
     return out
 
 
-def dump_certificates(m, results, repo_root):
-    """C5：把证书落盘到 `<repo>/.certificates/`。
-
-    **文件名策略（择一写死）**：`<产物id>-<产物hash前12位>.json`
-    —— **不带时间戳** ✗：同一产物同一 hash 重复跑会**覆盖同一个文件**，**不会无限增长** ✓；
-    **生成时间写在文件内容里** ✓（既能追溯，又不让文件名随运行次数膨胀 ✓）。
+def dump_certificates(results, out_dir):
+    """C5（第四十一轮）：证书落盘 —— 文件名 = `<产物id>-<hash12>.json`（**不带时间戳**）。
+    同 hash 覆盖同一文件 ⇒ 不无限增长；生成时间写进内容（generated_at）。
+    ⚠️ `out_dir` 必须进 .gitignore，否则会脏工作树（边界）。
     """
-    import time
-    outdir = os.path.join(repo_root, '.certificates')
-    os.makedirs(outdir, exist_ok=True)
-    import hashlib
+    import hashlib, json, os, time
+    os.makedirs(out_dir, exist_ok=True)
     n = 0
     for r in results:
         cert = r.get('certificate')
         if not cert:
             continue
-        art = r.get('artifact') or 'unknown'
-        # 产物 hash：优先按产物文件内容；取不到就按 id（并如实标注）
-        p = None
-        for a in (m.get('artifacts') or []):
-            if a.get('id') == art:
-                p = a.get('path'); break
-        h, src = '', 'id'
-        if p:
-            for cand in (os.path.join(repo_root, p), os.path.join(os.path.dirname(repo_root), p)):
-                if os.path.isfile(cand):
-                    h = hashlib.sha256(open(cand, 'rb').read()).hexdigest()[:12]; src = 'file'; break
-        if not h:
-            h = hashlib.sha256(art.encode('utf-8')).hexdigest()[:12]
-        fn = os.path.join(outdir, '%s-%s.json' % (art.replace('/', '_'), h))
-        with open(fn, 'w', encoding='utf-8') as f:
-            json.dump({'generated_at': time.strftime('%Y-%m-%dT%H:%M:%S%z'),
-                       'artifact': art, 'artifact_hash': h, 'hash_source': src,
-                       'check': r.get('check'), 'verdict': _verdict(r),
-                       'certificate': cert}, f, ensure_ascii=False, indent=2)
+        prod = r.get('artifact', 'unknown')
+        h = hashlib.sha256(('%s|%s' % (prod, r.get('check', ''))).encode('utf-8')).hexdigest()[:12]
+        path = os.path.join(out_dir, '%s-%s.json' % (prod.replace('/', '_'), h))
+        with open(path, 'w', encoding='utf-8') as fh:
+            json.dump({'artifact': prod, 'check': r.get('check'),
+                       'generated_at': time.strftime('%Y-%m-%dT%H:%M:%S'),
+                       'certificate': cert}, fh, ensure_ascii=False, indent=1)
         n += 1
     return n
-
 
 def main():
     argv = sys.argv[1:]
@@ -467,6 +462,10 @@ def main():
     if not bad:
         print('全部通过 ✓  %d 条判定都通过' % len(results))
         return 0
+    _cert_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), os.pardir, os.pardir, os.pardir, os.pardir, '.certificates')
+    _n_cert = dump_certificates(results, _cert_dir)
+    if _n_cert:
+        print('证书已落盘：%d 份 → .certificates/' % _n_cert)
     print('检出 %d 项 ✗ —— 这是**被检出的真实缺陷**，不是检查器故障；处置卡见上' % len(bad))
     return 1
 
