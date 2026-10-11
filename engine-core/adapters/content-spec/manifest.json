@@ -705,7 +705,7 @@
         "note": "四条条件：只认散文（含中文、无 $ 与 \\）、≥60 字、20000 字符内邻近、样板可在 allowed_repeats 声明。旧判据在真实站点上报 325 处\"重复\"，逐条看全是公式段——故判据被重设计。"
       },
       "value_sources": [
-        "fixtures/gaoshu-mutants/ch6.volume-mutant.html"
+        "../../../../../01_活工程/线代_两站对照/snapshot/assets/course-data.json"
       ]
     },
     {
@@ -1376,10 +1376,10 @@
       "page-ch7.html": "fail",
       "page-ch8.html": "fail",
       "page-ch9.html": "fail",
-      "ch6.volume-mutant": "pass",
-      "ch6.numbering-mutant": "pass",
-      "ch6.overflow-mutant": "pass",
-      "ch6.dup-mutant": "pass",
+      "ch6.volume-mutant": "fail",
+      "ch6.numbering-mutant": "fail",
+      "ch6.overflow-mutant": "fail",
+      "ch6.dup-mutant": "fail",
       "renderer": "pass",
       "foundation-index": "pass",
       "foundation-index.mutant": "pass"
