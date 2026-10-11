@@ -35,7 +35,7 @@ def style_coverage(artifact, source, base):
     """
     apath = resolve(artifact, base)
     if not os.path.isfile(apath):
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
     html = _read(apath)
     markup = re.sub(r'<script\b.*?</script>', ' ', html, flags=re.S | re.I)
     used = set()
@@ -79,7 +79,7 @@ def undefined_style_token(artifact, source, base):
     """
     apath = resolve(artifact, base)
     if not os.path.isfile(apath):
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
     html = _read(apath)
     used = set(re.findall(r'var\(\s*(--[\w-]+)', html))
     style_sources = source.get('style_sources') or []

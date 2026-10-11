@@ -60,7 +60,7 @@ def _render_measure_one(artifact, source, base):
     if which('node') is None:
         return triple(None, '环境不足：找不到 node')
     if not os.path.isfile(page):
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
 
     cmd = ['node', script, page, '--width', str(spec.get('width', 1440)),
            '--min-tap', str(spec.get('min_tap_px', 20))]

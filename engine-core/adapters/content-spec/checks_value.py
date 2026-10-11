@@ -60,10 +60,7 @@ def run(artifact, source, base):
     path = common.resolve(artifact, base)
 
     if not os.path.isfile(path):
-        return {'pass': False, 'reason': '找不到产物 %s' % artifact['path'],
-                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
-                                'environment': {'kind': 'repo-fixture'},
-                                'detail': {'resolved_path': path, 'exists': False}}}
+        return {'pass': None, 'reason': '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）'}
     text = open(path, encoding='utf-8').read()
     # 剥掉代码块 / 行内代码（代码里的数字不是"数量陈述" ✓）
     text_wo_code = re.sub(r'```.*?```', '', text, flags=re.S)

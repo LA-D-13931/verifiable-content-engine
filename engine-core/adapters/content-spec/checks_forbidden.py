@@ -79,7 +79,7 @@ def forbidden_patterns(artifact, source, base):
     """manifest 声明的禁止模式，出现即报（每条带理由与修法）。"""
     path = _file_of(artifact, base)
     if not path:
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
     html = _read(path)
     rules = source.get('forbidden_patterns') or []
     if not rules:
@@ -121,7 +121,7 @@ def duplicate_selector(artifact, source, base):
     """
     path = _file_of(artifact, base)
     if not path:
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
     html = _read(path)
     if not STYLE_BLOCK.search(html):
         return triple(None, '产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用',

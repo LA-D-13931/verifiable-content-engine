@@ -87,11 +87,7 @@ def run(product, source, base):
                                 'detail': {'resolved_path': data_path, 'exists': False,
                                            'source_data': source['data']}}}
     if not os.path.isfile(prod_path):
-        return {'pass': False, 'reason': '找不到产物 %s' % product['path'],
-                'certificate': {'verdict': 'fail', 'evidence_type': 'structural',
-                                'environment': {'python': sys.version.split()[0]},
-                                'detail': {'resolved_path': prod_path, 'exists': False,
-                                           'product_path': product['path']}}}
+        return {'pass': None, 'reason': '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）'}
 
     data, html = _read(data_path), _read(prod_path)
     cert, missing, advice = {}, [], []

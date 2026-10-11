@@ -44,7 +44,7 @@ def dup_block(artifact, source, base):
     allowed = set(spec.get('allowed_repeats') or [])
     path = resolve(artifact, base)
     if not os.path.isfile(path):
-        return triple(False, '找不到产物 %s' % artifact['path'])
+        return triple(None, '不适用：产物不在位由 runner 的统一门负责（第五十五轮 ✓）')
     with open(path, encoding='utf-8', errors='replace') as f:
         html = f.read()
 
