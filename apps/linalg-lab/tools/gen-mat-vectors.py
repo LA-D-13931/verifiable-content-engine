@@ -16,6 +16,7 @@
     · 目标在列空间内 / 外
 """
 import hashlib
+import sys
 import json, os, sys, random
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -63,7 +64,7 @@ def source_signature():
     import ast, hashlib
     tree = ast.parse(open(os.path.join(ENGINE, 'mat.py'), encoding='utf-8').read())
     tree = _strip_docstrings(tree)
-    return 'ast:' + hashlib.sha256(
+    return 'ast:%d.%d:' % sys.version_info[:2] + hashlib.sha256(
         ast.dump(tree, include_attributes=False).encode('utf-8')).hexdigest()
 
 

@@ -13,6 +13,7 @@
 用法：python3 tools/verify-mat.py
 """
 import os
+import sys
 import subprocess
 import sys
 
@@ -57,11 +58,13 @@ def _strip_docstrings(tree):
 
 
 def mat_py_signature():
+    # 第五十八轮：**指纹里带上解释器版本** ✓ —— ast.dump 的输出是 CPython 内部行为、跨版本会变 ✗，
+    # 不带版本就没法区分"数学变了"与"换了 Python" ✓。
     """engine-core/mat.py 数学语义的指纹，与 gen-mat-vectors.py 用同一算法（AST）。"""
     import ast, hashlib
     tree = ast.parse(open(MAT_PY, encoding='utf-8').read())
     tree = _strip_docstrings(tree)
-    return 'ast:' + hashlib.sha256(
+    return 'ast:%d.%d:' % sys.version_info[:2] + hashlib.sha256(
         ast.dump(tree, include_attributes=False).encode('utf-8')).hexdigest()
 
 
@@ -81,7 +84,23 @@ def check_vectors_signature():
     if not recorded:
         problems.append('engine-core/mat-vectors.json 里没有签名 —— 运行 python3 tools/gen-mat-vectors.py')
         return
-    if recorded != mat_py_signature():
+    # **三分支**（第五十八轮 (a) ✓）：
+    #   同版本 ⇒ 按指纹判（不一致 ⇒ 红 ✗）
+    #   跨版本 ⇒ **环境不足**（pass=None ✓，文案写明"跨版本无法比对，ast.dump 不保证稳定"）
+    #   记录里没有版本字段（旧格式）⇒ 也判环境不足 ✓（不猜 ✗）
+    cur = mat_py_signature()
+    if recorded == cur:
+        pass                                  # 同版本且一致 ⇒ 通过 ✓
+    else:
+        _rec_ver = recorded.split(':')[1] if recorded.count(':') >= 2 else ''
+        _cur_ver = cur.split(':')[1]
+        if not _rec_ver:
+            return '环境不足：向量文件是旧格式（签名里没有 Python 版本）—— 跨版本无法比对，' \
+                   'ast.dump 的输出不保证跨版本稳定；请在生成它的那个版本上跑，或重新生成'
+        if _rec_ver != _cur_ver:
+            return ('环境不足：向量是用 Python %s 生成的，本机是 %s —— '
+                    '**跨版本无法比对**（ast.dump 是 CPython 内部行为，不保证稳定）；'
+                    '这不代表数学变了' % (_rec_ver, _cur_ver))
         problems.append('engine-core/mat.py 的数学已变更，但测试向量未重新生成 —— '
                         '运行 python3 tools/gen-mat-vectors.py')
     # mat.js 的新鲜度由 gen-mat-js.py --check 逐字节比对，不必再看时间戳
@@ -104,7 +123,11 @@ def check_vectors():
 if __name__ == '__main__':
     print('=== 矩阵原语层校验 ===')
     check_generated()
-    check_vectors_signature()
+    _sig_env = check_vectors_signature()
+    if _sig_env:
+        print(_sig_env)
+        print('ENV_INSUFFICIENT: 指纹无法跨版本比对（见上）')
+        sys.exit(2)   # 环境不足，不是失败 ✓
     check_vectors()
     print()
     if problems:
