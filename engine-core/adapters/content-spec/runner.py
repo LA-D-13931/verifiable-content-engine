@@ -403,6 +403,9 @@ def main():
                             ' / %d 条按不适用处理' % ns if ns else ''))
             return 0
         if known:
+            # **结构化协议行**（与 NOT-COMPARED: 同一套做法）：单行、前缀固定、机器可读
+            print('KNOWN-DEFECTS: %d 项 | %s' % (
+                len(known), '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
             print('  已登记缺陷 %d 项（**不计入失败**，归属=消费者侧、待其修）：%s'
                   % (len(known), '、'.join(sorted({r['known_defect'] for r in known}))))
         if not fails:
