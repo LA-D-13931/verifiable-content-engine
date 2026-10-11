@@ -397,7 +397,7 @@ def main():
         return 0
 
     if mode == 'selftest':
-        ok, fails, unset, known = 0, [], [], []
+        ok, fails, unset, known, env_skip = 0, [], [], [], 0
         for r in results:
             actual = _verdict(r)
             if r['expect'] is None:
@@ -406,16 +406,24 @@ def main():
             if r['expect'] == actual:
                 ok += 1
             elif actual == 'fail' and r.get('known_defect'):
-                # 第四类：判 fail 但**已登记**（owner=consumer、带 unblock）→ 不算失败、**必须可见**
+                # 第四类（第 22~26 轮）：判 fail 但**已登记** → 不算失败、**必须可见** ✓
                 known.append(r)
                 if not quiet:
                     print('  ◇ %-40s 期望 %-4s 实际 %-4s  —— 已登记缺陷 %s（待消费者侧修）'
                           % (r['label'], r['expect'], actual, r['known_defect']))
+            elif actual == 'skip':
+                # **环境不足**（第五十三轮）：这次没条件比 ⇒ 既不通过、也不算"检查器坏了" ✗
+                # 旧版把它并进 fails ⇒ 裸环境里"什么都没比"却报"检查器可能坏了"（退 1）✗
+                env_skip += 1
+                if not quiet:
+                    print('  – %-40s 期望 %-4s 本次没条件比：%s'
+                          % (r['label'], r['expect'], (r.get('reason') or '')[:70]))
             else:
                 fails.append(r)
                 if not quiet:
                     print('  ✗ %-40s 期望 %-4s 实际 %-4s  —— %s'
-                          % (r['label'], r['expect'], actual, r['reason'][:80]))
+                          % (r['label'], r['expect'], actual, (r.get('reason') or '')[:80]))
+
         if not quiet:
             print('  （%d 条按 manifest 的 expectations 反证完毕）' % len(results))
             print('')
@@ -431,18 +439,30 @@ def main():
                 print('  ⚠ 另有 %d 条**需人工确认**（human 证据：机器不签字，不计入全绿）' % len(human))
             # 结构化协议行（与 NOT-COMPARED: 同一套做法）：单行、前缀固定、机器可读
             # **必须打在 return 之前** —— 否则永远执行不到（第二十七轮就栽在这）
-            if known:
-                print('KNOWN-DEFECTS: %d 项 | %s'
-                      % (len(known),
-                         '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
-            nf = sum(1 for r in results if r['expect'] == 'fail')
-            np_ = sum(1 for r in results if r['expect'] == 'pass')
-            ns = sum(1 for r in results if r['expect'] == 'skip')
-            tail = ('；其中 %d 条为**已登记缺陷**（消费者侧待修）' % len(known)) if known else ''
-            print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致（%d 条坏例变红 / %d 条好例保持绿%s）%s'
-                  % (len(results), nf, np_,
-                     ' / %d 条按不适用处理' % ns if ns else '', tail))
-            return 0
+        # **三态退出码 + 护栏**（第五十三轮 §1.1/§1.2）：
+        # 护栏下限的取值与理由（写进 docstring ✓）：
+        #   **真正比对过的条数 ok 不得低于"应能比的条数"的一半** ✗ ——
+        #   应能比 = ok + env_skip + len(fails)。理由：裸环境里"几乎什么都没比"却报通过，
+        #   比报红更危险（轮六 RX-01 那个先例 / C2 契约要防的正是这种形态 ✓）。
+        _total_comparable = ok + env_skip + len(fails)
+        _too_few = _total_comparable > 0 and ok < (_total_comparable / 2.0)
+        if known:
+            print('KNOWN-DEFECTS: %d 项 | %s'
+                  % (len(known),
+                     '、'.join('%s（消费者侧）' % x for x in sorted({r['known_defect'] for r in known}))))
+        _tally = '比对过 %d 条 ｜ 环境不足 %d 条 ｜ 真·不符 %d 条' % (ok, env_skip, len(fails))
+        if fails:
+            print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）  ｜ %s' % (len(fails), _tally))
+            return 1
+        if _too_few:
+            print('本次真正比对过的条数不足（%d / 应能比 %d）⇒ 判"环境不足"，不许报通过 ✗  ｜ %s'
+                  % (ok, _total_comparable, _tally))
+            return 2
+        if env_skip:
+            print('本次有 %d 条没条件比（环境不足）—— 不是通过、也不是失败 ✗  ｜ %s' % (env_skip, _tally))
+            return 2
+        print('全部通过 ✓  检查器在 %d 条真实判定上与期望一致  ｜ %s' % (ok, _tally))
+        return 0
         print('失败 %d 项 ✗  判定与期望不符（检查器可能坏了）' % len(fails))
         return 1
 
