@@ -1053,11 +1053,20 @@
       "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**"
     },
     {
-      "id": "unsourced-quantity-statements-gaoshu-pages-spotchecked",
+      "id": "unsourced-quantity-statements-gaoshu-pages",
       "status": "未修（在高数站内容里，本域只报告不代改）",
       "owner": "consumer",
       "applies_to": {
         "check": "value-provenance",
+        "counts_as_of_round50": {
+          "artifacts_reporting": 17,
+          "artifacts_page_ch": 12,
+          "artifacts_mutant": 5,
+          "hits_total": 131,
+          "excluded_from_this_entry": [
+            "ch1.value-mutant（**我造的坏例**，不是内容缺陷 ✓）"
+          ]
+        },
         "artifacts": [
           "page-ch1.html",
           "page-ch10.html",
@@ -1070,18 +1079,30 @@
           "page-ch6.html",
           "page-ch7.html",
           "page-ch8.html",
-          "page-ch9.html"
+          "page-ch9.html",
+          "ch6.volume-mutant",
+          "ch6.numbering-mutant",
+          "ch6.overflow-mutant",
+          "ch6.dup-mutant",
+          "ch1.value-mutant"
         ]
       },
-      "finding": "这些页面里的「数量陈述」找不到出处（共 242 处）",
+      "how_counted": "python3 30_证据/50-1 的脚本：逐产物调 checks_value.run()，取 certificates.missing_count 求和（**不手数** ✓）；分类计数同一份脚本按四类归因 ✓",
+      "classification": {
+        "①计数陈述": 55,
+        "②结构引用": 119,
+        "③数学/代码/自我指涉": 21,
+        "④说不清": 65,
+        "rule_after_tightening": "排除 第/§/见/参考 → 报出数 = 131 处（= ①+④ 的近似，差额 11 处是分类脚本与检查规则的边界差异 ✗，下一轮对齐）"
+      },
       "spotchecked": [
         "page-ch1.html「7518 个」（公式数）",
         "page-ch1.html「5484 个」（公式一次成型数）",
         "page-ch1.html「60 个」（首屏块数）"
       ],
-      "unblock": "把该数量陈述接到声明的数据源/生成脚本（现声明为 …/snapshot/assets/course-data.json），或删掉该表述",
-      "note": "**只登记已逐处定性的部分** ✓；其余（含「§1-1 节」这类新的边界情形 ✗）**待定性** ✗，按 循环纪律.md 第 2 条：报出来 ≠ 是真的 ✓",
-      "evidence": "第四十八轮：抽样 10 处 → 7 处是「第 N 章/节」结构编号（已从判据排除 ✓）、3 处是真数量陈述（已定性 ✓）；判据改后报出数 795 → 260 ✓，反例 ch1.value-mutant 仍判 fail ✓"
+      "unblock": "把该数量陈述接到声明的数据源/生成脚本（现为 …/snapshot/assets/course-data.json），或删掉该表述；④\"说不清\"那 65 处需消费者澄清后才能定修法",
+      "note": "**登记名不再用 spotchecked 一词** ✗（它只能覆盖已逐处定性的那部分 ✓）；本条的\"数/口径/定性状态\"三件事都写在条目里，**三者自洽** ✓；**④说不清 65 处留下并标注待澄清 ✓（不许默默排除 ✗）**",
+      "evidence": "第四十九轮证书带 statement（可 grep 复核 ✓）；第五十轮四类计数：①55 ②119 ③21 ④65 = 260 ✓"
     }
   ],
   "expectations": {

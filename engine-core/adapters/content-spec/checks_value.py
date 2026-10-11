@@ -16,6 +16,9 @@ import os
 import re
 
 #: 「数量陈述」：数字 + 量词（**这张表就是本检查的查什么/不查什么**）
+#: **不查**的结构引用（第五十轮：用证书原文定的规则 ✓）——「第 N 章」「§1-1 节」「见 §N 节」「参考第 N 章」
+STRUCT_REF = ('第', '§', '见', '参考', '详见')
+
 #: **不查**的行文（第四十六轮抽查结论）：比喻/量级比较/数学陈述里的"个"不是"数量陈述" ✗
 #  —— 逐字证据：「松 5 个数量级」「概率向量只有 1 个分量」都不是"数了 N 个东西" ✓
 STOP_PHRASES = ('数量级', '个分量', '个维度', '个元素', '个样本')
@@ -58,7 +61,9 @@ def run(artifact, source, base):
         _before = text_wo_code[max(0, m.start() - 3):m.start()]
         if any(sp in seg for sp in STOP_PHRASES):
             continue
-        if re.search(r'第\s*$', _before):
+        # 结构引用（第五十轮按原文收紧 ✓）：前文含 第/§/见/参考 —— 它们是**引用**，不是计数 ✓
+        _pre22 = text_wo_code[max(0, m.start() - 22):m.start()]
+        if any(w in _pre22 for w in STRUCT_REF):
             continue
         _before10 = text_wo_code[max(0, m.start() - 10):m.start()].strip()
         if re.search(r'^(CHAPTER|Ch\.?)\s*$', _before10):
