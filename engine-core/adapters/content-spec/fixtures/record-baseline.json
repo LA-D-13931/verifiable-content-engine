@@ -3,6 +3,7 @@
  "records": {
   "engine-core/adapters/content-spec/失败模式台账.md": 285,
   "engine-core/README.md": 189,
-  "fixtures/renzhi/rec.md": null
+  "fixtures/renzhi/rec.md": null,
+  "fixtures/renzhi/rec-short.md": 5
  }
 }

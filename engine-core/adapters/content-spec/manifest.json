@@ -277,6 +277,31 @@
           "id": "ver-mismatch-pkg",
           "path": "fixtures/renzhi/ver-pkg.json",
           "kind": "product"
+        },
+        {
+          "id": "ver-sync-bad",
+          "path": "fixtures/renzhi/ver-sync-site.json",
+          "kind": "product",
+          "version_sync": {
+            "site": {
+              "file": "fixtures/renzhi/ver-sync-site.json",
+              "field": "version"
+            },
+            "package": {
+              "file": "fixtures/renzhi/ver-sync-pkg.json",
+              "field": "version"
+            }
+          }
+        },
+        {
+          "id": "rec-short-bad",
+          "path": "fixtures/renzhi/rec-short.md",
+          "kind": "product",
+          "record_integrity": {
+            "files": [
+              "fixtures/renzhi/rec-short.md"
+            ]
+          }
         }
       ],
       "text_fields": [
@@ -1332,7 +1357,11 @@
       "delim-mix": "fail",
       "delim-code": "fail",
       "delim-tick": "fail",
-      "delim-ok": "fail"
+      "delim-ok": "fail",
+      "ver-mismatch-site": "fail",
+      "ver-mismatch-pkg": "fail",
+      "ver-sync-bad": "fail",
+      "rec-short-bad": "fail"
     },
     "undefined-style-token": {
       "frag-L00-S1": "fail",
@@ -1365,7 +1394,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "field-coverage": {
       "renderer": "fail",
@@ -1435,7 +1468,11 @@
       "delim-mix": "skip",
       "delim-code": "skip",
       "delim-tick": "skip",
-      "delim-ok": "skip"
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip"
     },
     "capability-matrix": {
       "renderer": "fail",
@@ -1516,7 +1553,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
@@ -1566,7 +1607,11 @@
       "delim-mix": "skip",
       "delim-code": "skip",
       "delim-tick": "skip",
-      "delim-ok": "skip"
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1641,7 +1686,11 @@
       "delim-mix": "skip",
       "delim-code": "skip",
       "delim-tick": "skip",
-      "delim-ok": "skip"
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip"
     },
     "delegate": {
       "delegate-bad": "fail",
@@ -1712,7 +1761,11 @@
       "delim-mix": "skip",
       "delim-code": "skip",
       "delim-tick": "skip",
-      "delim-ok": "skip"
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip"
     },
     "dup-block": {
       "ch6.dup-mutant": "fail",
@@ -1828,7 +1881,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "contrast-ratio": {
       "contrast-bad": "fail",
@@ -1864,7 +1921,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "spacing-scale": {
       "renderer": "fail",
@@ -1933,7 +1994,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "anchor-integrity": {
       "anchor-bad": "fail",
@@ -2002,7 +2067,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "highlight-visibility": {
       "highlight-bad": "fail",
@@ -2071,7 +2140,11 @@
       "delim-mix": "pass",
       "delim-code": "pass",
       "delim-tick": "pass",
-      "delim-ok": "pass"
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
     "formula-delimiter": {
       "delim-odd": "fail",
@@ -2104,10 +2177,86 @@
       "anchor-bad": "pass",
       "anchor-ok": "pass",
       "highlight-bad": "pass",
-      "highlight-ok": "pass"
+      "highlight-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass",
+      "rec-short-bad": "pass"
     },
-    "version-sync": {},
-    "record-integrity": {}
+    "version-sync": {
+      "ver-sync-bad": "fail",
+      "frag-L00-S1": "skip",
+      "lab-L00-S1": "skip",
+      "frag-L00-S2": "skip",
+      "lab-L00-S2": "skip",
+      "frag-L00-S3": "skip",
+      "lab-L00-S3": "skip",
+      "frag-L00-S4": "skip",
+      "lab-L00-S4": "skip",
+      "frag-L00-S5": "skip",
+      "lab-L00-S5": "skip",
+      "frag-L00-S6": "skip",
+      "lab-L00-S6": "skip",
+      "frag-L00-S7": "skip",
+      "lab-L00-S7": "skip",
+      "frag-L00-S8": "skip",
+      "lab-L00-S8": "skip",
+      "frag-L00-S1.forbidden-mutant": "skip",
+      "frag-L00-S1.orphan-class": "skip",
+      "katex-bad": "skip",
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip",
+      "delim-odd": "skip",
+      "delim-block": "skip",
+      "delim-long": "skip",
+      "delim-mix": "skip",
+      "delim-code": "skip",
+      "delim-tick": "skip",
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "rec-short-bad": "skip"
+    },
+    "record-integrity": {
+      "rec-short-bad": "fail",
+      "frag-L00-S1": "pass",
+      "lab-L00-S1": "pass",
+      "frag-L00-S2": "pass",
+      "lab-L00-S2": "pass",
+      "frag-L00-S3": "pass",
+      "lab-L00-S3": "pass",
+      "frag-L00-S4": "pass",
+      "lab-L00-S4": "pass",
+      "frag-L00-S5": "pass",
+      "lab-L00-S5": "pass",
+      "frag-L00-S6": "pass",
+      "lab-L00-S6": "pass",
+      "frag-L00-S7": "pass",
+      "lab-L00-S7": "pass",
+      "frag-L00-S8": "pass",
+      "lab-L00-S8": "pass",
+      "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S1.orphan-class": "pass",
+      "katex-bad": "pass",
+      "contrast-bad": "pass",
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass",
+      "delim-odd": "pass",
+      "delim-block": "pass",
+      "delim-long": "pass",
+      "delim-mix": "pass",
+      "delim-code": "pass",
+      "delim-tick": "pass",
+      "delim-ok": "pass",
+      "ver-mismatch-site": "pass",
+      "ver-mismatch-pkg": "pass",
+      "ver-sync-bad": "pass"
+    }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
   "sources_note": "源 2 与两个突变体源都是**站点级**（输入是一组页面）：真站快照来自工作区，突变体自足于 fixtures/。这样\"检查能不能抓\"就有真实站点 + 声明式突变两重反证。",
