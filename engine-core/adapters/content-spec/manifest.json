@@ -212,6 +212,26 @@
           "id": "contrast-bad",
           "path": "fixtures/renzhi/contrast-bad.html",
           "kind": "product"
+        },
+        {
+          "id": "anchor-bad",
+          "path": "fixtures/renzhi/anchor-bad.html",
+          "kind": "product"
+        },
+        {
+          "id": "anchor-ok",
+          "path": "fixtures/renzhi/anchor-ok.html",
+          "kind": "product"
+        },
+        {
+          "id": "highlight-bad",
+          "path": "fixtures/renzhi/highlight-bad.html",
+          "kind": "product"
+        },
+        {
+          "id": "highlight-ok",
+          "path": "fixtures/renzhi/highlight-ok.html",
+          "kind": "product"
         }
       ],
       "text_fields": [
@@ -979,6 +999,28 @@
         "renzhi-foundation"
       ],
       "evidence": "structural"
+    },
+    {
+      "id": "anchor-integrity",
+      "title": "锚点完整性（P5 第五维 · 渲染维）",
+      "applies_to": "product",
+      "severity": "advisory",
+      "fn": "checks_anchor:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "render"
+    },
+    {
+      "id": "highlight-visibility",
+      "title": "高亮可见性（P5 第六维 · 渲染维）",
+      "applies_to": "product",
+      "severity": "advisory",
+      "fn": "checks_highlight:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "render"
     }
   ],
   "delegates": [
@@ -1159,6 +1201,19 @@
       "泛化": "任何把间距写成\"随手一个数\"的页面都会命中",
       "验证命令": "cd 工作台/线代交互实验台/apps/linalg-lab && python3 tools/verify-all.py --all",
       "status": "待消费者侧修"
+    },
+    {
+      "id": "anchor-target-missing",
+      "title": "页内锚点目标不存在（或找不到目标）",
+      "conclusion": "lab-L00-S1..S8 上存在 href=\"#…\" 但目标元素 id 找不到",
+      "evidence": "证书带 href / id / kind=missing_target / count / where ✓；复现：python3 tools/verify-all.py --all",
+      "where": "apps/linalg-lab/… 消费者侧产物（lab-L00-S1..S8）",
+      "owner": "consumer",
+      "照着谁改": "页内锚点与目标 id 的对应关系（依据 WCAG 2.2 SC 2.4.11 ✓）",
+      "改法": "补齐目标 id，或把 href 指向真实存在的元素；**不许改判据** ✓",
+      "泛化": "任何\"目录/跳转链接指向不存在的锚点\"的页面都会命中",
+      "验证命令": "cd 工作台/线代交互实验台/apps/linalg-lab && python3 tools/verify-all.py --all",
+      "status": "待消费者侧修"
     }
   ],
   "expectations": {
@@ -1182,7 +1237,11 @@
       "lab-L00-S7": "pass",
       "lab-L00-S8": "pass",
       "katex-bad": "fail",
-      "contrast-bad": "fail"
+      "contrast-bad": "fail",
+      "anchor-bad": "fail",
+      "anchor-ok": "fail",
+      "highlight-bad": "fail",
+      "highlight-ok": "fail"
     },
     "undefined-style-token": {
       "frag-L00-S1": "fail",
@@ -1204,28 +1263,48 @@
       "lab-L00-S7": "pass",
       "lab-L00-S8": "pass",
       "katex-bad": "pass",
-      "contrast-bad": "pass"
+      "contrast-bad": "pass",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "field-coverage": {
       "renderer": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "selfcheck-path-coverage": {
       "renderer": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "declared-value-vs-actual": {
       "renderer": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "answer-key": {
       "foundation-index": "pass",
       "foundation-index.mutant": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "style-coverage": {
       "frag-L00-S1": "skip",
@@ -1247,26 +1326,42 @@
       "lab-L00-S7": "pass",
       "lab-L00-S8": "pass",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "capability-matrix": {
       "renderer": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "lang-policy": {
       "snapshot": "pass",
       "mutant-lang": "fail",
       "mutant-nav": "pass",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "single-source": {
       "snapshot": "fail",
       "mutant-lang": "pass",
       "mutant-nav": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "forbidden-patterns": {
       "ch6.dup-mutant": "pass",
@@ -1305,7 +1400,11 @@
       "page-ch9.html": "pass",
       "ch1.value-mutant": "pass",
       "katex-bad": "pass",
-      "contrast-bad": "pass"
+      "contrast-bad": "pass",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
@@ -1371,7 +1470,11 @@
         "verdict": "skip",
         "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
       },
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1392,7 +1495,11 @@
       "page-ch9.html": "pass",
       "ch1.value-mutant": "skip",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "content-volume-regression": {
       "ch6.dup-mutant": "pass",
@@ -1437,7 +1544,11 @@
         "verdict": "skip",
         "why": "该产物没有基线记录（katex-bad）—— 本项不适用"
       },
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "delegate": {
       "delegate-bad": "fail",
@@ -1460,7 +1571,11 @@
       "delegate-style": "pass",
       "delegate-unreadonly": "fail",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "render-measure": {
       "ch6.dup-mutant": "skip",
@@ -1499,7 +1614,11 @@
       "page-ch9.html": "skip",
       "ch1.value-mutant": "skip",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "dup-block": {
       "ch6.dup-mutant": "fail",
@@ -1520,12 +1639,20 @@
       "page-ch9.html": "pass",
       "ch1.value-mutant": "skip",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "human-review": {
       "snapshot": "skip",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "value-provenance": {
       "ch1.value-mutant": "fail",
@@ -1567,7 +1694,11 @@
       "foundation-index": "pass",
       "foundation-index.mutant": "pass",
       "katex-bad": "skip",
-      "contrast-bad": "skip"
+      "contrast-bad": "skip",
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "math-command-allowlist": {
       "katex-bad": "fail",
@@ -1592,7 +1723,11 @@
       "foundation-index.mutant": "pass",
       "frag-L00-S1.forbidden-mutant": "pass",
       "frag-L00-S1.orphan-class": "pass",
-      "contrast-bad": "pass"
+      "contrast-bad": "pass",
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "contrast-ratio": {
       "contrast-bad": "fail",
@@ -1617,7 +1752,11 @@
       "foundation-index.mutant": "skip",
       "frag-L00-S1.forbidden-mutant": "pass",
       "frag-L00-S1.orphan-class": "pass",
-      "katex-bad": "pass"
+      "katex-bad": "pass",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip"
     },
     "spacing-scale": {
       "renderer": "fail",
@@ -1643,6 +1782,134 @@
       "frag-L00-S1.orphan-class": "pass",
       "katex-bad": "pass",
       "contrast-bad": "pass",
+      "snapshot": "skip",
+      "delegate-numbering": "skip",
+      "delegate-latex": "skip",
+      "delegate-missing-math": "skip",
+      "delegate-refs": "skip",
+      "delegate-example-order": "skip",
+      "delegate-style": "skip",
+      "delegate-figure": "skip",
+      "delegate-chart-visual": "skip",
+      "mutant-lang": "skip",
+      "mutant-nav": "skip",
+      "page-ch1.html": "skip",
+      "page-ch10.html": "skip",
+      "page-ch11.html": "skip",
+      "page-ch12.html": "skip",
+      "page-ch2.html": "skip",
+      "page-ch3.html": "skip",
+      "page-ch4.html": "skip",
+      "page-ch5.html": "skip",
+      "page-ch6.html": "skip",
+      "page-ch7.html": "skip",
+      "page-ch8.html": "skip",
+      "page-ch9.html": "skip",
+      "ch6.volume-mutant": "pass",
+      "ch6.numbering-mutant": "pass",
+      "ch6.overflow-mutant": "pass",
+      "ch6.dup-mutant": "pass",
+      "ch1.value-mutant": "pass",
+      "delegate-ok": "pass",
+      "delegate-bad": "pass",
+      "delegate-unreadonly": "pass",
+      "delegate-missing": "skip",
+      "delegate-crash": "pass",
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
+    },
+    "anchor-integrity": {
+      "anchor-bad": "fail",
+      "anchor-ok": "pass",
+      "renderer": "pass",
+      "frag-L00-S1": "pass",
+      "lab-L00-S1": "fail",
+      "frag-L00-S2": "pass",
+      "lab-L00-S2": "fail",
+      "frag-L00-S3": "pass",
+      "lab-L00-S3": "fail",
+      "frag-L00-S4": "pass",
+      "lab-L00-S4": "fail",
+      "frag-L00-S5": "pass",
+      "lab-L00-S5": "fail",
+      "frag-L00-S6": "pass",
+      "lab-L00-S6": "fail",
+      "frag-L00-S7": "pass",
+      "lab-L00-S7": "fail",
+      "frag-L00-S8": "pass",
+      "lab-L00-S8": "fail",
+      "foundation-index": "pass",
+      "foundation-index.mutant": "pass",
+      "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S1.orphan-class": "pass",
+      "katex-bad": "pass",
+      "contrast-bad": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass",
+      "snapshot": "skip",
+      "delegate-numbering": "skip",
+      "delegate-latex": "skip",
+      "delegate-missing-math": "skip",
+      "delegate-refs": "skip",
+      "delegate-example-order": "skip",
+      "delegate-style": "skip",
+      "delegate-figure": "skip",
+      "delegate-chart-visual": "skip",
+      "mutant-lang": "skip",
+      "mutant-nav": "skip",
+      "page-ch1.html": "skip",
+      "page-ch10.html": "skip",
+      "page-ch11.html": "skip",
+      "page-ch12.html": "skip",
+      "page-ch2.html": "skip",
+      "page-ch3.html": "skip",
+      "page-ch4.html": "skip",
+      "page-ch5.html": "skip",
+      "page-ch6.html": "skip",
+      "page-ch7.html": "skip",
+      "page-ch8.html": "skip",
+      "page-ch9.html": "skip",
+      "ch6.volume-mutant": "pass",
+      "ch6.numbering-mutant": "pass",
+      "ch6.overflow-mutant": "pass",
+      "ch6.dup-mutant": "pass",
+      "ch1.value-mutant": "pass",
+      "delegate-ok": "pass",
+      "delegate-bad": "pass",
+      "delegate-unreadonly": "pass",
+      "delegate-missing": "skip",
+      "delegate-crash": "pass"
+    },
+    "highlight-visibility": {
+      "highlight-bad": "fail",
+      "highlight-ok": "pass",
+      "renderer": "pass",
+      "frag-L00-S1": "pass",
+      "lab-L00-S1": "pass",
+      "frag-L00-S2": "pass",
+      "lab-L00-S2": "pass",
+      "frag-L00-S3": "pass",
+      "lab-L00-S3": "pass",
+      "frag-L00-S4": "pass",
+      "lab-L00-S4": "pass",
+      "frag-L00-S5": "pass",
+      "lab-L00-S5": "pass",
+      "frag-L00-S6": "pass",
+      "lab-L00-S6": "pass",
+      "frag-L00-S7": "pass",
+      "lab-L00-S7": "pass",
+      "frag-L00-S8": "pass",
+      "lab-L00-S8": "pass",
+      "foundation-index": "pass",
+      "foundation-index.mutant": "pass",
+      "frag-L00-S1.forbidden-mutant": "pass",
+      "frag-L00-S1.orphan-class": "pass",
+      "katex-bad": "pass",
+      "contrast-bad": "pass",
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
       "snapshot": "skip",
       "delegate-numbering": "skip",
       "delegate-latex": "skip",
