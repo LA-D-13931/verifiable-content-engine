@@ -1297,7 +1297,9 @@
       "needed_check": "能力覆盖要按**字段**判定，不能只按文件判定",
       "check_id": "field-coverage",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "solved",
+      "class_理由": "已有检查覆盖 ⇒ 不再是缺陷 ✓（条目保留 ✓）"
     },
     {
       "id": "selfcheck-single-path",
@@ -1308,7 +1310,9 @@
       "needed_check": "自检必须覆盖全部渲染路径：任一路径独有的动作/分支都要进检查面",
       "check_id": "selfcheck-path-coverage",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "solved",
+      "class_理由": "已有检查覆盖 ⇒ 不再是缺陷 ✓（条目保留 ✓）"
     },
     {
       "id": "escape-asymmetry",
@@ -1318,7 +1322,9 @@
       "found_by": "盲测",
       "needed_check": "进入 HTML 的每个字段都必须走同一个转义函数",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "uncovered",
+      "class_理由": "**部分覆盖**：字段完全没走转换的已被 field-coverage 抓住；「走了转换、转换却不转义」**还没有** ✓"
     },
     {
       "id": "declared-value-mismatch",
@@ -1329,7 +1335,9 @@
       "needed_check": "声明与取值比对：CSS/枚举里的取值集合 必须等于 语料里实际出现的取值集合",
       "check_id": "declared-value-vs-actual",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "solved",
+      "class_理由": "已有检查覆盖 ⇒ 不再是缺陷 ✓（条目保留 ✓）"
     },
     {
       "id": "undefined-css-var",
@@ -1340,7 +1348,9 @@
       "needed_check": "用到的 CSS 变量/类名必须能在声明的样式来源里找到定义",
       "check_id": "undefined-style-token",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "solved",
+      "class_理由": "已有检查覆盖 ⇒ 不再是缺陷 ✓（条目保留 ✓）"
     },
     {
       "id": "render-path-capability-matrix",
@@ -1351,7 +1361,9 @@
       "needed_check": "两条渲染路径的能力矩阵（哪些能力有/无）必须显式声明并比对，而不是靠人来发现",
       "check_id": "capability-matrix",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "solved",
+      "class_理由": "已有检查覆盖 ⇒ 不再是缺陷 ✓（条目保留 ✓）"
     },
     {
       "id": "footer-wording-drift",
@@ -1362,7 +1374,9 @@
       "check_id": "single-source",
       "note": "这正是那站自己台账里\"导航被每页各写一份\"的同类残留：改成单一数据源之后，仍有一页没跟上。判据是\"声明为必须逐字节相同的块在全部页面一致\"。",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "out-of-scope",
+      "class_理由": "缺陷在【高数站/人智站】的站点内容里 ⇒ **本域只报告、不代改** ✓"
     },
     {
       "id": "duplicate-selector-cd",
@@ -1372,7 +1386,9 @@
       "found_by": "**content-spec 域新检查 `duplicate-selector` 的首跑**（真实内容，不是突变体）",
       "check_id": "duplicate-selector",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "out-of-scope",
+      "class_理由": "缺陷在【高数站/人智站】的站点内容里 ⇒ **本域只报告、不代改** ✓"
     },
     {
       "id": "lab-return-link-small-target",
@@ -1383,7 +1399,9 @@
       "check_id": "render-measure",
       "severity": "轻微：可达性/触屏可用性，属建议级",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "out-of-scope",
+      "class_理由": "缺陷在【高数站/人智站】的站点内容里 ⇒ **本域只报告、不代改** ✓"
     },
     {
       "id": "missing-math-in-exam",
@@ -1395,7 +1413,9 @@
       "note": "这正是 Q13 说的分工——口径是站点自己的，引擎不重写它的规矩，只把结论纳入同一契约",
       "id_note": "原登记名 missing-math-in-exam 基于脚本末行（exam.html: 1）；正文实为 ch1.html 多处，已改正",
       "owner": "engine",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "out-of-scope",
+      "class_理由": "缺陷在【高数站/人智站】的站点内容里 ⇒ **本域只报告、不代改** ✓"
     },
     {
       "id": "mastered-checkbox-label-under-20px",
@@ -1410,7 +1430,9 @@
       },
       "unblock": "高数站把「已掌握」勾选框 label 的点击高度提到 ≥20px（现在 19.8px）",
       "evidence": "第二十四轮独立探针 dump：wrappedLabel=true / boxIs=LABEL / 28.2×19.8 / font-size 11.2 / line-height 15.68 / padding 1.92×2；1440 档命中 0",
-      "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**"
+      "note": "边界型：19.8 vs 20（差 0.2px）—— 阈值边界上的判定会随浏览器版本/字体渲染翻转，标定时必须知道这一点；**不许为此放宽 min_tap_px**",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     },
     {
       "id": "unsourced-quantity-statements-gaoshu-pages",
@@ -1462,7 +1484,9 @@
       ],
       "unblock": "把该数量陈述接到声明的数据源/生成脚本（现为 …/snapshot/assets/course-data.json），或删掉该表述；④\"说不清\"那 65 处需消费者澄清后才能定修法",
       "note": "**登记名不再用 spotchecked 一词** ✗（它只能覆盖已逐处定性的那部分 ✓）；本条的\"数/口径/定性状态\"三件事都写在条目里，**三者自洽** ✓；**④说不清 65 处留下并标注待澄清 ✓（不许默默排除 ✗）**",
-      "evidence": "第四十九轮证书带 statement（可 grep 复核 ✓）；第五十轮四类计数：①55 ②119 ③21 ④65 = 260 ✓"
+      "evidence": "第四十九轮证书带 statement（可 grep 复核 ✓）；第五十轮四类计数：①55 ②119 ③21 ④65 = 260 ✓",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     },
     {
       "id": "adhoc-spacing-values",
@@ -1475,7 +1499,9 @@
       "改法": "把非档位间距值改成档位内取值；若某个值确实必要 ⇒ 改**声明文件**并写出处（不许手改判据 ✓）",
       "泛化": "任何把间距写成\"随手一个数\"的页面都会命中",
       "验证命令": "cd 工作台/线代交互实验台/apps/linalg-lab && python3 tools/verify-all.py --all",
-      "status": "待消费者侧修"
+      "status": "待消费者侧修",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     },
     {
       "id": "anchor-target-missing",
@@ -1488,7 +1514,9 @@
       "改法": "补齐目标 id，或把 href 指向真实存在的元素；**不许改判据** ✓",
       "泛化": "任何\"目录/跳转链接指向不存在的锚点\"的页面都会命中",
       "验证命令": "cd 工作台/线代交互实验台/apps/linalg-lab && python3 tools/verify-all.py --all",
-      "status": "待消费者侧修"
+      "status": "待消费者侧修",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     },
     {
       "id": "missing-source-declaration-gaoshu",
@@ -1502,7 +1530,9 @@
       "泛化": "任何\"要求每条内容标明来源、而页面没有该字段\"的站点都会命中 ✓",
       "验证命令": "cd 工作台/线代交互实验台 && python3 engine-core/adapters/content-spec/runner.py --discover --check provenance-disclosure --scope env",
       "status": "待消费者侧决定（补声明 / 或声明\"本站不要求来源声明\"⇒ 判据自动转\"不适用\" ✓）",
-      "note": "**只验\"声明在不在\"，验不了真假** ✓ —— 但\"有没有\"是**二值的、可判的** ✓，正是台账 P13 要的那一条 ✓。"
+      "note": "**只验\"声明在不在\"，验不了真假** ✓ —— 但\"有没有\"是**二值的、可判的** ✓，正是台账 P13 要的那一条 ✓。",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     },
     {
       "id": "toc-body-mismatch-gaoshu",
@@ -1518,7 +1548,9 @@
       "note": "**6 处**（逐条从判据输出取）：\n- toc-missing-target —— ① **目录项指向了不存在的标题**：目录文案「指向不存在的标题」→ href=\"#nope\"（页内没有这个 id ✓；共 1 处）\n- toc-missing-entry —— ② **正文标题未出现在目录里**：<2> 级标题「第二节：没进目录」（id=s2；位置 top=103；共 1 个）\n- ch6.volume-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.numbering-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.overflow-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.dup-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）",
       "**选哪一条**": "选了「1 条 + note 列 6 处」：这 6 处是同一缺陷类（同批页面、同生成流程、同改法、同验证命令）⇒ 拆 6 条只是把同一份改法重复 6 遍；\"是不是 6 处\"由判据每次跑都算（fail 6），不需要靠登记条数记。",
       "撤回理由": "第七十八轮我报\"6 条真发现\"是错的：12 个真实章页 page-ch1..page-ch12 全部 pass；判红的 6 条 = 2 个夹具（toc-missing-target ① / toc-missing-entry ②）+ 4 个 ch6 突变体（ch6.volume-mutant / ch6.numbering-mutant / ch6.overflow-mutant / ch6.dup-mutant，均②）⇒ 全是故意构造的坏例 ⇒ 不是消费者侧缺陷 ⇒ 按第 44/45 轮先例：撤回，不留下假登记。保留条目而非删除：留下\"我错过一次\"的痕迹更有用。",
-      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）",
+      "class": "out-of-scope",
+      "class_理由": "owner=consumer：落在站点内容/页面上 ⇒ 本域只报告 ✓"
     }
   ],
   "expectations": {

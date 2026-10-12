@@ -47,6 +47,7 @@ CHECKS = [
     ('矩阵原语', '两侧 + 生成物最新', [PY, 'tools/verify-mat.py'], None),
     ('矩阵原语', '独立裁决（精确有理数复算）', ['node', 'tools/audit-matrix-exact.mjs'], None),
     ('内容', '内容规范与缓存指纹', [PY, 'tools/check-lab.py'], None),
+    ('静态', 'CI workflow 自身的结构（顶层键/三触发/步骤清单/无 TAB）', [PY, 'tools/check-workflow.py'], None),
     ('内容', 'lab-data.js 可无损重建', ['node', 'tools/verify-labs.mjs'], None),
     ('引擎', '无浏览器跑完全部任务', ['node', 'tools/verify-engine.mjs'], None),
     ('引擎', '判题注册表回归', ['node', 'tools/verify-registry.mjs'], None),

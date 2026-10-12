@@ -1,0 +1,23 @@
+#!/usr/bin/env bash
+# 仓库自带的 pre-commit（审查发现第 3 件 ✓）：**默认跑得到**的快检 ✓。
+# ⚠️ 它**不要求绝对拦死** ✗ —— `git commit --no-verify` 是标准的绕过方式 ✓；要求的是"默认跑得到" ✓。
+# ⚠️ **快** ✓：只跑静态三条（**不跑 --all** ✗，那要几分钟 ⇒ 会把人逼去绕过钩子 ✓）。
+set -u
+ROOT="$(git rev-parse --show-toplevel)"
+HD="$(dirname "$ROOT")/../_handoff"
+fail=0
+
+echo "── pre-commit 快检 1/3 脚本卫生（美元变量紧邻全角 ✓）──"
+python3 "$HD/检查脚本卫生.py" >/tmp/pc-hyg.out 2>&1 && tail -2 /tmp/pc-hyg.out || { sed -n '1,12p' /tmp/pc-hyg.out; fail=1; }
+
+echo "── pre-commit 快检 2/3 死代码（check-dead-code.py ✓）──"
+python3 "$ROOT/apps/linalg-lab/tools/check-dead-code.py" >/tmp/pc-dead.out 2>&1 && tail -1 /tmp/pc-dead.out || { sed -n '1,12p' /tmp/pc-dead.out; fail=1; }
+
+echo "── pre-commit 快检 3/3 workflow 结构（check-workflow.py ✓）──"
+python3 "$ROOT/apps/linalg-lab/tools/check-workflow.py" >/tmp/pc-wf.out 2>&1 && tail -2 /tmp/pc-wf.out || { sed -n '1,12p' /tmp/pc-wf.out; fail=1; }
+
+if [ "$fail" = "1" ]; then
+  echo "✗ pre-commit 快检未过 ⇒ 提交被拒（**可以 `--no-verify` 绕过** ✓，但默认跑得到 ✓）"
+  exit 1
+fi
+echo "✓ pre-commit 快检通过（三条静态 ✓）"
