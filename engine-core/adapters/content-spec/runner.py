@@ -424,6 +424,13 @@ def main():
         return 1
     if not quiet:
         print('=== %s ===' % m['title'])
+        # **空集合上的"完成"不是完成**（第六十八轮）：`--discover --check <id>` 若筛出 0 条，
+        # 那"标定完成：0 条判定"和"207 条"长得一样像完成 ⇒ 那是**假绿形态** ✗。
+        # ⚠️ 只在**给了 --check** 时判：完整 discover / selftest 的 results 可能自然为空 ✓（我第一版用 pairs 判 ⇒ NameError ✗）。
+        if only_check and not results:
+            print('⚠️ 这个档下筛出 0 条 —— 档位选错了？**render 类检查在 env 档**：'
+                  'repo 档会把 evidence==render 的检查整体过滤掉（见 pair_is_env）✗')
+            return 2
         print('来源 %d ｜ 检查 %d ｜ 产物 %d ｜ 判定 %d 条 ｜ 模式 %s'
               % (len(m['sources']), len(m['checks']),
                  sum(len(s['artifacts']) for s in m['sources']), len(results), mode))

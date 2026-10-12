@@ -1264,10 +1264,10 @@
       "lab-L00-S8": "pass",
       "katex-bad": "pass",
       "contrast-bad": "pass",
-      "anchor-bad": "skip",
-      "anchor-ok": "skip",
-      "highlight-bad": "skip",
-      "highlight-ok": "skip"
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "field-coverage": {
       "renderer": "fail",
@@ -1329,8 +1329,8 @@
       "contrast-bad": "skip",
       "anchor-bad": "skip",
       "anchor-ok": "skip",
-      "highlight-bad": "skip",
-      "highlight-ok": "skip"
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "capability-matrix": {
       "renderer": "fail",
@@ -1401,50 +1401,26 @@
       "ch1.value-mutant": "pass",
       "katex-bad": "pass",
       "contrast-bad": "pass",
-      "anchor-bad": "skip",
-      "anchor-ok": "skip",
-      "highlight-bad": "skip",
-      "highlight-ok": "skip"
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
       "ch6.numbering-mutant": "skip",
       "ch6.overflow-mutant": "skip",
       "ch6.volume-mutant": "skip",
-      "frag-L00-S1": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
+      "frag-L00-S1": "skip",
       "frag-L00-S1.forbidden-mutant": "fail",
       "frag-L00-S1.orphan-class": "pass",
-      "frag-L00-S2": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S3": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S4": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S5": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S6": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S7": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
-      "frag-L00-S8": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
+      "frag-L00-S2": "skip",
+      "frag-L00-S3": "skip",
+      "frag-L00-S4": "skip",
+      "frag-L00-S5": "skip",
+      "frag-L00-S6": "skip",
+      "frag-L00-S7": "skip",
+      "frag-L00-S8": "skip",
       "lab-L00-S1": "fail",
       "lab-L00-S2": "fail",
       "lab-L00-S3": "fail",
@@ -1466,15 +1442,12 @@
       "page-ch8.html": "skip",
       "page-ch9.html": "skip",
       "ch1.value-mutant": "skip",
-      "katex-bad": {
-        "verdict": "skip",
-        "why": "产物没有 <style> 块（DOM 由运行时生成）—— 本项不适用"
-      },
+      "katex-bad": "skip",
       "contrast-bad": "skip",
-      "anchor-bad": "skip",
+      "anchor-bad": "pass",
       "anchor-ok": "skip",
-      "highlight-bad": "skip",
-      "highlight-ok": "skip"
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1508,10 +1481,7 @@
       "ch6.volume-mutant": "fail",
       "frag-L00-S1": "pass",
       "frag-L00-S1.forbidden-mutant": "pass",
-      "frag-L00-S1.orphan-class": {
-        "verdict": "skip",
-        "why": "该产物没有基线记录（frag-L00-S1.orphan-class）—— 本项不适用"
-      },
+      "frag-L00-S1.orphan-class": "skip",
       "frag-L00-S2": "pass",
       "frag-L00-S3": "pass",
       "frag-L00-S4": "pass",
@@ -1540,10 +1510,7 @@
       "page-ch8.html": "pass",
       "page-ch9.html": "pass",
       "ch1.value-mutant": "skip",
-      "katex-bad": {
-        "verdict": "skip",
-        "why": "该产物没有基线记录（katex-bad）—— 本项不适用"
-      },
+      "katex-bad": "skip",
       "contrast-bad": "skip",
       "anchor-bad": "skip",
       "anchor-ok": "skip",
@@ -1553,17 +1520,11 @@
     "delegate": {
       "delegate-bad": "fail",
       "delegate-chart-visual": "skip",
-      "delegate-crash": {
-        "verdict": "skip",
-        "why": "检查器故障：工具自身没跑起来（不是内容问题，也不一定是环境）——RuntimeError: 夹具故意崩溃"
-      },
+      "delegate-crash": "skip",
       "delegate-example-order": "pass",
       "delegate-figure": "pass",
       "delegate-latex": "pass",
-      "delegate-missing": {
-        "verdict": "skip",
-        "why": "环境不足：产物不在位（fixtures/delegates/不存在.py）"
-      },
+      "delegate-missing": "skip",
       "delegate-missing-math": "fail",
       "delegate-numbering": "pass",
       "delegate-ok": "pass",
@@ -1604,11 +1565,11 @@
       "page-ch10.html": "skip",
       "page-ch11.html": "skip",
       "page-ch12.html": "skip",
-      "page-ch2.html": "pass",
+      "page-ch2.html": "fail",
       "page-ch3.html": "skip",
       "page-ch4.html": "skip",
       "page-ch5.html": "skip",
-      "page-ch6.html": "pass",
+      "page-ch6.html": "fail",
       "page-ch7.html": "skip",
       "page-ch8.html": "skip",
       "page-ch9.html": "skip",
@@ -1753,10 +1714,10 @@
       "frag-L00-S1.forbidden-mutant": "pass",
       "frag-L00-S1.orphan-class": "pass",
       "katex-bad": "pass",
-      "anchor-bad": "skip",
-      "anchor-ok": "skip",
-      "highlight-bad": "skip",
-      "highlight-ok": "skip"
+      "anchor-bad": "pass",
+      "anchor-ok": "pass",
+      "highlight-bad": "pass",
+      "highlight-ok": "pass"
     },
     "spacing-scale": {
       "renderer": "fail",
