@@ -65,3 +65,21 @@ jobs:
             /tmp/suite.err
             /tmp/suite.rc
             /tmp/suite-summary.md
+
+      # P7（第八十一轮）：artifact 的 zip 在 agent 侧下载不到（三次都失败）⇒ 绕过去比修它划算：
+      # 把 Summary 同时写进仓库内的文件（ci-logs/），并 cat 进 step 日志。
+      - name: 汇总落文件（P7 · 让 agent 也读得到 Summary）
+        if: always()
+        run: |
+          mkdir -p ci-logs
+          S="$GITHUB_STEP_SUMMARY"
+          if [ -n "$S" ] && [ -f "$S" ]; then cp "$S" "ci-logs/summary-${{ github.run_number }}.md"; \
+          else echo '（本步没有 summary 文件 ⇒ 如实写缺口）' > "ci-logs/summary-${{ github.run_number }}.md"; fi
+          cat "ci-logs/summary-${{ github.run_number }}.md"
+      - name: 提交 Summary（agent 用普通 git 就能读）
+        if: always()
+        run: |
+          git config user.name ci-bot; git config user.email ci@local
+          git add ci-logs/ 2>/dev/null || true
+          git commit -m 'CI: summary for run ${{ github.run_number }} (P7)' 2>/dev/null || echo no-change
+          git push 2>/dev/null || echo 'push 失败 ⇒ 至少 step 日志里有全文'
