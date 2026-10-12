@@ -240,6 +240,16 @@ def selfcheck_classify():
             bad.append('分类出没声明的 kind：%r' % got)
     return (not bad), bad
 
+# **P6（第八十一轮）**：`--quick` —— **少跑不是少判** ✓（审计方点名的边界 ✓）。
+# 做法 ✓：`--quick` 下**跳过慢项**（渲染类，需浏览器 ✓），但**必须把它们逐条印成"未跑"** ✓，
+# 并且**整轮退出码 = 2（没验成）** ✓ —— 绝不是 0 ✓（0 会被读成"全绿" ✗）。
+SLOW_HINT = ('渲染', '浏览器', '探针', 'render')
+
+
+def _is_slow(name):
+    return any(h in name for h in SLOW_HINT)
+
+
 def main():
     # 第十九轮修 D：**聚合器自检** —— 分类契约不成立就立刻退出（不许静默继续分类）
     _ok_c, _bad_c = selfcheck_classify()
@@ -250,6 +260,8 @@ def main():
         return 3
     argv = set(sys.argv[1:])
 
+    # P6：--quick —— **少跑不是少判** ✓（未跑的项在下面逐条印出，整轮退 2 ✓）
+    _quick = '--quick' in argv
     # 只报"一共有多少项检查"，供交付闸门核对材料（申报书/PPT/海报）里的数字是否过期。
     # 不跑任何检查，所以很快。由来：项数从 19 变 20 时材料里有 11 个文件写着旧数字，
     # 全靠人肉同步——"同步漏一处"正是本项目最典型的文档缺陷。
@@ -286,6 +298,12 @@ def main():
     rows = []
     _kd_items = []   # 含已登记缺陷的**项**（收尾计数用这个，不再从说明文本里数词）
     for group, name, cmd, need in CHECKS:
+        # P6 · --quick：**少跑不是少判** ✓
+        # 慢项（要浏览器/探针）在 --quick 下不跑，但**逐条印成未跑** ✓，且整轮退 2（**没验成** ✓，不是通过 ✗）。
+        # 判据与阈值一个字都没动 ✓ —— 只是把"没跑"如实说出来 ✓。
+        if _quick and (need == 'browser' or _is_slow(name)):
+            rows.append((group, name, None, '**未跑（--quick）** ⇒ 本轮结论不完整 ✓', 'not_selected'))
+            continue
         if need == 'browser' and not want_browser:
             rows.append((group, name, None, '未选择（需 --with-browser）', 'not_selected'))
             continue
@@ -425,6 +443,9 @@ def main():
               % (len(rows), len(_kd_items), _tot2))
     else:
         print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
+    if _quick and any(r[4] == 'not_selected' and '--quick' in (r[3] or '') for r in rows):
+        print('⚠️ **--quick：有项未跑** ⇒ 退 2（**没验成** ✓，不是通过 ✗）')
+        return 2
     return 0
 
 

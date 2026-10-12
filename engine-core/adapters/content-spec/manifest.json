@@ -1295,7 +1295,9 @@
       "scale": "46 条解析、28 个选项、21 个题干含反引号",
       "found_by": "盲测（Q21 验收）",
       "needed_check": "能力覆盖要按**字段**判定，不能只按文件判定",
-      "check_id": "field-coverage"
+      "check_id": "field-coverage",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "selfcheck-single-path",
@@ -1304,7 +1306,9 @@
       "evidence": "scripts/build-lab-fragments.py:791-792（只用 STANDALONE_TEMPLATE / STANDALONE_JS）",
       "found_by": "盲测",
       "needed_check": "自检必须覆盖全部渲染路径：任一路径独有的动作/分支都要进检查面",
-      "check_id": "selfcheck-path-coverage"
+      "check_id": "selfcheck-path-coverage",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "escape-asymmetry",
@@ -1312,7 +1316,9 @@
       "what": "片段侧只对 q.code 做了三个 replace，q.text 与选项**完全不转义**；语料里已有裸 <（如 np.ones((4,5)) 类文本）",
       "evidence": "scripts/build-lab-fragments.py:504-505（只转义 code）vs :514/:508（不转义）",
       "found_by": "盲测",
-      "needed_check": "进入 HTML 的每个字段都必须走同一个转义函数"
+      "needed_check": "进入 HTML 的每个字段都必须走同一个转义函数",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "declared-value-mismatch",
@@ -1321,7 +1327,9 @@
       "evidence": "scripts/build-lab-fragments.py:112 vs content/tasks/foundation-index.json",
       "found_by": "盲测",
       "needed_check": "声明与取值比对：CSS/枚举里的取值集合 必须等于 语料里实际出现的取值集合",
-      "check_id": "declared-value-vs-actual"
+      "check_id": "declared-value-vs-actual",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "undefined-css-var",
@@ -1330,7 +1338,9 @@
       "evidence": "scripts/build-lab-fragments.py:595",
       "found_by": "盲测",
       "needed_check": "用到的 CSS 变量/类名必须能在声明的样式来源里找到定义",
-      "check_id": "undefined-style-token"
+      "check_id": "undefined-style-token",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "render-path-capability-matrix",
@@ -1339,7 +1349,9 @@
       "evidence": "scripts/build-lab-fragments.py:284（renderReport）、264-280（三档）、STANDALONE_TEMPLATE:465（#report）",
       "found_by": "盲测",
       "needed_check": "两条渲染路径的能力矩阵（哪些能力有/无）必须显式声明并比对，而不是靠人来发现",
-      "check_id": "capability-matrix"
+      "check_id": "capability-matrix",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "footer-wording-drift",
@@ -1348,7 +1360,9 @@
       "evidence": "01_活工程/线代_两站对照/snapshot/chapters/ch1.html vs ch10.html（site-footer 块 sha256 前 8 位 008165xx vs b81a5cxx）",
       "found_by": "**content-spec 域在真实站点上的首跑**（不是突变体、不是我先验知识）",
       "check_id": "single-source",
-      "note": "这正是那站自己台账里\"导航被每页各写一份\"的同类残留：改成单一数据源之后，仍有一页没跟上。判据是\"声明为必须逐字节相同的块在全部页面一致\"。"
+      "note": "这正是那站自己台账里\"导航被每页各写一份\"的同类残留：改成单一数据源之后，仍有一页没跟上。判据是\"声明为必须逐字节相同的块在全部页面一致\"。",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "duplicate-selector-cd",
@@ -1356,7 +1370,9 @@
       "what": "8 个独立页（lab-L00-S1..S8）的样式表里同一个选择器 `.cd` 出现两次：一次在组合选择器里（`.tx code, .opts code, .exps code, .cd`，行内代码样式），一次独立定义成块级代码。后一条覆盖前者的 padding/background。用户 UI 规范「明确禁止」里写着「同类选择器只允许出现一次」——判据不猜意图：若是有意的两步级联，应在 manifest 的 allowed_duplicates 里声明。",
       "evidence": "fixtures/renzhi/lab-L00-S1.html:58 与 :61（其余 7 个独立页同构）",
       "found_by": "**content-spec 域新检查 `duplicate-selector` 的首跑**（真实内容，不是突变体）",
-      "check_id": "duplicate-selector"
+      "check_id": "duplicate-selector",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "lab-return-link-small-target",
@@ -1365,7 +1381,9 @@
       "evidence": "render-measure: lab-L00-S1.html（真实浏览器量测）",
       "found_by": "**content-spec 首条 render 证据的检查**（真实浏览器，不是静态推断）",
       "check_id": "render-measure",
-      "severity": "轻微：可达性/触屏可用性，属建议级"
+      "severity": "轻微：可达性/触屏可用性，属建议级",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "missing-math-in-exam",
@@ -1375,7 +1393,9 @@
       "found_by": "**委托机制的首个真实产出**：把站点自有的 27 个脚本接进来后，这一条立刻暴露",
       "check_id": "delegate",
       "note": "这正是 Q13 说的分工——口径是站点自己的，引擎不重写它的规矩，只把结论纳入同一契约",
-      "id_note": "原登记名 missing-math-in-exam 基于脚本末行（exam.html: 1）；正文实为 ch1.html 多处，已改正"
+      "id_note": "原登记名 missing-math-in-exam 基于脚本末行（exam.html: 1）；正文实为 ch1.html 多处，已改正",
+      "owner": "engine",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     },
     {
       "id": "mastered-checkbox-label-under-20px",
@@ -1487,7 +1507,7 @@
     {
       "id": "toc-body-mismatch-gaoshu",
       "title": "高数站章节页：目录与正文标题不一致（双向都有缺口）",
-      "owner": null,
+      "owner": "consumer",
       "现象": "【已撤回】原写\"env 档 17 章里 6 条判红\"——该说法错误（见「撤回理由」）",
       "照着谁改": "目录容器/链接/标题层级的选择器由 manifest.sources[].toc_coverage 声明（toc_selector=nav.toc,aside.toc,.table-of-contents,[data-toc]；toc_link_selector=a[href^=\"#\"]；heading_selector=h2,h3,h4；heading_levels=[2,3,4]）—— 内容线按此补目录项/补 id",
       "验证命令": "cd 工作台/线代交互实验台 && python3 engine-core/adapters/content-spec/runner.py --discover --check toc-coverage --scope env",
@@ -1497,7 +1517,8 @@
       "status": "已撤回（第七十九轮）—— 真实语料 0 处",
       "note": "**6 处**（逐条从判据输出取）：\n- toc-missing-target —— ① **目录项指向了不存在的标题**：目录文案「指向不存在的标题」→ href=\"#nope\"（页内没有这个 id ✓；共 1 处）\n- toc-missing-entry —— ② **正文标题未出现在目录里**：<2> 级标题「第二节：没进目录」（id=s2；位置 top=103；共 1 个）\n- ch6.volume-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.numbering-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.overflow-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.dup-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）",
       "**选哪一条**": "选了「1 条 + note 列 6 处」：这 6 处是同一缺陷类（同批页面、同生成流程、同改法、同验证命令）⇒ 拆 6 条只是把同一份改法重复 6 遍；\"是不是 6 处\"由判据每次跑都算（fail 6），不需要靠登记条数记。",
-      "撤回理由": "第七十八轮我报\"6 条真发现\"是错的：12 个真实章页 page-ch1..page-ch12 全部 pass；判红的 6 条 = 2 个夹具（toc-missing-target ① / toc-missing-entry ②）+ 4 个 ch6 突变体（ch6.volume-mutant / ch6.numbering-mutant / ch6.overflow-mutant / ch6.dup-mutant，均②）⇒ 全是故意构造的坏例 ⇒ 不是消费者侧缺陷 ⇒ 按第 44/45 轮先例：撤回，不留下假登记。保留条目而非删除：留下\"我错过一次\"的痕迹更有用。"
+      "撤回理由": "第七十八轮我报\"6 条真发现\"是错的：12 个真实章页 page-ch1..page-ch12 全部 pass；判红的 6 条 = 2 个夹具（toc-missing-target ① / toc-missing-entry ②）+ 4 个 ch6 突变体（ch6.volume-mutant / ch6.numbering-mutant / ch6.overflow-mutant / ch6.dup-mutant，均②）⇒ 全是故意构造的坏例 ⇒ 不是消费者侧缺陷 ⇒ 按第 44/45 轮先例：撤回，不留下假登记。保留条目而非删除：留下\"我错过一次\"的痕迹更有用。",
+      "owner_来源": "第八十一轮确认后补（原先 owner=None ⇒ 老账 ✓）"
     }
   ],
   "expectations": {

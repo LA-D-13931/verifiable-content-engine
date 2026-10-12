@@ -168,6 +168,11 @@ def js_to_json(text):
 
 def parse_data():
     """把 lab-data.js 求值成 Python 对象。"""
+    if not os.path.isfile(DATA):
+        # ⚠️ 封包自证时抓到的**引擎侧真 bug** ✗：输入不在 ⇒ 原版**崩**（traceback ⇒ 退出码 3 ✓），
+        # 而三态纪律要求：**输入不在 = 环境不足（2）** ✓ —— "没验成" ≠ "检查器坏了" ≠ "失败" ✓。
+        print('ENV_INSUFFICIENT: 数据源不在：%s ⇒ 本检查**没验成**（不是失败，也不是通过）✓' % DATA)
+        sys.exit(2)
     src = open(DATA, encoding='utf-8').read()
 
     def extract(name):
