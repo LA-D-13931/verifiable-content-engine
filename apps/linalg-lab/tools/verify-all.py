@@ -370,6 +370,11 @@ def main():
     # 判据：子进程按约定打印 `NOT-COMPARED: <原因>`（机器可读的一行协议，由我们自己的脚本输出），
     # 聚合层据此计数——它不是"文案猜环境"，而是一条**声明式协议行**（写在 check-figure-sync.py 的 docstring 里）。
     not_compared = [(g, n) for g, n, ok, d, k in rows if 'NOT-COMPARED:' in (d or '')]
+    # P6 · --quick 的**单一出口** ✓：慢项没跑 ⇒ 整轮退 2（**没验成** ✓，不是通过 ✗）。
+    # 插在**汇总之前** ⇒ 任何分支都必经 ✓（前四版挂在各分支出口 ⇒ 全部落空 ✗）。
+    if _quick and any(r[4] == 'not_selected' and '--quick' in (r[3] or '') for r in rows):
+        print('⚠️ **--quick：有项未跑** ⇒ 退 2（**没验成** ✓，不是通过 ✗）')
+        sys.exit(2)
     hard_fail = [(g, n, d) for g, n, ok, d, k in rows if k == 'fail']
     crash_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'crash']
     env_bad = [(g, n, d) for g, n, ok, d, k in rows if k == 'environment']
@@ -444,9 +449,6 @@ def main():
               % (len(rows), len(_kd_items), _tot2))
     else:
         print('全部通过 ✓  %d 项已跑、0 跳过' % len(rows))
-    if _quick and any(r[4] == 'not_selected' and '--quick' in (r[3] or '') for r in rows):
-        print('⚠️ **--quick：有项未跑** ⇒ 退 2（**没验成** ✓，不是通过 ✗）')
-        return 2
     return 0
 
 
