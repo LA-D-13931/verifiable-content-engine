@@ -32,7 +32,7 @@ SKIP_DIRS = {'.git', 'node_modules', 'dist', '__pycache__', '.certificates', '.p
 # ⚠️ 第一版**漏了站点资源** ✗ ⇒ 解包里 `check-lab.py` 读不到 `assets/js/lab-data.js` ⇒ **崩**（exit 3 ✗）
 # ⇒ 现在把工具真正**读到的输入**也封进来 ✓（`assets/` 与 `index.html` ✓；仍排除 node_modules ✓）。
 INCLUDE = ['engine-core', 'apps/linalg-lab/tools', 'apps/linalg-lab/assets', 'apps/linalg-lab/index.html',
-           'README.md', '能力清单.md', '未做与计划.md', 'AGENTS.md']
+           'README.md', '能力清单.md', '未做与计划.md', 'AGENTS.md', '.githooks']
 
 
 def walk_files():
