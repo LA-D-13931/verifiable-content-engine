@@ -1487,16 +1487,17 @@
     {
       "id": "toc-body-mismatch-gaoshu",
       "title": "高数站章节页：目录与正文标题不一致（双向都有缺口）",
-      "owner": "consumer",
-      "现象": "env 档 17 章里 6 条判红：① 目录项指向不存在的标题 ② 正文标题未进目录（两类都出现）",
+      "owner": null,
+      "现象": "【已撤回】原写\"env 档 17 章里 6 条判红\"——该说法错误（见「撤回理由」）",
       "照着谁改": "目录容器/链接/标题层级的选择器由 manifest.sources[].toc_coverage 声明（toc_selector=nav.toc,aside.toc,.table-of-contents,[data-toc]；toc_link_selector=a[href^=\"#\"]；heading_selector=h2,h3,h4；heading_levels=[2,3,4]）—— 内容线按此补目录项/补 id",
       "验证命令": "cd 工作台/线代交互实验台 && python3 engine-core/adapters/content-spec/runner.py --discover --check toc-coverage --scope env",
       "evidence": "证书带 ①目录文案/href/目标 id 或 ②标题/层级/top；原始输出见 _handoff/30_证据/78-1-P12目录正文.md",
       "所在": "01_活工程/线代_两站对照/snapshot/chapters/ch*.html（仓库外，resolve=workspace）",
       "泛化": "任何\"目录与正文由不同流程生成、没有一致性校验\"的站点都会命中",
-      "status": "待消费者侧决定（补目录项 / 补 id / 或声明\"本站不要求目录\"⇒ 该来源判据自动转\"不适用\"）",
+      "status": "已撤回（第七十九轮）—— 真实语料 0 处",
       "note": "**6 处**（逐条从判据输出取）：\n- toc-missing-target —— ① **目录项指向了不存在的标题**：目录文案「指向不存在的标题」→ href=\"#nope\"（页内没有这个 id ✓；共 1 处）\n- toc-missing-entry —— ② **正文标题未出现在目录里**：<2> 级标题「第二节：没进目录」（id=s2；位置 top=103；共 1 个）\n- ch6.volume-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.numbering-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.overflow-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.dup-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）",
-      "**选哪一条**": "选了「1 条 + note 列 6 处」：这 6 处是同一缺陷类（同批页面、同生成流程、同改法、同验证命令）⇒ 拆 6 条只是把同一份改法重复 6 遍；\"是不是 6 处\"由判据每次跑都算（fail 6），不需要靠登记条数记。"
+      "**选哪一条**": "选了「1 条 + note 列 6 处」：这 6 处是同一缺陷类（同批页面、同生成流程、同改法、同验证命令）⇒ 拆 6 条只是把同一份改法重复 6 遍；\"是不是 6 处\"由判据每次跑都算（fail 6），不需要靠登记条数记。",
+      "撤回理由": "第七十八轮我报\"6 条真发现\"是错的：12 个真实章页 page-ch1..page-ch12 全部 pass；判红的 6 条 = 2 个夹具（toc-missing-target ① / toc-missing-entry ②）+ 4 个 ch6 突变体（ch6.volume-mutant / ch6.numbering-mutant / ch6.overflow-mutant / ch6.dup-mutant，均②）⇒ 全是故意构造的坏例 ⇒ 不是消费者侧缺陷 ⇒ 按第 44/45 轮先例：撤回，不留下假登记。保留条目而非删除：留下\"我错过一次\"的痕迹更有用。"
     }
   ],
   "expectations": {
