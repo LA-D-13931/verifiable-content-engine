@@ -60,3 +60,12 @@ cd apps/linalg-lab && npm run verify          # 离线项，零第三方依赖
 - 与外部的审计循环：读 `../_handoff/00_README.md`（**边界在它 §1，冲突时以它为准**）。
   每轮的要求在 `../_handoff/10_审计方的要求.md`，回复写在 `../_handoff/20_开发方的回复.md`，
   并更新 `../_handoff/01_轮次.md` 的状态与 revision。
+
+## 本机与流程坑
+
+- **`bash` 工具必须显式带 `workdir`** ✓，否则报 `Error: spawn bash ENOENT` —— **那不是环境故障** ✗，
+  是调用姿势错 ✓（第七十九轮我为此误判"环境挂了"，整轮都在带病跑 ✗）。每轮第一条命令固定为
+  `bash(workdir=<工作区>, "echo ok")` ✓。
+- **`grep` / `glob` 工具在本机不可用**（ripgrep provider failure ✓）⇒ 搜索一律走 `bash` 里的 `grep` ✓。
+
+- **每轮收尾看 CI run 的 `conclusion`** ✓（`gh`/API 取 `actions/runs`）—— 我有好几轮没看，直到被点名 ✗。
