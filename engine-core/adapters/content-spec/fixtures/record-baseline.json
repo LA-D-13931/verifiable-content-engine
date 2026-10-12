@@ -1,0 +1,8 @@
+{
+ "note": "**随仓库提交的基线** ✓（第七十轮定：不用每次跑快照 ✗ —— 快照型没有跨运行状态，判不出\"减少\" ✓）",
+ "records": {
+  "engine-core/adapters/content-spec/失败模式台账.md": 285,
+  "engine-core/README.md": 189,
+  "fixtures/renzhi/rec.md": null
+ }
+}

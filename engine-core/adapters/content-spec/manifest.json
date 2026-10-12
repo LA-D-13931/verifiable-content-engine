@@ -267,6 +267,16 @@
           "id": "delim-ok",
           "path": "fixtures/renzhi/delim-ok.html",
           "kind": "product"
+        },
+        {
+          "id": "ver-mismatch-site",
+          "path": "fixtures/renzhi/ver-site.json",
+          "kind": "product"
+        },
+        {
+          "id": "ver-mismatch-pkg",
+          "path": "fixtures/renzhi/ver-pkg.json",
+          "kind": "product"
         }
       ],
       "text_fields": [
@@ -361,7 +371,13 @@
       ],
       "value_sources": [
         "fixtures/renzhi/foundation-index.json"
-      ]
+      ],
+      "record_integrity": {
+        "files": [
+          "engine-core/adapters/content-spec/失败模式台账.md",
+          "engine-core/README.md"
+        ]
+      }
     },
     {
       "id": "gaoshu-site",
@@ -1063,6 +1079,28 @@
       "applies_to": "product",
       "severity": "advisory",
       "fn": "checks_delimiter:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "structural"
+    },
+    {
+      "id": "version-sync",
+      "title": "P7 版本同步（站点侧 vs 安装包侧）",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_version_sync:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "structural"
+    },
+    {
+      "id": "record-integrity",
+      "title": "P8 记录完好性（记录只许增）",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_record_integrity:run",
       "sources": [
         "renzhi-foundation"
       ],
@@ -2044,21 +2082,21 @@
       "delim-tick": "pass",
       "delim-ok": "pass",
       "frag-L00-S1": "pass",
-      "lab-L00-S1": "fail",
+      "lab-L00-S1": "pass",
       "frag-L00-S2": "pass",
-      "lab-L00-S2": "fail",
+      "lab-L00-S2": "pass",
       "frag-L00-S3": "pass",
-      "lab-L00-S3": "fail",
+      "lab-L00-S3": "pass",
       "frag-L00-S4": "pass",
-      "lab-L00-S4": "fail",
+      "lab-L00-S4": "pass",
       "frag-L00-S5": "pass",
-      "lab-L00-S5": "fail",
+      "lab-L00-S5": "pass",
       "frag-L00-S6": "pass",
-      "lab-L00-S6": "fail",
+      "lab-L00-S6": "pass",
       "frag-L00-S7": "pass",
-      "lab-L00-S7": "fail",
+      "lab-L00-S7": "pass",
       "frag-L00-S8": "pass",
-      "lab-L00-S8": "fail",
+      "lab-L00-S8": "pass",
       "frag-L00-S1.forbidden-mutant": "pass",
       "frag-L00-S1.orphan-class": "pass",
       "katex-bad": "pass",
@@ -2067,7 +2105,9 @@
       "anchor-ok": "pass",
       "highlight-bad": "pass",
       "highlight-ok": "pass"
-    }
+    },
+    "version-sync": {},
+    "record-integrity": {}
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",
   "sources_note": "源 2 与两个突变体源都是**站点级**（输入是一组页面）：真站快照来自工作区，突变体自足于 fixtures/。这样\"检查能不能抓\"就有真实站点 + 声明式突变两重反证。",

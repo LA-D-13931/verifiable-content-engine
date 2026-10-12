@@ -17,6 +17,9 @@ import re
 INLINE_LIMIT = 200
 FENCE = re.compile(r'```.*?```', re.S)
 TICK = re.compile(r'`[^`\n]*`')
+# 第七十轮补：HTML 页里的 <script>/<style> **不算公式** ✓ ——
+# 我第一版没剥它们 ⇒ JS 里的正则反向引用 `$1` 被当成定界符 ⇒ lab-L00-S* 8 条**假红** ✗（实测抓到的 ✓）。
+SCRIPT = re.compile(r'<(script|style)\b.*?</\1\s*>', re.S | re.I)
 
 
 def strip_code(text):
@@ -28,6 +31,8 @@ def strip_code(text):
         i = m.end()
     kept.append(text[i:])
     t = ''.join(kept)
+    # 顺序：先剥 <script>/<style>（整块 ✓），再剥行内反引号 ✓
+    t = SCRIPT.sub(lambda m: ' ' * len(m.group(0)), t)
     return TICK.sub(lambda m: ' ' * len(m.group(0)), t)
 
 
