@@ -23,7 +23,7 @@ cd engine-core/adapters/content-spec && python3 runner.py --discover --scope env
 | 想知道 | 看 |
 |---|---|
 | 引擎核心与适配层（检查清单、契约 C1/C2） | [`engine-core/README.md`](engine-core/README.md) |
-| 27 项自检各自在验什么 | [`能力清单.md`](能力清单.md) |
+| 28 项自检各自在验什么 | [`能力清单.md`](能力清单.md) |
 | 还没做的、以及为什么不做 | [`未做与计划.md`](未做与计划.md) |
 | 已知失败模式台账（P 项 / M 项） | [`engine-core/adapters/content-spec/失败模式台账.md`](engine-core/adapters/content-spec/失败模式台账.md) |
 | 覆盖了哪些痛点、漏检率是多少 | [`../理奥杯/漏检率.py`](../理奥杯/漏检率.py) |
