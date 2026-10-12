@@ -334,6 +334,31 @@
             ],
             "note": "**只验\"声明在不在\"，验不了真假** ✓ —— 但\"有没有\"是**二值的、可判的** ✓，正是台账要的那一条 ✓。格式**声明在这里**，不写死在 checks_provenance.py 里 ✓。"
           }
+        },
+        {
+          "id": "chart-literal",
+          "path": "fixtures/renzhi/chart-literal.html",
+          "kind": "product"
+        },
+        {
+          "id": "chart-declared",
+          "path": "fixtures/renzhi/chart-declared.html",
+          "kind": "product"
+        },
+        {
+          "id": "toc-missing-target",
+          "path": "fixtures/renzhi/toc-missing-target.html",
+          "kind": "product"
+        },
+        {
+          "id": "toc-missing-entry",
+          "path": "fixtures/renzhi/toc-missing-entry.html",
+          "kind": "product"
+        },
+        {
+          "id": "toc-ok",
+          "path": "fixtures/renzhi/toc-ok.html",
+          "kind": "product"
         }
       ],
       "text_fields": [
@@ -434,6 +459,35 @@
           "engine-core/adapters/content-spec/失败模式台账.md",
           "engine-core/README.md"
         ]
+      },
+      "chart_option_provenance": {
+        "requirement": "台账 P10：图表配置必须由**声明的脚本/数据**产出（不是手写 option），且可校验；**手写字面配置即报** ✓",
+        "declaration_markers": [
+          "data-chart-source=",
+          "data-chart-script=",
+          "<!-- chart-provenance:"
+        ],
+        "forbidden_markers": [
+          "new Chart(",
+          "option: {",
+          "options: {",
+          "chartOptions = {"
+        ],
+        "note": "**只判\"声明在不在 / 是不是手写字面量\"，不判\"声明真假\"** ✓（与 P4/P13 同一纪律 ✓）。标记**声明在这里**，不写死在 checks_chart_option.py 里 ✓。"
+      },
+      "toc_coverage": {
+        "requirement": "台账 P12：目录 ↔ 正文**双向一致** —— ① 目录里每一条都指向真实存在的标题 ✓；② 正文里的标题都出现在目录里 ✓",
+        "toc_selector": "nav.toc, aside.toc, .table-of-contents, [data-toc]",
+        "toc_link_selector": "a[href^=\"#\"]",
+        "heading_selector": "h2, h3, h4",
+        "heading_levels": [
+          2,
+          3,
+          4
+        ],
+        "id_attribute": "id",
+        "link_target_attribute": "href",
+        "note": "**\"指向\"用 href=\"#id\"** ✓（不用 data-* ✓）；目录容器与标题层级**都声明在这里** ✓，不写死在 checks_toc.py 里 ✓。只判\"双向一致\"，**不判目录排序/文案质量** ✗。"
       }
     },
     {
@@ -855,6 +909,20 @@
           "<footer class=\"source-declaration\""
         ],
         "note": "**只验\"声明在不在\"，验不了真假** ✓ —— 但\"有没有\"是**二值的、可判的** ✓，正是台账要的那一条 ✓。格式**声明在这里**，不写死在 checks_provenance.py 里 ✓。"
+      },
+      "toc_coverage": {
+        "requirement": "台账 P12：目录 ↔ 正文**双向一致** —— ① 目录里每一条都指向真实存在的标题 ✓；② 正文里的标题都出现在目录里 ✓",
+        "toc_selector": "nav.toc, aside.toc, .table-of-contents, [data-toc]",
+        "toc_link_selector": "a[href^=\"#\"]",
+        "heading_selector": "h2, h3, h4",
+        "heading_levels": [
+          2,
+          3,
+          4
+        ],
+        "id_attribute": "id",
+        "link_target_attribute": "href",
+        "note": "**\"指向\"用 href=\"#id\"** ✓（不用 data-* ✓）；目录容器与标题层级**都声明在这里** ✓，不写死在 checks_toc.py 里 ✓。只判\"双向一致\"，**不判目录排序/文案质量** ✗。"
       }
     },
     {
@@ -1185,6 +1253,29 @@
         "renzhi-foundation"
       ],
       "evidence": "structural"
+    },
+    {
+      "id": "chart-option-provenance",
+      "title": "P10 图表配置出处（手写字面配置即报）",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_chart_option:run",
+      "sources": [
+        "renzhi-foundation"
+      ],
+      "evidence": "structural"
+    },
+    {
+      "id": "toc-coverage",
+      "title": "P12 目录↔正文一致（双向，渲染维）",
+      "applies_to": "product",
+      "severity": "gate",
+      "fn": "checks_toc:run",
+      "sources": [
+        "gaoshu-pages",
+        "renzhi-foundation"
+      ],
+      "evidence": "render"
     }
   ],
   "delegates": [
@@ -1392,6 +1483,20 @@
       "验证命令": "cd 工作台/线代交互实验台 && python3 engine-core/adapters/content-spec/runner.py --discover --check provenance-disclosure --scope env",
       "status": "待消费者侧决定（补声明 / 或声明\"本站不要求来源声明\"⇒ 判据自动转\"不适用\" ✓）",
       "note": "**只验\"声明在不在\"，验不了真假** ✓ —— 但\"有没有\"是**二值的、可判的** ✓，正是台账 P13 要的那一条 ✓。"
+    },
+    {
+      "id": "toc-body-mismatch-gaoshu",
+      "title": "高数站章节页：目录与正文标题不一致（双向都有缺口）",
+      "owner": "consumer",
+      "现象": "env 档 17 章里 6 条判红：① 目录项指向不存在的标题 ② 正文标题未进目录（两类都出现）",
+      "照着谁改": "目录容器/链接/标题层级的选择器由 manifest.sources[].toc_coverage 声明（toc_selector=nav.toc,aside.toc,.table-of-contents,[data-toc]；toc_link_selector=a[href^=\"#\"]；heading_selector=h2,h3,h4；heading_levels=[2,3,4]）—— 内容线按此补目录项/补 id",
+      "验证命令": "cd 工作台/线代交互实验台 && python3 engine-core/adapters/content-spec/runner.py --discover --check toc-coverage --scope env",
+      "evidence": "证书带 ①目录文案/href/目标 id 或 ②标题/层级/top；原始输出见 _handoff/30_证据/78-1-P12目录正文.md",
+      "所在": "01_活工程/线代_两站对照/snapshot/chapters/ch*.html（仓库外，resolve=workspace）",
+      "泛化": "任何\"目录与正文由不同流程生成、没有一致性校验\"的站点都会命中",
+      "status": "待消费者侧决定（补目录项 / 补 id / 或声明\"本站不要求目录\"⇒ 该来源判据自动转\"不适用\"）",
+      "note": "**6 处**（逐条从判据输出取）：\n- toc-missing-target —— ① **目录项指向了不存在的标题**：目录文案「指向不存在的标题」→ href=\"#nope\"（页内没有这个 id ✓；共 1 处）\n- toc-missing-entry —— ② **正文标题未出现在目录里**：<2> 级标题「第二节：没进目录」（id=s2；位置 top=103；共 1 个）\n- ch6.volume-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.numbering-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.overflow-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）\n- ch6.dup-mutant —— ② **正文标题未出现在目录里**：<2> 级标题「6.1 定积分的元素法 / The Element Method」（id=s6-1；位置 top=318；共 3 个）",
+      "**选哪一条**": "选了「1 条 + note 列 6 处」：这 6 处是同一缺陷类（同批页面、同生成流程、同改法、同验证命令）⇒ 拆 6 条只是把同一份改法重复 6 遍；\"是不是 6 处\"由判据每次跑都算（fail 6），不需要靠登记条数记。"
     }
   ],
   "expectations": {
@@ -1432,7 +1537,12 @@
       "ver-sync-bad": "fail",
       "rec-short-bad": "fail",
       "prov-none": "fail",
-      "prov-ok": "fail"
+      "prov-ok": "fail",
+      "chart-literal": "fail",
+      "chart-declared": "fail",
+      "toc-missing-target": "fail",
+      "toc-missing-entry": "fail",
+      "toc-ok": "fail"
     },
     "undefined-style-token": {
       "frag-L00-S1": "fail",
@@ -1471,7 +1581,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "field-coverage": {
       "renderer": "fail",
@@ -1547,7 +1662,12 @@
       "ver-sync-bad": "skip",
       "rec-short-bad": "skip",
       "prov-none": "skip",
-      "prov-ok": "skip"
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "fail",
+      "toc-missing-entry": "fail",
+      "toc-ok": "fail"
     },
     "capability-matrix": {
       "renderer": "fail",
@@ -1634,7 +1754,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "duplicate-selector": {
       "ch6.dup-mutant": "skip",
@@ -1690,7 +1815,12 @@
       "ver-sync-bad": "skip",
       "rec-short-bad": "skip",
       "prov-none": "skip",
-      "prov-ok": "skip"
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
     },
     "numbering-contract": {
       "ch6.dup-mutant": "pass",
@@ -1771,7 +1901,12 @@
       "ver-sync-bad": "skip",
       "rec-short-bad": "skip",
       "prov-none": "skip",
-      "prov-ok": "skip"
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
     },
     "delegate": {
       "delegate-bad": "fail",
@@ -1848,7 +1983,12 @@
       "ver-sync-bad": "skip",
       "rec-short-bad": "skip",
       "prov-none": "skip",
-      "prov-ok": "skip"
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
     },
     "dup-block": {
       "ch6.dup-mutant": "fail",
@@ -1970,7 +2110,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "contrast-ratio": {
       "contrast-bad": "fail",
@@ -2012,7 +2157,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "spacing-scale": {
       "renderer": "fail",
@@ -2087,7 +2237,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "anchor-integrity": {
       "anchor-bad": "fail",
@@ -2162,7 +2317,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "fail",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "highlight-visibility": {
       "highlight-bad": "fail",
@@ -2237,7 +2397,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "formula-delimiter": {
       "delim-odd": "fail",
@@ -2276,7 +2441,12 @@
       "ver-sync-bad": "pass",
       "rec-short-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "version-sync": {
       "ver-sync-bad": "fail",
@@ -2315,7 +2485,12 @@
       "ver-mismatch-pkg": "skip",
       "rec-short-bad": "skip",
       "prov-none": "skip",
-      "prov-ok": "skip"
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
     },
     "record-integrity": {
       "rec-short-bad": "fail",
@@ -2354,7 +2529,12 @@
       "ver-mismatch-pkg": "pass",
       "ver-sync-bad": "pass",
       "prov-none": "pass",
-      "prov-ok": "pass"
+      "prov-ok": "pass",
+      "chart-literal": "pass",
+      "chart-declared": "pass",
+      "toc-missing-target": "pass",
+      "toc-missing-entry": "pass",
+      "toc-ok": "pass"
     },
     "provenance-disclosure": {
       "prov-none": "fail",
@@ -2410,7 +2590,117 @@
       "ver-mismatch-site": "skip",
       "ver-mismatch-pkg": "skip",
       "ver-sync-bad": "skip",
-      "rec-short-bad": "skip"
+      "rec-short-bad": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
+    },
+    "chart-option-provenance": {
+      "chart-declared": "pass",
+      "frag-L00-S1": "skip",
+      "lab-L00-S1": "skip",
+      "frag-L00-S2": "skip",
+      "lab-L00-S2": "skip",
+      "frag-L00-S3": "skip",
+      "lab-L00-S3": "skip",
+      "frag-L00-S4": "skip",
+      "lab-L00-S4": "skip",
+      "frag-L00-S5": "skip",
+      "lab-L00-S5": "skip",
+      "frag-L00-S6": "skip",
+      "lab-L00-S6": "skip",
+      "frag-L00-S7": "skip",
+      "lab-L00-S7": "skip",
+      "frag-L00-S8": "skip",
+      "lab-L00-S8": "skip",
+      "frag-L00-S1.forbidden-mutant": "skip",
+      "frag-L00-S1.orphan-class": "skip",
+      "katex-bad": "skip",
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip",
+      "delim-odd": "skip",
+      "delim-block": "skip",
+      "delim-long": "skip",
+      "delim-mix": "skip",
+      "delim-code": "skip",
+      "delim-tick": "skip",
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip",
+      "prov-none": "skip",
+      "prov-ok": "skip",
+      "chart-literal": "fail",
+      "toc-missing-target": "skip",
+      "toc-missing-entry": "skip",
+      "toc-ok": "skip"
+    },
+    "toc-coverage": {
+      "toc-missing-target": "fail",
+      "toc-missing-entry": "fail",
+      "toc-ok": "pass",
+      "frag-L00-S1": "skip",
+      "lab-L00-S1": "skip",
+      "frag-L00-S2": "skip",
+      "lab-L00-S2": "skip",
+      "frag-L00-S3": "skip",
+      "lab-L00-S3": "skip",
+      "frag-L00-S4": "skip",
+      "lab-L00-S4": "skip",
+      "frag-L00-S5": "skip",
+      "lab-L00-S5": "skip",
+      "frag-L00-S6": "skip",
+      "lab-L00-S6": "skip",
+      "frag-L00-S7": "skip",
+      "lab-L00-S7": "skip",
+      "frag-L00-S8": "skip",
+      "lab-L00-S8": "skip",
+      "frag-L00-S1.forbidden-mutant": "skip",
+      "frag-L00-S1.orphan-class": "skip",
+      "katex-bad": "skip",
+      "contrast-bad": "skip",
+      "anchor-bad": "skip",
+      "anchor-ok": "skip",
+      "highlight-bad": "skip",
+      "highlight-ok": "skip",
+      "delim-odd": "skip",
+      "delim-block": "skip",
+      "delim-long": "skip",
+      "delim-mix": "skip",
+      "delim-code": "skip",
+      "delim-tick": "skip",
+      "delim-ok": "skip",
+      "ver-mismatch-site": "skip",
+      "ver-mismatch-pkg": "skip",
+      "ver-sync-bad": "skip",
+      "rec-short-bad": "skip",
+      "prov-none": "skip",
+      "prov-ok": "skip",
+      "chart-literal": "skip",
+      "chart-declared": "skip",
+      "page-ch1.html": "pass",
+      "page-ch10.html": "pass",
+      "page-ch11.html": "pass",
+      "page-ch12.html": "pass",
+      "page-ch2.html": "pass",
+      "page-ch3.html": "pass",
+      "page-ch4.html": "pass",
+      "page-ch5.html": "pass",
+      "page-ch6.html": "pass",
+      "page-ch7.html": "pass",
+      "page-ch8.html": "pass",
+      "page-ch9.html": "pass",
+      "ch6.volume-mutant": "fail",
+      "ch6.numbering-mutant": "fail",
+      "ch6.overflow-mutant": "fail",
+      "ch6.dup-mutant": "fail",
+      "ch1.value-mutant": "skip"
     }
   },
   "expectations_note": "期望是**独立于检查输出**声明的：坏例来自真实截图与人工核对，好例来自独立测量（例如\"独立页的 JS 里 var(--lab-no) 出现 0 次\"）。先声明、再跑 selftest 对照；若不一致就是检查器或期望有病，不许\"改成一致\"。 站点级检查的期望同样独立声明：`snapshot · single-source = fail` 是**真实缺陷**（页脚两种版本，人工核对过），不是为了让某个数字好看。",

@@ -1,0 +1,7 @@
+<!doctype html><meta charset="utf-8">
+<div id="chart"></div>
+<script>
+  // 手写字面配置：没有声明它由哪个脚本/数据产出
+  const option = { xAxis: {type: 'category'}, yAxis: {}, series: [{type: 'bar', data: [1,2,3]}] };
+  new Chart(document.getElementById('chart'), option);
+</script>
