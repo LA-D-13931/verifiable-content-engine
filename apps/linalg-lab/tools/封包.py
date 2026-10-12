@@ -75,6 +75,13 @@ def main():
     open(os.path.join(root, 'VERSION.md'), 'w', encoding='utf-8').write(
         '# 引擎封包 %s\n\n'
         '- 引擎 revision：`%s`\n- 打包时间：%s\n- 事实源四数：`%s`\n\n'
+        '## 第 0 步：先跑就绪自检（**缺什么、补哪里**，一条命令说清 ✓）\n\n'
+        '```bash\ncd apps/linalg-lab && python3 tools/就绪自检.py\n```\n\n'
+        '依赖说明（包里**故意不带** node_modules ✗）：\n'
+        '- Python ≥ 3.9（引擎本体**只用标准库** ✓）\n'
+        '- Node 18+ 与 `npm install puppeteer-core`（仅**浏览器类工具**需要 ✓）\n'
+        '- 浏览器 Edge / Chrome / Chromium 任一（渲染量测需要 ✓）\n'
+        '- `01_活工程/线代_两站对照/snapshot/`：**被验对象**，不在包里 ✗，要一起带 ✓\n\n'
         '## 解包后怎么验（**两条命令，退出码即结论** ✓）\n\n'
         '```bash\ncd apps/linalg-lab && python3 tools/verify-all.py --all\n'
         'cd engine-core/adapters/content-spec && python3 runner.py --selftest --scope repo\n'
